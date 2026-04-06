@@ -1,0 +1,5 @@
+{
+  "name": "Nokael Concierge",
+  "description": "Urgent inter-emirate item delivery service in the UAE. Fast dispatch, dedicated drivers, direct pickup and delivery.",
+  "requestFramePermissions": ["geolocation"]
+}
