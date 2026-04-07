@@ -32,10 +32,12 @@ export default function GetQuote() {
   const [loading, setLoading] = React.useState(false);
   const [submitted, setSubmitted] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [pickupEmirate, setPickupEmirate] = React.useState('Dubai');
+  const [deliveryEmirate, setDeliveryEmirate] = React.useState('Dubai');
   const [formData, setFormData] = React.useState<Partial<QuoteRequest>>({
     pickup_location: '',
     delivery_location: '',
-    emirate: 'Dubai',
+    emirate: 'Dubai → Dubai',
     item_type: 'parcel',
     urgency: 'immediate',
     name: '',
@@ -45,6 +47,16 @@ export default function GetQuote() {
 
   const updateForm = (data: Partial<QuoteRequest>) => {
     setFormData(prev => ({ ...prev, ...data }));
+  };
+
+  const updatePickupEmirate = (val: string) => {
+    setPickupEmirate(val);
+    setFormData(prev => ({ ...prev, emirate: `${val} → ${deliveryEmirate}` }));
+  };
+
+  const updateDeliveryEmirate = (val: string) => {
+    setDeliveryEmirate(val);
+    setFormData(prev => ({ ...prev, emirate: `${pickupEmirate} → ${val}` }));
   };
 
   const nextStep = () => setStep(s => Math.min(s + 1, 4));
@@ -65,7 +77,7 @@ export default function GetQuote() {
       
       // Redirect to WhatsApp after 2 seconds
       setTimeout(() => {
-        const message = `Hi Nokael, I need a quote for a ${formData.item_type} delivery from ${formData.pickup_location} to ${formData.delivery_location} (${formData.emirate}). Urgency: ${formData.urgency}. My name is ${formData.name}.`;
+        const message = `Hi Nokael, I need a quote for a ${formData.item_type} delivery from ${formData.pickup_location}, ${pickupEmirate} to ${formData.delivery_location}, ${deliveryEmirate}. Urgency: ${formData.urgency}. My name is ${formData.name}.`;
         window.location.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
       }, 2000);
     } catch (err: any) {
@@ -145,48 +157,70 @@ export default function GetQuote() {
                   className="space-y-8"
                 >
                   <div className="space-y-6">
-                    <div>
-                      <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">Pickup Location</label>
-                      <div className="relative">
-                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
-                        <input
-                          required
-                          type="text"
-                          placeholder="Area, Building, or Street"
-                          className="w-full bg-brand-input border border-brand-input-border rounded-xl py-4 pl-12 pr-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
-                          value={formData.pickup_location}
-                          onChange={e => updateForm({ pickup_location: e.target.value })}
-                        />
+                    {/* Pickup */}
+                    <div className="p-5 rounded-2xl border border-brand-input-border bg-brand-input/40 space-y-4">
+                      <p className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-neon">📍 Pickup</p>
+                      <div>
+                        <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2">Emirate</label>
+                        <div className="relative">
+                          <select
+                            className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors appearance-none text-sm"
+                            value={pickupEmirate}
+                            onChange={e => updatePickupEmirate(e.target.value)}
+                          >
+                            {emirates.map(em => <option key={em} value={em} className="bg-brand-surface">{em}</option>)}
+                          </select>
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-brand-muted">
+                            <ArrowRight className="w-4 h-4 rotate-90" />
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">Delivery Destination</label>
-                      <div className="relative">
-                        <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
-                        <input
-                          required
-                          type="text"
-                          placeholder="Area, Building, or Street"
-                          className="w-full bg-brand-input border border-brand-input-border rounded-xl py-4 pl-12 pr-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
-                          value={formData.delivery_location}
-                          onChange={e => updateForm({ delivery_location: e.target.value })}
-                        />
+                      <div>
+                        <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2">Street / Area / Building</label>
+                        <div className="relative">
+                          <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                          <input
+                            required
+                            type="text"
+                            placeholder="e.g. Marina Tower, JBR"
+                            className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 pl-12 pr-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
+                            value={formData.pickup_location}
+                            onChange={e => updateForm({ pickup_location: e.target.value })}
+                          />
+                        </div>
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">Target Emirate</label>
-                      <div className="relative">
-                        <select
-                          className="w-full bg-brand-input border border-brand-input-border rounded-xl py-4 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors appearance-none text-sm"
-                          value={formData.emirate}
-                          onChange={e => updateForm({ emirate: e.target.value })}
-                        >
-                          {emirates.map(e => <option key={e} value={e} className="bg-brand-surface">{e}</option>)}
-                        </select>
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-brand-muted">
-                          <ArrowRight className="w-4 h-4 rotate-90" />
+                    {/* Delivery */}
+                    <div className="p-5 rounded-2xl border border-brand-input-border bg-brand-input/40 space-y-4">
+                      <p className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-neon">🏁 Delivery</p>
+                      <div>
+                        <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2">Emirate</label>
+                        <div className="relative">
+                          <select
+                            className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors appearance-none text-sm"
+                            value={deliveryEmirate}
+                            onChange={e => updateDeliveryEmirate(e.target.value)}
+                          >
+                            {emirates.map(em => <option key={em} value={em} className="bg-brand-surface">{em}</option>)}
+                          </select>
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-brand-muted">
+                            <ArrowRight className="w-4 h-4 rotate-90" />
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2">Street / Area / Building</label>
+                        <div className="relative">
+                          <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                          <input
+                            required
+                            type="text"
+                            placeholder="e.g. Khalifa City, Villa 45"
+                            className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 pl-12 pr-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
+                            value={formData.delivery_location}
+                            onChange={e => updateForm({ delivery_location: e.target.value })}
+                          />
                         </div>
                       </div>
                     </div>
