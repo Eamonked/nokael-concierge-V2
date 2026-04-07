@@ -1,30 +1,46 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Zap, Lock, ArrowRight, Loader2, ShieldCheck, Terminal } from 'lucide-react';
+import { Lock, ArrowRight, Loader2, Terminal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getSupabase } from '../lib/supabase';
 
 export default function Login() {
+  const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect if already authenticated
+  React.useEffect(() => {
+    const supabase = getSupabase();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) navigate('/dashboard');
+    });
+  }, [navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    // Simple demo password check
-    // In production, use Supabase Auth: supabase.auth.signInWithPassword()
-    setTimeout(() => {
-      if (password === 'nokael2026') {
-        localStorage.setItem('nokael_admin_auth', 'true');
-        navigate('/dashboard');
-      } else {
+    try {
+      const supabase = getSupabase();
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
         setError('Invalid dispatch credentials. Access denied.');
-        setLoading(false);
+      } else {
+        navigate('/dashboard');
       }
-    }, 1000);
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -46,18 +62,31 @@ export default function Login() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          <div>
-            <label className="block text-[10px] uppercase tracking-[0.3em] font-bold text-brand-muted mb-4">System Credentials</label>
-            <div className="relative">
-              <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-muted" />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-[10px] uppercase tracking-[0.3em] font-bold text-brand-muted mb-4">Admin Email</label>
               <input
                 required
-                type="password"
-                placeholder="Enter Access Key"
-                className="w-full bg-brand-input border border-brand-input-border rounded-2xl py-5 pl-14 pr-6 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-all font-display tracking-tight"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
+                type="email"
+                placeholder="admin@example.com"
+                className="w-full bg-brand-input border border-brand-input-border rounded-2xl py-5 px-6 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-all font-display tracking-tight"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
               />
+            </div>
+            <div>
+              <label className="block text-[10px] uppercase tracking-[0.3em] font-bold text-brand-muted mb-4">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-muted" />
+                <input
+                  required
+                  type="password"
+                  placeholder="Enter Access Key"
+                  className="w-full bg-brand-input border border-brand-input-border rounded-2xl py-5 pl-14 pr-6 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-all font-display tracking-tight"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 

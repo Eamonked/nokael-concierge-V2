@@ -32,7 +32,7 @@ import {
   AreaChart, 
   Area 
 } from 'recharts';
-import { getQuoteRequests, updateQuoteStatus, deleteQuoteRequest, type QuoteRequest } from '../lib/supabase';
+import { getSupabase, getQuoteRequests, updateQuoteStatus, deleteQuoteRequest, type QuoteRequest } from '../lib/supabase';
 import { Link, useNavigate } from 'react-router-dom';
 
 const StatCard = ({ title, value, icon: Icon, trend, color }: any) => (
@@ -61,13 +61,16 @@ export default function Dashboard() {
   const [filterStatus, setFilterStatus] = React.useState<string>('all');
   const navigate = useNavigate();
 
-  // Simple auth check for demo (in real app use Supabase Auth)
+  // Auth check using real Supabase session
   React.useEffect(() => {
-    const isAuth = localStorage.getItem('nokael_admin_auth');
-    if (!isAuth) {
-      navigate('/login');
-    }
-    fetchData();
+    const supabase = getSupabase();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate('/login');
+      } else {
+        fetchData();
+      }
+    });
   }, [navigate]);
 
   const fetchData = async () => {
@@ -103,8 +106,9 @@ export default function Dashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('nokael_admin_auth');
+  const handleLogout = async () => {
+    const supabase = getSupabase();
+    await supabase.auth.signOut();
     navigate('/login');
   };
 
