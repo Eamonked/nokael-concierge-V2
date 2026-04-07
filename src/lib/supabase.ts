@@ -37,13 +37,11 @@ export interface QuoteRequest {
 
 export const submitQuoteRequest = async (data: QuoteRequest) => {
   const supabase = getSupabase();
-  const { data: result, error } = await supabase
+  const { error } = await supabase
     .from('quote_requests')
-    .insert([data])
-    .select();
+    .insert([data]);
   
   if (error) throw error;
-  return result;
 };
 
 export const getQuoteRequests = async () => {
