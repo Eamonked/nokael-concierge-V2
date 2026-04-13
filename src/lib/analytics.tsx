@@ -1,0 +1,149 @@
+/**
+ * analytics.ts
+ *
+ * Handles:
+ *  1. UTM parameter capture from the URL into sessionStorage
+ *  2. Retrieving stored UTMs to append to Supabase leads
+ *  3. Firing Google Ads conversion events via gtag
+ *  4. Tracking WhatsApp link clicks as conversions
+ *
+ * Setup required in index.html:
+ *  - GTM snippet (see index.html)
+ *  - Set VITE_GADS_CONVERSION_ID and VITE_GADS_CONVERSION_LABEL in .env
+ */
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface UTMParams {
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
+  gclid?: string; // Google Click ID — critical for Google Ads attribution
+}
+
+// Extend Window so TypeScript knows gtag exists
+declare global {
+  interface Window {
+    dataLayer: any[];
+    gtag: (...args: any[]) => void;
+  }
+}
+
+// ─── UTM Capture ─────────────────────────────────────────────────────────────
+
+const UTM_STORAGE_KEY = 'nokael_utms';
+
+/**
+ * Call this once on app load (e.g. in main.tsx or App.tsx useEffect).
+ * Reads UTM params + gclid from the URL and saves them to sessionStorage.
+ * Only overwrites if new UTM params are present in the current URL so that
+ * navigating between pages doesn't erase the original ad attribution.
+ */
+export function captureUTMs(): void {
+  const params = new URLSearchParams(window.location.search);
+  const keys: (keyof UTMParams)[] = [
+    'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid'
+  ];
+
+  const fresh: UTMParams = {};
+  keys.forEach(key => {
+    const val = params.get(key);
+    if (val) fresh[key] = val;
+  });
+
+  // Only write if this URL actually has UTM data
+  if (Object.keys(fresh).length > 0) {
+    try {
+      sessionStorage.setItem(UTM_STORAGE_KEY, JSON.stringify(fresh));
+    } catch {
+      // sessionStorage unavailable (e.g. private browsing restrictions) — silently ignore
+    }
+  }
+}
+
+/**
+ * Returns the UTM params captured earlier in the session.
+ * Returns an empty object if none were captured.
+ */
+export function getStoredUTMs(): UTMParams {
+  try {
+    const raw = sessionStorage.getItem(UTM_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+// ─── gtag Helper ─────────────────────────────────────────────────────────────
+
+/**
+ * Safe wrapper around gtag — no-ops if gtag hasn't loaded yet
+ * (e.g. adblockers, slow connections, dev environment).
+ */
+function gtag(...args: any[]): void {
+  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+    window.gtag(...args);
+  }
+}
+
+// ─── Conversion Events ───────────────────────────────────────────────────────
+
+/**
+ * Fire when the GetQuote form is successfully submitted to Supabase.
+ * This is your primary Google Ads conversion action.
+ *
+ * Replace CONVERSION_ID and CONVERSION_LABEL with the values from
+ * Google Ads → Tools → Conversions → your "Form Submission" conversion action.
+ *
+ * These values are set via environment variables so they stay out of source control.
+ */
+export function trackFormSubmission(): void {
+  const conversionId = import.meta.env.VITE_GADS_CONVERSION_ID;
+  const conversionLabel = import.meta.env.VITE_GADS_CONVERSION_LABEL;
+
+  if (conversionId && conversionLabel) {
+    gtag('event', 'conversion', {
+      send_to: `${conversionId}/${conversionLabel}`,
+    });
+  }
+
+  // Also fire a GA4 event for reporting
+  gtag('event', 'generate_lead', {
+    event_category: 'quote_form',
+    event_label: 'form_submitted',
+  });
+}
+
+/**
+ * Fire when any WhatsApp CTA is clicked.
+ * Set up a separate "WhatsApp Click" conversion action in Google Ads
+ * and put its label in VITE_GADS_WA_CONVERSION_LABEL.
+ */
+export function trackWhatsAppClick(source: string = 'unknown'): void {
+  const conversionId = import.meta.env.VITE_GADS_CONVERSION_ID;
+  const waLabel = import.meta.env.VITE_GADS_WA_CONVERSION_LABEL;
+
+  if (conversionId && waLabel) {
+    gtag('event', 'conversion', {
+      send_to: `${conversionId}/${waLabel}`,
+    });
+  }
+
+  // GA4 event
+  gtag('event', 'whatsapp_click', {
+    event_category: 'engagement',
+    event_label: source,
+  });
+}
+
+/**
+ * Fire when the phone number is clicked.
+ */
+export function trackPhoneClick(): void {
+  gtag('event', 'phone_call_click', {
+    event_category: 'engagement',
+    event_label: 'phone_cta',
+  });
+}

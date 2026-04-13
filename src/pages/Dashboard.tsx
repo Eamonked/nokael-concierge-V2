@@ -325,6 +325,7 @@ export default function Dashboard() {
               <thead>
                 <tr className="bg-brand-input text-[9px] uppercase tracking-[0.3em] font-bold text-brand-muted">
                   <th className="px-10 py-5">Client Profile</th>
+                  <th className="px-10 py-5">Lead Source</th>
                   <th className="px-10 py-5">Dispatch Route</th>
                   <th className="px-10 py-5">Item / Urgency</th>
                   <th className="px-10 py-5">System Status</th>
@@ -337,6 +338,17 @@ export default function Dashboard() {
                     <td className="px-10 py-8">
                       <div className="font-medium text-brand-text mb-1.5 text-sm">{req.name}</div>
                       <div className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">{req.phone}</div>
+                    </td>
+                    <td className="px-10 py-8">
+                      {req.utm_source ? (
+                        <div className="space-y-1">
+                          <div className="text-[10px] text-brand-neon font-bold uppercase tracking-widest">{req.utm_source}</div>
+                          <div className="text-[9px] text-brand-muted uppercase tracking-wider">{req.utm_medium} / {req.utm_campaign}</div>
+                          {req.gclid && <div className="text-[8px] text-brand-muted/50 font-mono">GCLID: {req.gclid.substring(0, 8)}...</div>}
+                        </div>
+                      ) : (
+                        <div className="text-[9px] text-brand-muted uppercase tracking-widest italic opacity-50">Direct / Organic</div>
+                      )}
                     </td>
                     <td className="px-10 py-8">
                       <div className="flex items-center gap-3 text-sm font-medium mb-2">

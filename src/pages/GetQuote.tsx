@@ -1,7 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MapPin, Package, Zap, User, Phone, CheckCircle2, ArrowRight, ArrowLeft, MessageSquare, Loader2, Navigation, Truck, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { submitQuoteRequest, type QuoteRequest } from '../lib/supabase';
+import { captureUTMs, getStoredUTMs } from '../lib/analytics';
 import { WHATSAPP_NUMBER, DISPLAY_PHONE } from '../constants';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -28,9 +30,9 @@ const urgencyLevels = [
 ];
 
 export default function GetQuote() {
+  const navigate = useNavigate();
   const [step, setStep] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
-  const [submitted, setSubmitted] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [pickupEmirate, setPickupEmirate] = React.useState('Dubai');
   const [deliveryEmirate, setDeliveryEmirate] = React.useState('Dubai');
@@ -44,6 +46,11 @@ export default function GetQuote() {
     phone: '',
     whatsapp_opt_in: true,
   });
+
+  // Capture UTMs on page load — this is where most Google Ads traffic arrives
+  React.useEffect(() => {
+    captureUTMs();
+  }, []);
 
   const updateForm = (data: Partial<QuoteRequest>) => {
     setFormData(prev => ({ ...prev, ...data }));
@@ -71,15 +78,32 @@ export default function GetQuote() {
 
     setLoading(true);
     setError(null);
+
     try {
-      await submitQuoteRequest(formData as QuoteRequest);
-      setSubmitted(true);
-      
-      // Redirect to WhatsApp after 2 seconds
-      setTimeout(() => {
-        const message = `Hi Nokael, I need a quote for a ${formData.item_type} delivery from ${formData.pickup_location}, ${pickupEmirate} to ${formData.delivery_location}, ${deliveryEmirate}. Urgency: ${formData.urgency}. My name is ${formData.name}.`;
-        window.location.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-      }, 2000);
+      // Merge UTM attribution data into the lead record before saving
+      const utms = getStoredUTMs();
+      const enrichedData: QuoteRequest = {
+        ...(formData as QuoteRequest),
+        // UTM fields — these map to columns added via the SQL migration
+        utm_source: utms.utm_source,
+        utm_medium: utms.utm_medium,
+        utm_campaign: utms.utm_campaign,
+        utm_content: utms.utm_content,
+        utm_term: utms.utm_term,
+        gclid: utms.gclid,
+      };
+
+      await submitQuoteRequest(enrichedData);
+
+      // Build the pre-filled WhatsApp message
+      const message = encodeURIComponent(
+        `Hi Nokael, I need a quote for a ${formData.item_type} delivery from ${formData.pickup_location}, ${pickupEmirate} to ${formData.delivery_location}, ${deliveryEmirate}. Urgency: ${formData.urgency}. My name is ${formData.name}.`
+      );
+
+      // Navigate to /thank-you — this is where the Google Ads conversion pixel fires.
+      // The WhatsApp redirect happens from that page after a short delay.
+      navigate(`/thank-you?wa=${message}`);
+
     } catch (err: any) {
       console.error('Error submitting quote:', err);
       setError(err.message || 'There was an error submitting your request. Please check your Supabase configuration.');
@@ -87,30 +111,6 @@ export default function GetQuote() {
       setLoading(false);
     }
   };
-
-  if (submitted) {
-    return (
-      <div className="min-h-[80vh] flex items-center justify-center px-4">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full dispatch-card text-center py-16"
-        >
-          <div className="w-20 h-20 bg-brand-neon/10 rounded-full flex items-center justify-center mx-auto mb-10">
-            <CheckCircle2 className="w-10 h-10 text-brand-neon" />
-          </div>
-          <h2 className="text-3xl font-display font-medium tracking-tighter mb-4">Request Logged</h2>
-          <p className="text-brand-muted mb-10 leading-relaxed text-sm">
-            Your dispatch request has been entered into the system. Connecting you to a live dispatcher on WhatsApp...
-          </p>
-          <div className="flex items-center justify-center gap-3 text-brand-neon font-bold uppercase tracking-[0.3em] text-[10px]">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Connecting to Dispatch</span>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
@@ -130,18 +130,19 @@ export default function GetQuote() {
                 {error}
               </div>
             )}
+
             <div className="flex items-center justify-between mb-10 pb-6 border-b border-brand-border">
               <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted">
                 Step {step} / 4
               </p>
               <div className="flex gap-1">
                 {[1, 2, 3, 4].map(i => (
-                  <div 
-                    key={i} 
+                  <div
+                    key={i}
                     className={cn(
                       "w-6 h-1 rounded-full transition-all",
                       i <= step ? "bg-brand-neon" : "bg-brand-input-border"
-                    )} 
+                    )}
                   />
                 ))}
               </div>
@@ -162,66 +163,50 @@ export default function GetQuote() {
                       <p className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-neon">📍 Pickup</p>
                       <div>
                         <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2">Emirate</label>
-                        <div className="relative">
-                          <select
-                            className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors appearance-none text-sm"
-                            value={pickupEmirate}
-                            onChange={e => updatePickupEmirate(e.target.value)}
-                          >
-                            {emirates.map(em => <option key={em} value={em} className="bg-brand-surface">{em}</option>)}
-                          </select>
-                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-brand-muted">
-                            <ArrowRight className="w-4 h-4 rotate-90" />
-                          </div>
-                        </div>
+                        <select
+                          className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors appearance-none text-sm"
+                          value={pickupEmirate}
+                          onChange={e => updatePickupEmirate(e.target.value)}
+                        >
+                          {emirates.map(e => <option key={e} value={e}>{e}</option>)}
+                        </select>
                       </div>
                       <div>
-                        <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2">Street / Area / Building</label>
-                        <div className="relative">
-                          <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
-                          <input
-                            required
-                            type="text"
-                            placeholder="e.g. Marina Tower, JBR"
-                            className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 pl-12 pr-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
-                            value={formData.pickup_location}
-                            onChange={e => updateForm({ pickup_location: e.target.value })}
-                          />
-                        </div>
+                        <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2">Specific Location</label>
+                        <input
+                          required
+                          type="text"
+                          placeholder="e.g. JLT Cluster A, Tower 1"
+                          className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
+                          value={formData.pickup_location}
+                          onChange={e => updateForm({ pickup_location: e.target.value })}
+                        />
                       </div>
                     </div>
 
                     {/* Delivery */}
                     <div className="p-5 rounded-2xl border border-brand-input-border bg-brand-input/40 space-y-4">
-                      <p className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-neon">🏁 Delivery</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-blue">🏁 Delivery</p>
                       <div>
                         <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2">Emirate</label>
-                        <div className="relative">
-                          <select
-                            className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors appearance-none text-sm"
-                            value={deliveryEmirate}
-                            onChange={e => updateDeliveryEmirate(e.target.value)}
-                          >
-                            {emirates.map(em => <option key={em} value={em} className="bg-brand-surface">{em}</option>)}
-                          </select>
-                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-brand-muted">
-                            <ArrowRight className="w-4 h-4 rotate-90" />
-                          </div>
-                        </div>
+                        <select
+                          className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors appearance-none text-sm"
+                          value={deliveryEmirate}
+                          onChange={e => updateDeliveryEmirate(e.target.value)}
+                        >
+                          {emirates.map(e => <option key={e} value={e}>{e}</option>)}
+                        </select>
                       </div>
                       <div>
-                        <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2">Street / Area / Building</label>
-                        <div className="relative">
-                          <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
-                          <input
-                            required
-                            type="text"
-                            placeholder="e.g. Khalifa City, Villa 45"
-                            className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 pl-12 pr-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
-                            value={formData.delivery_location}
-                            onChange={e => updateForm({ delivery_location: e.target.value })}
-                          />
-                        </div>
+                        <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2">Specific Location</label>
+                        <input
+                          required
+                          type="text"
+                          placeholder="e.g. Al Reem Island, Gate Tower"
+                          className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
+                          value={formData.delivery_location}
+                          onChange={e => updateForm({ delivery_location: e.target.value })}
+                        />
                       </div>
                     </div>
                   </div>
@@ -234,27 +219,27 @@ export default function GetQuote() {
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
-                  className="space-y-8"
+                  className="grid grid-cols-2 gap-4"
                 >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {itemTypes.map(type => (
-                      <button
-                        key={type.id}
-                        type="button"
-                        onClick={() => updateForm({ item_type: type.id as any })}
-                        className={cn(
-                          "p-6 rounded-xl border transition-all text-left group",
-                          formData.item_type === type.id 
-                            ? "bg-brand-neon/5 border-brand-neon/30" 
-                            : "bg-brand-input border-brand-input-border hover:border-brand-neon/20"
-                        )}
-                      >
-                        <type.icon className={cn("w-6 h-6 mb-4 transition-colors", formData.item_type === type.id ? "text-brand-neon" : "text-brand-muted")} />
-                        <p className={cn("font-bold text-sm mb-1", formData.item_type === type.id ? "text-brand-text" : "text-brand-muted")}>{type.label}</p>
-                        <p className="text-[10px] text-brand-muted uppercase tracking-wider">{type.desc}</p>
-                      </button>
-                    ))}
-                  </div>
+                  {itemTypes.map(type => (
+                    <button
+                      key={type.id}
+                      type="button"
+                      onClick={() => updateForm({ item_type: type.id as any })}
+                      className={cn(
+                        "p-6 rounded-xl border transition-all text-left",
+                        formData.item_type === type.id
+                          ? "bg-brand-neon/5 border-brand-neon/30"
+                          : "bg-white/[0.02] border-white/[0.05] hover:border-white/[0.1]"
+                      )}
+                    >
+                      <type.icon className={cn("w-6 h-6 mb-4", formData.item_type === type.id ? "text-brand-neon" : "text-brand-muted")} />
+                      <p className={cn("text-sm font-bold mb-1", formData.item_type === type.id ? "text-white" : "text-brand-muted")}>
+                        {type.label}
+                      </p>
+                      <p className="text-[10px] text-brand-muted uppercase tracking-wider">{type.desc}</p>
+                    </button>
+                  ))}
                 </motion.div>
               )}
 
@@ -273,8 +258,8 @@ export default function GetQuote() {
                       onClick={() => updateForm({ urgency: level.id as any })}
                       className={cn(
                         "w-full p-6 rounded-xl border transition-all text-left flex items-center justify-between group",
-                        formData.urgency === level.id 
-                          ? "bg-brand-neon/5 border-brand-neon/30" 
+                        formData.urgency === level.id
+                          ? "bg-brand-neon/5 border-brand-neon/30"
                           : "bg-white/[0.02] border-white/[0.05] hover:border-white/[0.1]"
                       )}
                     >
@@ -316,7 +301,7 @@ export default function GetQuote() {
                         />
                       </div>
                     </div>
-                    
+
                     <div>
                       <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">Phone Number</label>
                       <div className="relative">

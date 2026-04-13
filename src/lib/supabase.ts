@@ -33,6 +33,13 @@ export interface QuoteRequest {
   phone: string;
   whatsapp_opt_in: boolean;
   status?: 'pending' | 'contacted' | 'completed';
+  // UTM Attribution Fields
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
+  gclid?: string;
 }
 
 export const submitQuoteRequest = async (data: QuoteRequest) => {
