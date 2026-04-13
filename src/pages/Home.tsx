@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { MessageSquare, ArrowRight, Zap, Shield, MapPin, Clock, CheckCircle2, ChevronRight, Phone, X, Navigation, Package, Truck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { WHATSAPP_NUMBER, PHONE_NUMBER } from '../constants';
+import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
 
 const Hero = () => {
   return (
@@ -32,6 +33,7 @@ const Hero = () => {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-16">
               <a
                 href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                onClick={() => trackWhatsAppClick('hero')}
                 className="btn-primary"
               >
                 <MessageSquare className="w-5 h-5" />
@@ -272,6 +274,7 @@ const FinalAction = () => {
         <div className="flex flex-col md:flex-row items-center justify-center gap-6">
           <a
             href={`https://wa.me/${WHATSAPP_NUMBER}`}
+            onClick={() => trackWhatsAppClick('final_cta')}
             className="btn-primary px-12 py-6 text-lg"
           >
             <MessageSquare className="w-6 h-6" />
@@ -280,6 +283,7 @@ const FinalAction = () => {
           
           <a
             href={`tel:${PHONE_NUMBER}`}
+            onClick={trackPhoneClick}
             className="btn-secondary px-12 py-6 text-lg"
           >
             <Phone className="w-6 h-6" />

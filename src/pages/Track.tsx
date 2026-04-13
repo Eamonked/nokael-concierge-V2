@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, MapPin, Navigation, Clock, CheckCircle2, Loader2, MessageSquare, Phone, Zap, Truck } from 'lucide-react';
 import { WHATSAPP_NUMBER } from '../constants';
+import { trackWhatsAppClick } from '../lib/analytics';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -93,7 +94,11 @@ export default function Track() {
                 </div>
                 <h3 className="text-xl font-display font-medium mb-2">Dispatch ID Not Found</h3>
                 <p className="text-brand-muted text-sm mb-8">We couldn't locate a live dispatch with that ID. Please check the number or contact dispatch.</p>
-                <a href={`https://wa.me/${WHATSAPP_NUMBER}`} className="btn-secondary inline-flex py-3 px-8">
+                <a 
+                  href={`https://wa.me/${WHATSAPP_NUMBER}`} 
+                  onClick={() => trackWhatsAppClick('track_not_found')}
+                  className="btn-secondary inline-flex py-3 px-8"
+                >
                   <MessageSquare className="w-4 h-4" />
                   <span>Contact Dispatch</span>
                 </a>
@@ -152,7 +157,11 @@ export default function Track() {
                     </div>
                   </div>
                   <div className="dispatch-card py-6 flex items-center justify-center gap-4">
-                    <a href={`https://wa.me/${WHATSAPP_NUMBER}`} className="btn-primary flex-1 py-3 text-[10px]">
+                    <a 
+                      href={`https://wa.me/${WHATSAPP_NUMBER}`} 
+                      onClick={() => trackWhatsAppClick('track_driver_chat')}
+                      className="btn-primary flex-1 py-3 text-[10px]"
+                    >
                       <MessageSquare className="w-4 h-4" />
                       <span>WhatsApp Driver</span>
                     </a>

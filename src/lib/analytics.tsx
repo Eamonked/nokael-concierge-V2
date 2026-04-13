@@ -79,12 +79,23 @@ export function getStoredUTMs(): UTMParams {
 // ─── gtag Helper ─────────────────────────────────────────────────────────────
 
 /**
- * Safe wrapper around gtag — no-ops if gtag hasn't loaded yet
- * (e.g. adblockers, slow connections, dev environment).
+ * Safe wrapper around gtag and dataLayer — no-ops if they haven't loaded yet.
+ * Standardizes event firing for both gtag.js and GTM.
  */
-function gtag(...args: any[]): void {
-  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-    window.gtag(...args);
+function pushEvent(eventName: string, params: Record<string, any> = {}): void {
+  if (typeof window === 'undefined') return;
+
+  // 1. Fire via gtag (if available)
+  if (typeof window.gtag === 'function') {
+    window.gtag('event', eventName, params);
+  }
+
+  // 2. Fire via dataLayer for GTM
+  if (window.dataLayer) {
+    window.dataLayer.push({
+      event: eventName,
+      ...params
+    });
   }
 }
 
@@ -93,24 +104,21 @@ function gtag(...args: any[]): void {
 /**
  * Fire when the GetQuote form is successfully submitted to Supabase.
  * This is your primary Google Ads conversion action.
- *
- * Replace CONVERSION_ID and CONVERSION_LABEL with the values from
- * Google Ads → Tools → Conversions → your "Form Submission" conversion action.
- *
- * These values are set via environment variables so they stay out of source control.
  */
 export function trackFormSubmission(): void {
   const conversionId = import.meta.env.VITE_GADS_CONVERSION_ID;
   const conversionLabel = import.meta.env.VITE_GADS_CONVERSION_LABEL;
 
   if (conversionId && conversionLabel) {
-    gtag('event', 'conversion', {
-      send_to: `${conversionId}/${conversionLabel}`,
-    });
+    if (typeof window.gtag === 'function') {
+      window.gtag('event', 'conversion', {
+        send_to: `${conversionId}/${conversionLabel}`,
+      });
+    }
   }
 
-  // Also fire a GA4 event for reporting
-  gtag('event', 'generate_lead', {
+  // Fire generic lead event for GTM/GA4
+  pushEvent('generate_lead', {
     event_category: 'quote_form',
     event_label: 'form_submitted',
   });
@@ -118,21 +126,21 @@ export function trackFormSubmission(): void {
 
 /**
  * Fire when any WhatsApp CTA is clicked.
- * Set up a separate "WhatsApp Click" conversion action in Google Ads
- * and put its label in VITE_GADS_WA_CONVERSION_LABEL.
  */
 export function trackWhatsAppClick(source: string = 'unknown'): void {
   const conversionId = import.meta.env.VITE_GADS_CONVERSION_ID;
   const waLabel = import.meta.env.VITE_GADS_WA_CONVERSION_LABEL;
 
   if (conversionId && waLabel) {
-    gtag('event', 'conversion', {
-      send_to: `${conversionId}/${waLabel}`,
-    });
+    if (typeof window.gtag === 'function') {
+      window.gtag('event', 'conversion', {
+        send_to: `${conversionId}/${waLabel}`,
+      });
+    }
   }
 
-  // GA4 event
-  gtag('event', 'whatsapp_click', {
+  // Fire generic whatsapp click event for GTM/GA4
+  pushEvent('whatsapp_click', {
     event_category: 'engagement',
     event_label: source,
   });
@@ -142,7 +150,7 @@ export function trackWhatsAppClick(source: string = 'unknown'): void {
  * Fire when the phone number is clicked.
  */
 export function trackPhoneClick(): void {
-  gtag('event', 'phone_call_click', {
+  pushEvent('phone_call_click', {
     event_category: 'engagement',
     event_label: 'phone_cta',
   });

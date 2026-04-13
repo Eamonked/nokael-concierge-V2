@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { submitQuoteRequest, type QuoteRequest } from '../lib/supabase';
 import { captureUTMs, getStoredUTMs } from '../lib/analytics';
 import { WHATSAPP_NUMBER, DISPLAY_PHONE } from '../constants';
+import { trackWhatsAppClick } from '../lib/analytics';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -158,6 +159,64 @@ export default function GetQuote() {
                   className="space-y-8"
                 >
                   <div className="space-y-6">
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">Full Name</label>
+                      <div className="relative">
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                        <input
+                          required
+                          type="text"
+                          placeholder="Your Name"
+                          className="w-full bg-brand-input border border-brand-input-border rounded-xl py-4 pl-12 pr-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
+                          value={formData.name}
+                          onChange={e => updateForm({ name: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">Phone Number</label>
+                      <div className="relative">
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                        <input
+                          required
+                          type="tel"
+                          placeholder={DISPLAY_PHONE}
+                          className="w-full bg-brand-input border border-brand-input-border rounded-xl py-4 pl-12 pr-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
+                          value={formData.phone}
+                          onChange={e => updateForm({ phone: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className={cn(
+                        "w-5 h-5 rounded border flex items-center justify-center transition-all",
+                        formData.whatsapp_opt_in ? "bg-brand-neon border-brand-neon" : "bg-brand-input border-brand-input-border group-hover:border-brand-neon/30"
+                      )}>
+                        {formData.whatsapp_opt_in && <CheckCircle2 className="w-3 h-3 text-brand-bg" />}
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="hidden"
+                        checked={formData.whatsapp_opt_in}
+                        onChange={e => updateForm({ whatsapp_opt_in: e.target.checked })}
+                      />
+                      <span className="text-xs text-brand-muted font-medium">I want to receive the quote on WhatsApp</span>
+                    </label>
+                  </div>
+                </motion.div>
+              )}
+
+              {step === 2 && (
+                <motion.div
+                  key="step2"
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  className="space-y-8"
+                >
+                  <div className="space-y-6">
                     {/* Pickup */}
                     <div className="p-5 rounded-2xl border border-brand-input-border bg-brand-input/40 space-y-4">
                       <p className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-neon">📍 Pickup</p>
@@ -213,9 +272,9 @@ export default function GetQuote() {
                 </motion.div>
               )}
 
-              {step === 2 && (
+              {step === 3 && (
                 <motion.div
-                  key="step2"
+                  key="step3"
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
@@ -243,9 +302,9 @@ export default function GetQuote() {
                 </motion.div>
               )}
 
-              {step === 3 && (
+              {step === 4 && (
                 <motion.div
-                  key="step3"
+                  key="step4"
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
@@ -275,64 +334,6 @@ export default function GetQuote() {
                       {formData.urgency === level.id && <CheckCircle2 className="w-4 h-4 text-brand-neon" />}
                     </button>
                   ))}
-                </motion.div>
-              )}
-
-              {step === 4 && (
-                <motion.div
-                  key="step4"
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  className="space-y-8"
-                >
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">Full Name</label>
-                      <div className="relative">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
-                        <input
-                          required
-                          type="text"
-                          placeholder="Your Name"
-                          className="w-full bg-brand-input border border-brand-input-border rounded-xl py-4 pl-12 pr-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
-                          value={formData.name}
-                          onChange={e => updateForm({ name: e.target.value })}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">Phone Number</label>
-                      <div className="relative">
-                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
-                        <input
-                          required
-                          type="tel"
-                          placeholder={DISPLAY_PHONE}
-                          className="w-full bg-brand-input border border-brand-input-border rounded-xl py-4 pl-12 pr-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
-                          value={formData.phone}
-                          onChange={e => updateForm({ phone: e.target.value })}
-                        />
-                      </div>
-                    </div>
-
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className={cn(
-                        "w-5 h-5 rounded border flex items-center justify-center transition-all",
-                        formData.whatsapp_opt_in ? "bg-brand-neon border-brand-neon" : "bg-brand-input border-brand-input-border group-hover:border-brand-neon/30"
-                      )}>
-                        {formData.whatsapp_opt_in && <CheckCircle2 className="w-3 h-3 text-brand-bg" />}
-                      </div>
-                      <input
-                        type="checkbox"
-                        className="hidden"
-                        checked={formData.whatsapp_opt_in}
-                        onChange={e => updateForm({ whatsapp_opt_in: e.target.checked })}
-                      />
-                      <span className="text-xs text-brand-muted font-medium">I want to receive the quote on WhatsApp</span>
-                    </label>
-                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -395,6 +396,7 @@ export default function GetQuote() {
             <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted mb-4">Urgent Support</p>
             <a
               href={`https://wa.me/${WHATSAPP_NUMBER}`}
+              onClick={() => trackWhatsAppClick('quote_sidebar')}
               className="flex items-center gap-3 text-brand-neon hover:underline text-sm font-bold"
             >
               <MessageSquare className="w-4 h-4" />

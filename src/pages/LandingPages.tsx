@@ -1,8 +1,9 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { MapPin, Zap, MessageSquare, Phone, ArrowRight, Shield, Clock, CheckCircle2, Navigation, Truck } from 'lucide-react';
+import { MapPin, Zap, MessageSquare, Phone, ArrowRight, Shield, Clock, CheckCircle2, Navigation, Truck, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { WHATSAPP_NUMBER } from '../constants';
+import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE } from '../constants';
+import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -40,9 +41,20 @@ export const LandingTemplate = ({ title, subtitle, city, industry, heroImg, cont
             animate={{ opacity: 1, y: 0 }}
             className="max-w-4xl"
           >
-            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-lg bg-brand-neon/10 border border-brand-neon/20 text-brand-neon text-[10px] uppercase tracking-[0.3em] font-bold mb-10">
-              <MapPin className="w-3 h-3" />
-              <span>{city ? `Dispatch Sector: ${city}` : `Industry: ${industry}`}</span>
+            <div className="flex flex-wrap items-center gap-4 mb-10">
+              <div className="inline-flex items-center gap-3 px-4 py-2 rounded-lg bg-brand-neon/10 border border-brand-neon/20 text-brand-neon text-[10px] uppercase tracking-[0.3em] font-bold">
+                <MapPin className="w-3 h-3" />
+                <span>{city ? `Dispatch Sector: ${city}` : `Industry: ${industry}`}</span>
+              </div>
+              
+              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10">
+                <div className="flex items-center gap-0.5">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <Star key={i} className="w-3 h-3 fill-brand-neon text-brand-neon" />
+                  ))}
+                </div>
+                <span className="text-[10px] font-bold text-brand-text uppercase tracking-widest">4.9/5 (240+ Reviews)</span>
+              </div>
             </div>
             
             <h1 className="text-5xl md:text-9xl font-display font-medium tracking-tighter mb-10 leading-[0.8] text-brand-text">
@@ -53,22 +65,44 @@ export const LandingTemplate = ({ title, subtitle, city, industry, heroImg, cont
               {subtitle}
             </p>
             
-            <div className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="flex flex-col sm:flex-row items-center gap-4 mb-12">
               <a
                 href={`https://wa.me/${WHATSAPP_NUMBER}`}
-                className="btn-primary w-full sm:w-auto px-12 py-6"
+                onClick={() => trackWhatsAppClick(`landing_hero_${city || industry || 'unknown'}`)}
+                className="btn-primary w-full sm:w-auto px-10 py-5"
               >
                 <MessageSquare className="w-5 h-5" />
                 <span>WhatsApp Dispatch</span>
               </a>
               
+              <a
+                href={`tel:${PHONE_NUMBER}`}
+                onClick={trackPhoneClick}
+                className="btn-secondary w-full sm:w-auto px-10 py-5"
+              >
+                <Phone className="w-5 h-5" />
+                <span>Call {DISPLAY_PHONE}</span>
+              </a>
+
               <Link
                 to="/get-quote"
-                className="btn-secondary w-full sm:w-auto px-12 py-6"
+                className="hidden lg:flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-brand-muted hover:text-brand-neon transition-colors ml-4"
               >
-                <span>Request Quote</span>
-                <ArrowRight className="w-4 h-4" />
+                <span>Full Quote</span>
+                <ArrowRight className="w-3 h-3" />
               </Link>
+            </div>
+
+            <div className="flex items-center gap-8 border-t border-brand-border pt-8">
+              <div>
+                <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-1">Starting From</p>
+                <p className="text-xl font-display font-medium text-brand-neon">AED 150</p>
+              </div>
+              <div className="w-px h-8 bg-brand-border" />
+              <div>
+                <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-1">Response Time</p>
+                <p className="text-xl font-display font-medium text-brand-text">2-5 Mins</p>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -99,6 +133,31 @@ export const LandingTemplate = ({ title, subtitle, city, industry, heroImg, cont
                     <p className="text-[10px] text-brand-muted uppercase tracking-widest leading-relaxed">{item.desc}</p>
                   </div>
                 ))}
+              </div>
+
+              {/* Social Proof / Testimonials */}
+              <div className="pt-16 border-t border-brand-border">
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] mb-10 text-brand-muted">Client Feedback</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map(i => <Star key={i} className="w-3 h-3 fill-brand-neon text-brand-neon" />)}
+                    </div>
+                    <p className="text-sm font-medium italic text-brand-text leading-relaxed">
+                      "The only service that actually delivers same-day between Dubai and Abu Dhabi without excuses. Driver was assigned in 5 minutes."
+                    </p>
+                    <p className="text-[10px] uppercase tracking-widest text-brand-muted">— Operations Manager, DIFC Firm</p>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map(i => <Star key={i} className="w-3 h-3 fill-brand-neon text-brand-neon" />)}
+                    </div>
+                    <p className="text-sm font-medium italic text-brand-text leading-relaxed">
+                      "Used them for urgent spare parts delivery to a site in RAK. Saved us thousands in downtime. Highly recommended."
+                    </p>
+                    <p className="text-[10px] uppercase tracking-widest text-brand-muted">— Logistics Lead, Industrial Solutions</p>
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -134,6 +193,7 @@ export const LandingTemplate = ({ title, subtitle, city, industry, heroImg, cont
                 </p>
                 <a
                   href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                  onClick={() => trackWhatsAppClick(`landing_card_${city || industry || 'unknown'}`)}
                   className="w-full py-5 bg-brand-bg text-brand-neon font-black rounded-2xl uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 hover:scale-[1.02] transition-all shadow-xl"
                 >
                   <MessageSquare className="w-5 h-5" />

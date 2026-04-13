@@ -11,6 +11,7 @@ function cn(...inputs: ClassValue[]) {
 
 import { ThemeToggle } from './ThemeToggle';
 import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE } from '../constants';
+import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
 
 export const Navigation = () => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -96,6 +97,7 @@ export const Navigation = () => {
               <div className="pt-6 grid grid-cols-1 gap-4">
                 <a
                   href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                  onClick={() => trackWhatsAppClick('mobile_nav')}
                   className="btn-primary w-full"
                 >
                   <MessageSquare className="w-4 h-4" />
@@ -103,6 +105,7 @@ export const Navigation = () => {
                 </a>
                 <a
                   href={`tel:${PHONE_NUMBER}`}
+                  onClick={trackPhoneClick}
                   className="btn-secondary w-full"
                 >
                   <Phone className="w-4 h-4" />
@@ -156,8 +159,24 @@ export const Footer = () => {
             <ul className="space-y-4 text-xs text-brand-muted">
               <li><Link to="/track" className="hover:text-brand-neon transition-colors">Live GPS Tracking</Link></li>
               <li><Link to="/get-quote" className="hover:text-brand-neon transition-colors">Request Quote</Link></li>
-              <li><a href={`https://wa.me/${WHATSAPP_NUMBER}`} className="hover:text-brand-neon transition-colors">WhatsApp Dispatch</a></li>
-              <li><a href={`tel:${PHONE_NUMBER}`} className="hover:text-brand-neon transition-colors">{DISPLAY_PHONE}</a></li>
+              <li>
+                <a 
+                  href={`https://wa.me/${WHATSAPP_NUMBER}`} 
+                  onClick={() => trackWhatsAppClick('footer')}
+                  className="hover:text-brand-neon transition-colors"
+                >
+                  WhatsApp Dispatch
+                </a>
+              </li>
+              <li>
+                <a 
+                  href={`tel:${PHONE_NUMBER}`} 
+                  onClick={trackPhoneClick}
+                  className="hover:text-brand-neon transition-colors"
+                >
+                  {DISPLAY_PHONE}
+                </a>
+              </li>
             </ul>
           </div>
         </div>

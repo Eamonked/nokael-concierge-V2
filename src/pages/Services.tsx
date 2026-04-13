@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Shield, Zap, MapPin, Clock, CheckCircle2, ArrowRight, Package, Truck, Navigation, FileText, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { WHATSAPP_NUMBER } from '../constants';
+import { trackWhatsAppClick } from '../lib/analytics';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -163,6 +164,7 @@ export default function Services() {
             </Link>
             <a
               href={`https://wa.me/${WHATSAPP_NUMBER}`}
+              onClick={() => trackWhatsAppClick('services_footer')}
               className="btn-secondary px-12 py-5"
             >
               WhatsApp Dispatch
