@@ -17,6 +17,12 @@ create table if not exists public.quote_requests (
   phone text not null,
   whatsapp_opt_in boolean not null default true,
   status text not null default 'pending'::text,
+  utm_source text,
+  utm_medium text,
+  utm_campaign text,
+  utm_content text,
+  utm_term text,
+  gclid text,
   constraint quote_requests_pkey primary key (id),
   constraint quote_requests_item_type_check check (
     (
@@ -80,3 +86,16 @@ create policy "Enable update for authenticated users only" on public.quote_reque
 drop policy if exists "Enable delete for authenticated users only" on public.quote_requests;
 create policy "Enable delete for authenticated users only" on public.quote_requests
   for delete using (auth.role() = 'authenticated');
+
+-- ==========================================
+-- MIGRATION: Add UTM Attribution Columns
+-- ==========================================
+-- Run this block if the table already exists and you are getting 400 errors
+-- on form submission (columns not found).
+alter table public.quote_requests
+  add column if not exists utm_source   text,
+  add column if not exists utm_medium   text,
+  add column if not exists utm_campaign text,
+  add column if not exists utm_content  text,
+  add column if not exists utm_term     text,
+  add column if not exists gclid        text;
