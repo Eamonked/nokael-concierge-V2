@@ -184,8 +184,8 @@ export const Footer = () => {
         <div className="pt-12 border-t border-brand-border flex flex-col md:flex-row justify-between items-center gap-6 text-[10px] text-brand-muted uppercase tracking-[0.3em] font-bold">
           <p>© 2026 Nokael Concierge</p>
           <div className="flex gap-8">
-            <a href="#" className="hover:text-brand-text transition-colors">Privacy</a>
-            <a href="#" className="hover:text-brand-text transition-colors">Terms</a>
+            <Link to="/privacy" className="hover:text-brand-text transition-colors">Privacy</Link>
+            <Link to="/terms" className="hover:text-brand-text transition-colors">Terms</Link>
             <p>Typically 30-60 min pickup</p>
           </div>
         </div>

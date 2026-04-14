@@ -1,62 +1,82 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { MessageSquare, ArrowRight, Zap, Shield, MapPin, Clock, CheckCircle2, ChevronRight, Phone, X, Navigation, Package, Truck } from 'lucide-react';
+import { MessageSquare, ArrowRight, Zap, Shield, MapPin, Clock, CheckCircle2, ChevronRight, Phone, X, Navigation, Package, Truck, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { WHATSAPP_NUMBER, PHONE_NUMBER } from '../constants';
+import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE, DEFAULT_WA_MESSAGE, PRICE_HERO_BUSINESS, PRICE_HERO_DEDICATED, PRICE_TIER_STANDARD, PRICE_TIER_PRIORITY, PRICE_TIER_DEDICATED } from '../constants';
 import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
+import { cn } from '../lib/utils';
 
 const Hero = () => {
+  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(DEFAULT_WA_MESSAGE)}`;
+
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden highway-blur">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 relative z-10">
+    <section className="relative min-h-screen flex items-start overflow-hidden highway-blur">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20 relative z-10">
         <div className="asymmetric-grid items-center">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <div className="inline-flex items-center space-x-3 px-4 py-2 rounded-lg bg-brand-input border border-brand-input-border text-brand-neon text-[11px] uppercase tracking-[0.2em] font-bold mb-10">
+            <div className="inline-flex items-center space-x-3 px-4 py-2 rounded-lg bg-brand-input border border-brand-input-border text-brand-neon text-[11px] uppercase tracking-[0.2em] font-bold mb-6">
               <div className="w-2 h-2 rounded-full bg-brand-neon animate-pulse" />
-              <span>Dispatch Network Active</span>
+              <span>Business-Only Urgent Courier</span>
             </div>
             
-            <h1 className="text-6xl md:text-8xl lg:text-9xl font-display font-medium leading-[0.85] tracking-tighter mb-10 text-brand-text">
-              Urgent <br />
-              <span className="text-brand-neon italic">Dispatch</span> <br />
-              UAE
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-medium leading-[0.85] tracking-tighter mb-6 text-brand-text">
+              Dedicated Business <br />
+              <span className="text-brand-neon italic">Courier</span> <br />
+              for Fast Inter-Emirate Deliveries
             </h1>
             
-            <p className="text-lg md:text-xl text-brand-muted font-medium mb-12 max-w-xl leading-relaxed">
-              Need it in another emirate today? We assign a dedicated driver immediately. No warehouses. No sorting. Just direct pickup and delivery.
+            <p className="text-lg md:text-xl text-brand-muted font-medium mb-6 max-w-xl leading-relaxed">
+              Same-day, express, and dedicated courier service for time-critical documents, parcels, tenders, spare parts, and sensitive business items.
+            </p>
+
+            <p className="text-sm text-brand-neon font-bold uppercase tracking-widest mb-12">
+              Direct driver assignment. No warehouses. No sorting hubs. Fast quote on WhatsApp.
             </p>
             
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-16">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-6">
               <a
-                href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                href={waUrl}
                 onClick={() => trackWhatsAppClick('hero')}
-                className="btn-primary"
+                className="btn-primary px-10 py-5"
               >
                 <MessageSquare className="w-5 h-5" />
-                <span>Send Pickup Location</span>
+                <span>Get Quote on WhatsApp</span>
               </a>
               
-              <Link
-                to="/get-quote"
-                className="btn-secondary"
+              <a
+                href={`tel:${PHONE_NUMBER}`}
+                onClick={trackPhoneClick}
+                className="btn-secondary px-10 py-5"
               >
-                <span>Request Dispatch</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+                <Phone className="w-5 h-5" />
+                <span>Call Dispatch</span>
+              </a>
             </div>
 
-            <div className="flex items-center gap-12 border-t border-brand-border pt-12">
+            <p className="text-[10px] text-brand-muted uppercase tracking-[0.2em] font-bold mb-12">
+              Driver assigned immediately after confirmation
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 border-t border-brand-border pt-12">
               <div>
-                <p className="text-[10px] uppercase tracking-widest text-brand-muted mb-2">Typical Response</p>
-                <p className="text-2xl font-display font-medium">2-5 Mins</p>
+                <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-2">Average Dispatch</p>
+                <p className="text-lg font-display font-medium">2-5 Mins</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-widest text-brand-muted mb-2">Inter-Emirate</p>
-                <p className="text-2xl font-display font-medium">Same Day</p>
+                <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-2">Business Delivery</p>
+                <p className="text-lg font-display font-medium">From AED {PRICE_TIER_STANDARD}</p>
+              </div>
+              <div>
+                <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-2">Dedicated Courier</p>
+                <p className="text-lg font-display font-medium">From AED {PRICE_TIER_DEDICATED}</p>
+              </div>
+              <div>
+                <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-2">Tracking</p>
+                <p className="text-lg font-display font-medium">Real-time WhatsApp Updates</p>
               </div>
             </div>
           </motion.div>
@@ -69,8 +89,8 @@ const Hero = () => {
           >
             <div className="dispatch-card relative z-10 rotate-2 translate-x-4">
               <div className="flex items-center justify-between mb-6">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-brand-muted">Live Feed</span>
-                <span className="text-[10px] font-bold text-brand-neon">07:42 AM</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-brand-muted">Live Dispatch Feed</span>
+                <span className="text-[10px] font-bold text-brand-neon">ACTIVE</span>
               </div>
               <div className="space-y-4">
                 <div className="flex items-start gap-4 p-3 rounded-xl bg-brand-input border border-brand-input-border">
@@ -78,7 +98,7 @@ const Hero = () => {
                     <Navigation className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-brand-text">Driver Assigned</p>
+                    <p className="text-xs font-bold text-brand-text">Direct Assignment</p>
                     <p className="text-[10px] text-brand-muted">Dubai ↔ Abu Dhabi Corridor</p>
                   </div>
                 </div>
@@ -87,8 +107,8 @@ const Hero = () => {
                     <Package className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-brand-text">Pickup Confirmed</p>
-                    <p className="text-[10px] text-brand-muted">Urgent Documents • JLT, Dubai</p>
+                    <p className="text-xs font-bold text-brand-text">No Sorting Hubs</p>
+                    <p className="text-[10px] text-brand-muted">Point-to-Point Delivery</p>
                   </div>
                 </div>
               </div>
@@ -103,50 +123,113 @@ const Hero = () => {
   );
 };
 
-const OperationalReality = () => {
+const SupportingSection = () => {
   return (
     <section className="section-spacing bg-brand-bg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-20 max-w-3xl">
           <h2 className="text-4xl md:text-6xl font-display font-medium tracking-tighter mb-8 text-brand-text">
-            We handle the pressure. <br />
-            <span className="text-brand-muted italic">You handle your business.</span>
+            Built for businesses that <br />
+            <span className="text-brand-muted italic">cannot afford logistics delays.</span>
           </h2>
           <p className="text-lg text-brand-muted leading-relaxed">
-            Nokael is built for operators, not browsers. When a contract is left behind or a spare part is needed on-site, we don't put it in a warehouse. We put it in a car and drive.
+            Nokael helps businesses move critical items between Dubai and Abu Dhabi without relying on slow, low-priority courier networks.
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="dispatch-card">
-            <div className="w-10 h-10 rounded-xl bg-brand-input flex items-center justify-center mb-6">
-              <Truck className="w-5 h-5 text-brand-neon" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { title: 'Urgent Documents', desc: 'Legal tenders, contracts, and sensitive business files.', icon: Navigation },
+            { title: 'Office Parcels', desc: 'Sensitive items and high-priority business packages.', icon: Package },
+            { title: 'Spare Parts', desc: 'Business-critical machinery and automotive parts.', icon: Zap },
+            { title: 'Direct Assignment', desc: 'Dedicated drivers for high-priority jobs only.', icon: Truck }
+          ].map((item, i) => (
+            <div key={i} className="dispatch-card">
+              <div className="w-10 h-10 rounded-xl bg-brand-input flex items-center justify-center mb-6">
+                <item.icon className="w-5 h-5 text-brand-neon" />
+              </div>
+              <h3 className="text-lg font-bold mb-3 text-brand-text">{item.title}</h3>
+              <p className="text-sm text-brand-muted leading-relaxed">
+                {item.desc}
+              </p>
             </div>
-            <h3 className="text-lg font-bold mb-3 text-brand-text">Direct-to-Site</h3>
-            <p className="text-sm text-brand-muted leading-relaxed">
-              No sorting hubs. No handovers. The driver who picks up your item is the one who delivers it.
-            </p>
-          </div>
-          
-          <div className="dispatch-card md:translate-y-8">
-            <div className="w-10 h-10 rounded-xl bg-brand-input flex items-center justify-center mb-6">
-              <Navigation className="w-5 h-5 text-brand-blue" />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const ServiceCards = () => {
+  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(DEFAULT_WA_MESSAGE)}`;
+
+  const services = [
+    {
+      title: 'Standard Inter-Emirate Delivery',
+      price: `AED ${PRICE_TIER_STANDARD}`,
+      features: ['Same-day delivery', 'Business-to-business', 'WhatsApp tracking'],
+      cta: 'Get Quote'
+    },
+    {
+      title: 'Priority Express Dispatch',
+      price: `AED ${PRICE_TIER_PRIORITY}`,
+      features: ['Fast-track pickup', 'Direct route delivery', 'Priority dispatch'],
+      cta: 'Fast-Track Now',
+      highlight: true
+    },
+    {
+      title: 'Dedicated Critical Courier',
+      price: `AED ${PRICE_TIER_DEDICATED}`,
+      features: ['Exclusive driver', 'No shared loads', 'Immediate assignment'],
+      cta: 'Book Dedicated'
+    }
+  ];
+
+  return (
+    <section className="section-spacing bg-brand-surface/20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-20">
+          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-neon mb-4">Service Options</p>
+          <h2 className="text-4xl md:text-6xl font-display font-medium tracking-tighter text-brand-text">Operational Tiers</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {services.map((s, i) => (
+            <div 
+              key={i} 
+              className={cn(
+                "dispatch-card flex flex-col p-10",
+                s.highlight ? "border-brand-neon/40 bg-brand-neon/5 scale-105 z-10" : ""
+              )}
+            >
+              <h3 className="text-xl font-bold mb-2 text-brand-text leading-tight">{s.title}</h3>
+              <div className="flex items-baseline gap-2 mb-8">
+                <span className="text-[10px] text-brand-muted uppercase tracking-widest">From</span>
+                <span className="text-3xl font-display font-medium text-brand-neon">{s.price}</span>
+              </div>
+              
+              <ul className="space-y-4 mb-12 flex-1">
+                {s.features.map((f, j) => (
+                  <li key={j} className="flex items-center gap-3 text-xs text-brand-muted">
+                    <CheckCircle2 className="w-4 h-4 text-brand-neon" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <a
+                href={waUrl}
+                onClick={() => trackWhatsAppClick(`service_card_${i}`)}
+                className={cn(
+                  "w-full py-4 rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all",
+                  s.highlight ? "bg-brand-neon text-brand-bg" : "bg-brand-input border border-brand-input-border text-brand-text hover:border-brand-neon/30"
+                )}
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>{s.cta}</span>
+              </a>
             </div>
-            <h3 className="text-lg font-bold mb-3 text-brand-text">WhatsApp Tracking</h3>
-            <p className="text-sm text-brand-muted leading-relaxed">
-              We send you a live location pin on WhatsApp. You see exactly where your driver is on the E11.
-            </p>
-          </div>
-          
-          <div className="dispatch-card lg:translate-y-16">
-            <div className="w-10 h-10 rounded-xl bg-brand-input flex items-center justify-center mb-6">
-              <Shield className="w-5 h-5 text-brand-neon" />
-            </div>
-            <h3 className="text-lg font-bold mb-3 text-brand-text">Chain of Custody</h3>
-            <p className="text-sm text-brand-muted leading-relaxed">
-              High-value items, passports, and legal tenders are handled with strict 1-to-1 accountability.
-            </p>
-          </div>
+          ))}
         </div>
       </div>
     </section>
@@ -263,6 +346,8 @@ const TrustGrounded = () => {
 };
 
 const FinalAction = () => {
+  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(DEFAULT_WA_MESSAGE)}`;
+
   return (
     <section className="py-40 bg-brand-bg relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
@@ -273,7 +358,7 @@ const FinalAction = () => {
         
         <div className="flex flex-col md:flex-row items-center justify-center gap-6">
           <a
-            href={`https://wa.me/${WHATSAPP_NUMBER}`}
+            href={waUrl}
             onClick={() => trackWhatsAppClick('final_cta')}
             className="btn-primary px-12 py-6 text-lg"
           >
@@ -305,7 +390,8 @@ export default function Home() {
   return (
     <div className="bg-brand-bg">
       <Hero />
-      <OperationalReality />
+      <SupportingSection />
+      <ServiceCards />
       <CorridorStatus />
       <TrustGrounded />
       <FinalAction />

@@ -4,14 +4,9 @@ import { MapPin, Package, Zap, User, Phone, CheckCircle2, ArrowRight, ArrowLeft,
 import { useNavigate } from 'react-router-dom';
 import { submitQuoteRequest, type QuoteRequest } from '../lib/supabase';
 import { captureUTMs, getStoredUTMs } from '../lib/analytics';
-import { WHATSAPP_NUMBER, DISPLAY_PHONE } from '../constants';
+import { WHATSAPP_NUMBER, DISPLAY_PHONE, PRICE_TIER_STANDARD, PRICE_TIER_DEDICATED } from '../constants';
 import { trackWhatsAppClick } from '../lib/analytics';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from '../lib/utils';
 
 const emirates = [
   'Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'
@@ -46,6 +41,9 @@ export default function GetQuote() {
     name: '',
     phone: '',
     whatsapp_opt_in: true,
+    customer_type: 'business',
+    company_name: '',
+    repeat_business: false,
   });
 
   // Capture UTMs on page load — this is where most Google Ads traffic arrives
@@ -118,9 +116,9 @@ export default function GetQuote() {
       <div className="asymmetric-grid items-start">
         <div>
           <div className="mb-12">
-            <h1 className="text-4xl md:text-6xl font-display font-medium tracking-tighter mb-6">Request Dispatch</h1>
+            <h1 className="text-4xl md:text-6xl font-display font-medium tracking-tighter mb-6">Request a Quote</h1>
             <p className="text-brand-muted text-sm max-w-md leading-relaxed">
-              Enter your pickup details below. A dedicated driver will be assigned to your route immediately after confirmation.
+              Send the route, item type, and deadline. We’ll confirm the fastest available option.
             </p>
           </div>
 
@@ -159,6 +157,29 @@ export default function GetQuote() {
                   className="space-y-8"
                 >
                   <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <button
+                        type="button"
+                        onClick={() => updateForm({ customer_type: 'business' })}
+                        className={cn(
+                          "py-3 px-4 rounded-xl border text-[10px] font-bold uppercase tracking-widest transition-all",
+                          formData.customer_type === 'business' ? "bg-brand-neon border-brand-neon text-brand-bg" : "bg-brand-input border-brand-input-border text-brand-muted"
+                        )}
+                      >
+                        Business
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateForm({ customer_type: 'personal' })}
+                        className={cn(
+                          "py-3 px-4 rounded-xl border text-[10px] font-bold uppercase tracking-widest transition-all",
+                          formData.customer_type === 'personal' ? "bg-brand-neon border-brand-neon text-brand-bg" : "bg-brand-input border-brand-input-border text-brand-muted"
+                        )}
+                      >
+                        Personal
+                      </button>
+                    </div>
+
                     <div>
                       <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">Full Name</label>
                       <div className="relative">
@@ -173,6 +194,19 @@ export default function GetQuote() {
                         />
                       </div>
                     </div>
+
+                    {formData.customer_type === 'business' && (
+                      <div>
+                        <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">Company Name (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="Your Company"
+                          className="w-full bg-brand-input border border-brand-input-border rounded-xl py-4 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
+                          value={formData.company_name}
+                          onChange={e => updateForm({ company_name: e.target.value })}
+                        />
+                      </div>
+                    )}
 
                     <div>
                       <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">Phone Number</label>
@@ -189,21 +223,39 @@ export default function GetQuote() {
                       </div>
                     </div>
 
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className={cn(
-                        "w-5 h-5 rounded border flex items-center justify-center transition-all",
-                        formData.whatsapp_opt_in ? "bg-brand-neon border-brand-neon" : "bg-brand-input border-brand-input-border group-hover:border-brand-neon/30"
-                      )}>
-                        {formData.whatsapp_opt_in && <CheckCircle2 className="w-3 h-3 text-brand-bg" />}
-                      </div>
-                      <input
-                        type="checkbox"
-                        className="hidden"
-                        checked={formData.whatsapp_opt_in}
-                        onChange={e => updateForm({ whatsapp_opt_in: e.target.checked })}
-                      />
-                      <span className="text-xs text-brand-muted font-medium">I want to receive the quote on WhatsApp</span>
-                    </label>
+                    <div className="space-y-4">
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <div className={cn(
+                          "w-5 h-5 rounded border flex items-center justify-center transition-all",
+                          formData.whatsapp_opt_in ? "bg-brand-neon border-brand-neon" : "bg-brand-input border-brand-input-border group-hover:border-brand-neon/30"
+                        )}>
+                          {formData.whatsapp_opt_in && <CheckCircle2 className="w-3 h-3 text-brand-bg" />}
+                        </div>
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={formData.whatsapp_opt_in}
+                          onChange={e => updateForm({ whatsapp_opt_in: e.target.checked })}
+                        />
+                        <span className="text-xs text-brand-muted font-medium">I want to receive the quote on WhatsApp</span>
+                      </label>
+
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <div className={cn(
+                          "w-5 h-5 rounded border flex items-center justify-center transition-all",
+                          formData.repeat_business ? "bg-brand-neon border-brand-neon" : "bg-brand-input border-brand-input-border group-hover:border-brand-neon/30"
+                        )}>
+                          {formData.repeat_business && <CheckCircle2 className="w-3 h-3 text-brand-bg" />}
+                        </div>
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={formData.repeat_business}
+                          onChange={e => updateForm({ repeat_business: e.target.checked })}
+                        />
+                        <span className="text-xs text-brand-muted font-medium">Is this a repeat business need?</span>
+                      </label>
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -358,12 +410,17 @@ export default function GetQuote() {
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    <span>{step === 4 ? 'Confirm Dispatch' : 'Continue'}</span>
+                    <span>{step === 4 ? 'Get My Quote' : 'Continue'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
             </div>
+            {step === 4 && (
+              <p className="mt-6 text-[9px] text-brand-muted uppercase tracking-[0.2em] text-center font-bold">
+                Business deliveries from AED {PRICE_TIER_STANDARD}. Dedicated urgent courier from AED {PRICE_TIER_DEDICATED}.
+              </p>
+            )}
           </form>
         </div>
 

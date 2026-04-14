@@ -17,6 +17,9 @@ create table if not exists public.quote_requests (
   phone text not null,
   whatsapp_opt_in boolean not null default true,
   status text not null default 'pending'::text,
+  customer_type text,
+  company_name text,
+  repeat_business boolean default false,
   utm_source text,
   utm_medium text,
   utm_campaign text,
@@ -93,6 +96,9 @@ create policy "Enable delete for authenticated users only" on public.quote_reque
 -- Run this block if the table already exists and you are getting 400 errors
 -- on form submission (columns not found).
 alter table public.quote_requests
+  add column if not exists customer_type text,
+  add column if not exists company_name text,
+  add column if not exists repeat_business boolean default false,
   add column if not exists utm_source   text,
   add column if not exists utm_medium   text,
   add column if not exists utm_campaign text,

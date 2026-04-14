@@ -33,6 +33,10 @@ export interface QuoteRequest {
   phone: string;
   whatsapp_opt_in: boolean;
   status?: 'pending' | 'contacted' | 'completed';
+  // New Fields
+  customer_type?: 'business' | 'personal';
+  company_name?: string;
+  repeat_business?: boolean;
   // UTM Attribution Fields
   utm_source?: string;
   utm_medium?: string;

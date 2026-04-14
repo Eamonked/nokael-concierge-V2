@@ -9,6 +9,7 @@ import Services from './pages/Services';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import { DubaiLanding, AbuDhabiLanding, DocumentLanding, SparePartsLanding } from './pages/LandingPages';
+import { TermsAndConditions, PrivacyPolicy } from './pages/Legal';
 import Track from './pages/Track';
 import { captureUTMs } from './lib/analytics';
 
@@ -47,6 +48,8 @@ export default function App() {
           <Route path="/document-delivery-uae" element={<DocumentLanding />} />
           <Route path="/spare-parts-delivery-uae" element={<SparePartsLanding />} />
           <Route path="/track" element={<Track />} />
+          <Route path="/terms" element={<TermsAndConditions />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/login" element={<Login />} />
 
