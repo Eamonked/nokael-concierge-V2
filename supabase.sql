@@ -105,3 +105,37 @@ alter table public.quote_requests
   add column if not exists utm_content  text,
   add column if not exists utm_term     text,
   add column if not exists gclid        text;
+
+-- ==========================================
+-- Business Inquiries Table
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.business_inquiries (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  company_name TEXT NOT NULL,
+  contact_person TEXT NOT NULL,
+  phone_whatsapp TEXT NOT NULL,
+  email TEXT NOT NULL,
+  typical_routes TEXT,
+  item_types TEXT,
+  estimated_monthly_volume TEXT,
+  urgent_express_dedicated_needs TEXT,
+  invoicing_required BOOLEAN DEFAULT FALSE,
+  utm_source TEXT,
+  utm_medium TEXT,
+  utm_campaign TEXT,
+  utm_term TEXT,
+  utm_content TEXT,
+  gclid TEXT
+);
+
+-- Enable RLS
+ALTER TABLE public.business_inquiries ENABLE ROW LEVEL SECURITY;
+
+-- Allow anyone to insert
+CREATE POLICY "Allow public insert for business_inquiries" ON public.business_inquiries
+  FOR INSERT WITH CHECK (true);
+
+-- Allow authenticated users to read
+CREATE POLICY "Allow authenticated read for business_inquiries" ON public.business_inquiries
+  FOR SELECT TO authenticated USING (true);

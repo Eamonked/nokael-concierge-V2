@@ -215,7 +215,7 @@ export const DubaiLanding = () => (
     city="Dubai"
     heroImg="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=1920"
     content={[
-      "Dubai is the heart of UAE commerce, and when logistics fail, business stops. Nokael Concierge provides a direct-response dispatch system for companies and individuals in Dubai who need items moved to other emirates immediately.",
+      "Dubai is the heart of UAE commerce, and when logistics fail, business stops. Nokael provides a direct-response dispatch system for companies and individuals in Dubai who need items moved to other emirates immediately.",
       "Our drivers are strategically positioned across Dubai—from Downtown and DIFC to Jebel Ali and Dubai Marina—to ensure rapid response times. We don't use sorting hubs; your item goes from the pickup point directly to the delivery destination.",
       "Whether it's a critical document for a government office in Abu Dhabi or a forgotten passport for a flight in Sharjah, our Dubai dispatch team is ready 24/7."
     ]}
@@ -229,7 +229,7 @@ export const AbuDhabiLanding = () => (
     city="Abu Dhabi"
     heroImg="https://images.unsplash.com/photo-1580674285054-bed31e145f59?auto=format&fit=crop&q=80&w=1920"
     content={[
-      "Abu Dhabi requires a higher level of logistics precision. Nokael Concierge serves the capital's most demanding delivery needs, providing dedicated transport for government, corporate, and private clients.",
+      "Abu Dhabi requires a higher level of logistics precision. Nokael serves the capital's most demanding delivery needs, providing dedicated transport for government, corporate, and private clients.",
       "Our Abu Dhabi dispatch network covers the entire city, including Al Reem Island, Khalifa City, and the Industrial areas. We specialize in the Abu Dhabi ↔ Dubai corridor, offering the fastest possible transit times between the two major hubs.",
       "With Nokael, you get a dedicated driver who understands the urgency of your mission. No shared loads, no delays, just direct inter-emirate delivery."
     ]}
@@ -243,7 +243,7 @@ export const DocumentLanding = () => (
     industry="Legal & Corporate"
     heroImg="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&q=80&w=1920"
     content={[
-      "In the legal and corporate world, some documents are too important for standard courier services. Nokael Concierge provides a premium document dispatch service that prioritizes security and chain of custody.",
+      "In the legal and corporate world, some documents are too important for standard courier services. Nokael provides a premium document dispatch service that prioritizes security and chain of custody.",
       "Our drivers handle your sensitive materials with the utmost care, providing hand-to-hand delivery from the sender directly to the recipient. We understand the critical nature of legal deadlines and government tender submissions.",
       "Every document delivery includes real-time tracking and immediate proof of delivery via WhatsApp, giving you total peace of mind for your most important assets."
     ]}
@@ -257,7 +257,7 @@ export const SparePartsLanding = () => (
     industry="Industrial & Automotive"
     heroImg="https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=1920"
     content={[
-      "When machinery breaks down or a vehicle is off the road, every minute costs money. Nokael Concierge provides emergency spare parts logistics for the industrial and automotive sectors across the UAE.",
+      "When machinery breaks down or a vehicle is off the road, every minute costs money. Nokael provides emergency spare parts logistics for the industrial and automotive sectors across the UAE.",
       "We specialize in the rapid transport of critical components that are too urgent for traditional freight. Our drivers can pick up directly from suppliers or warehouses and deliver straight to the site where the part is needed.",
       "From heavy industrial components to delicate electronic parts, our direct-response logistics system ensures your operations get back on track as quickly as possible."
     ]}

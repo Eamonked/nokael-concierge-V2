@@ -9,6 +9,13 @@ Item:
 Delivery deadline:
 Business or personal:`;
 
+export const BUSINESS_ACCOUNT_WA_MESSAGE = `Hi, I’d like to open a business account with Nokael.
+Company name:
+Typical delivery type:
+Typical route:
+Estimated monthly delivery volume:
+Best contact person:`;
+
 // PRICING CONSTANTS
 export const PRICE_HERO_BUSINESS = import.meta.env.VITE_PRICE_TIER_STANDARD || '185';
 export const PRICE_HERO_DEDICATED = import.meta.env.VITE_PRICE_TIER_DEDICATED || '380';

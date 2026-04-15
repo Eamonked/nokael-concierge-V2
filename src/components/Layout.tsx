@@ -182,7 +182,7 @@ export const Footer = () => {
         </div>
         
         <div className="pt-12 border-t border-brand-border flex flex-col md:flex-row justify-between items-center gap-6 text-[10px] text-brand-muted uppercase tracking-[0.3em] font-bold">
-          <p>© 2026 Nokael Concierge</p>
+          <p>© 2026 Nokael Dash Logistics </p>
           <div className="flex gap-8">
             <Link to="/privacy" className="hover:text-brand-text transition-colors">Privacy</Link>
             <Link to="/terms" className="hover:text-brand-text transition-colors">Terms</Link>

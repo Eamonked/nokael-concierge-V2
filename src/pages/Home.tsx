@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { MessageSquare, ArrowRight, Zap, Shield, MapPin, Clock, CheckCircle2, ChevronRight, Phone, X, Navigation, Package, Truck, Star } from 'lucide-react';
+import { MessageSquare, ArrowRight, Zap, Shield, MapPin, Clock, CheckCircle2, ChevronRight, Phone, X, Navigation, Package, Truck, Star, Building2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE, DEFAULT_WA_MESSAGE, PRICE_HERO_BUSINESS, PRICE_HERO_DEDICATED, PRICE_TIER_STANDARD, PRICE_TIER_PRIORITY, PRICE_TIER_DEDICATED } from '../constants';
+import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE, DEFAULT_WA_MESSAGE, BUSINESS_ACCOUNT_WA_MESSAGE, PRICE_HERO_BUSINESS, PRICE_HERO_DEDICATED, PRICE_TIER_STANDARD, PRICE_TIER_PRIORITY, PRICE_TIER_DEDICATED } from '../constants';
 import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
 import { cn } from '../lib/utils';
 
@@ -236,6 +236,64 @@ const ServiceCards = () => {
   );
 };
 
+const BusinessAccounts = () => {
+  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(BUSINESS_ACCOUNT_WA_MESSAGE)}`;
+
+  return (
+    <section className="section-spacing bg-brand-bg relative overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="asymmetric-grid items-center">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-neon mb-4">For Repeat Business Needs</p>
+            <h2 className="text-4xl md:text-6xl font-display font-medium tracking-tighter mb-8 text-brand-text">
+              Open a Business <br />
+              <span className="text-brand-muted italic">Account With Nokael</span>
+            </h2>
+            <p className="text-lg text-brand-muted leading-relaxed mb-10 max-w-xl">
+              If your team needs urgent deliveries more than once in a while, Nokael can support you as a business account. That means faster quoting, smoother repeat dispatch, and a more reliable way to move urgent items.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <Link
+                to="/business-account"
+                className="btn-primary w-full sm:w-auto px-10 py-5"
+              >
+                <Building2 className="w-5 h-5" />
+                <span>Ask About Business Accounts</span>
+              </Link>
+              
+              <a
+                href={waUrl}
+                onClick={() => trackWhatsAppClick('business_section')}
+                className="btn-secondary w-full sm:w-auto px-10 py-5"
+              >
+                <MessageSquare className="w-5 h-5" />
+                <span>Get Quote on WhatsApp</span>
+              </a>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              { title: 'Faster Repeat Dispatch', desc: 'Request jobs faster with less back-and-forth once we know your routes.' },
+              { title: 'Priority Handling', desc: 'Repeat business clients get faster response and smoother coordination.' },
+              { title: 'Account-Level Support', desc: 'Better continuity and cleaner communication for recurring requests.' },
+              { title: 'Built for Operators', desc: 'Ideal for legal, offices, suppliers, and time-sensitive teams.' }
+            ].map((benefit, i) => (
+              <div key={i} className="dispatch-card p-8">
+                <h4 className="text-sm font-bold text-brand-text mb-3">{benefit.title}</h4>
+                <p className="text-[10px] text-brand-muted uppercase tracking-widest leading-relaxed">{benefit.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[600px] h-[600px] bg-brand-neon/5 blur-[120px] rounded-full pointer-events-none" />
+    </section>
+  );
+};
+
 const CorridorStatus = () => {
   const corridors = [
     { from: 'Dubai', to: 'Abu Dhabi', status: 'Active', time: '90m' },
@@ -392,6 +450,7 @@ export default function Home() {
       <Hero />
       <SupportingSection />
       <ServiceCards />
+      <BusinessAccounts />
       <CorridorStatus />
       <TrustGrounded />
       <FinalAction />
