@@ -159,6 +159,8 @@ export const Footer = () => {
             <ul className="space-y-4 text-xs text-brand-muted">
               <li><Link to="/track" className="hover:text-brand-neon transition-colors">Live GPS Tracking</Link></li>
               <li><Link to="/get-quote" className="hover:text-brand-neon transition-colors">Request Quote</Link></li>
+              <li><Link to="/business-account" className="hover:text-brand-neon transition-colors">Business Accounts</Link></li>
+              <li><Link to="/apply-driver" className="hover:text-brand-neon transition-colors">Driver Intake</Link></li>
               <li>
                 <a 
                   href={`https://wa.me/${WHATSAPP_NUMBER}`} 

@@ -139,3 +139,56 @@ CREATE POLICY "Allow public insert for business_inquiries" ON public.business_in
 -- Allow authenticated users to read
 CREATE POLICY "Allow authenticated read for business_inquiries" ON public.business_inquiries
   FOR SELECT TO authenticated USING (true);
+
+-- ==========================================
+-- Driver Onboarding Tables
+-- ==========================================
+
+-- Drivers Table
+CREATE TABLE IF NOT EXISTS public.drivers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  full_name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  whatsapp TEXT NOT NULL,
+  email TEXT NOT NULL,
+  base_location TEXT NOT NULL,
+  vehicle_type TEXT NOT NULL,
+  inter_emirate_yes_no BOOLEAN DEFAULT TRUE,
+  availability_hours TEXT,
+  onboarding_status TEXT DEFAULT 'pending', -- pending / approved / rejected
+  tier TEXT DEFAULT 'D', -- A / B / C / D
+  reliability_score INTEGER DEFAULT 0,
+  internal_notes TEXT,
+  last_active_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Driver Documents Table
+CREATE TABLE IF NOT EXISTS public.driver_documents (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  driver_id UUID REFERENCES public.drivers(id) ON DELETE CASCADE,
+  document_type TEXT NOT NULL, -- emirates_id / license / registration / vehicle_photo
+  file_url TEXT NOT NULL,
+  drive_file_id TEXT NOT NULL,
+  verification_status TEXT DEFAULT 'pending', -- pending / verified / rejected
+  expiry_date DATE,
+  uploaded_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE public.drivers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.driver_documents ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for Drivers
+CREATE POLICY "Allow public insert for drivers" ON public.drivers
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow authenticated full access for drivers" ON public.drivers
+  FOR ALL TO authenticated USING (true);
+
+-- RLS Policies for Driver Documents
+CREATE POLICY "Allow public insert for driver_documents" ON public.driver_documents
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow authenticated full access for driver_documents" ON public.driver_documents
+  FOR ALL TO authenticated USING (true);

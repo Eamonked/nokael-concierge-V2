@@ -149,3 +149,118 @@ export const getBusinessInquiries = async () => {
   if (error) throw error;
   return data as BusinessInquiry[];
 };
+
+// ==========================================
+// Driver Onboarding
+// ==========================================
+
+export interface Driver {
+  id?: string;
+  created_at?: string;
+  full_name: string;
+  phone: string;
+  whatsapp: string;
+  email: string;
+  base_location: string;
+  vehicle_type: string;
+  inter_emirate_yes_no: boolean;
+  availability_hours: string;
+  onboarding_status?: 'pending' | 'approved' | 'rejected';
+  tier?: 'A' | 'B' | 'C' | 'D';
+  reliability_score?: number;
+  internal_notes?: string;
+  last_active_at?: string;
+}
+
+export interface DriverDocument {
+  id?: string;
+  driver_id: string;
+  document_type: 'emirates_id' | 'license' | 'registration' | 'vehicle_photo';
+  file_url: string;
+  drive_file_id: string;
+  verification_status?: 'pending' | 'verified' | 'rejected';
+  expiry_date?: string;
+  uploaded_at?: string;
+}
+
+export const submitDriverApplication = async (data: Driver) => {
+  const supabase = getSupabase();
+  const { data: driver, error } = await supabase
+    .from('drivers')
+    .insert([data])
+    .select()
+    .single();
+  
+  if (error) throw error;
+
+  // Send Telegram Notification
+  const dashboardUrl = `${window.location.origin}/login`;
+  const message = `
+🚛 <b>New Driver Application</b>
+
+<b>Name:</b> ${data.full_name}
+<b>Location:</b> ${data.base_location}
+<b>Vehicle:</b> ${data.vehicle_type}
+<b>Phone:</b> ${data.phone}
+
+<a href="${dashboardUrl}">Review Application</a>
+  `.trim();
+  await sendTelegramNotification(message);
+
+  return driver as Driver;
+};
+
+export const uploadDriverDocument = async (data: DriverDocument) => {
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('driver_documents')
+    .insert([data]);
+  
+  if (error) throw error;
+};
+
+export const getDrivers = async () => {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('drivers')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  if (error) throw error;
+  return data as Driver[];
+};
+
+export const getDriverWithDocuments = async (id: string) => {
+  const supabase = getSupabase();
+  const { data: driver, error: driverError } = await supabase
+    .from('drivers')
+    .select('*')
+    .eq('id', id)
+    .single();
+  
+  if (driverError) throw driverError;
+
+  const { data: documents, error: docsError } = await supabase
+    .from('driver_documents')
+    .select('*')
+    .eq('driver_id', id);
+  
+  if (docsError) throw docsError;
+
+  return {
+    ...driver,
+    documents: documents as DriverDocument[]
+  };
+};
+
+export const updateDriverStatus = async (id: string, updates: Partial<Driver>) => {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('drivers')
+    .update(updates)
+    .eq('id', id)
+    .select();
+  
+  if (error) throw error;
+  return data;
+};

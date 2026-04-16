@@ -11,6 +11,7 @@ import Login from './pages/Login';
 import { DubaiLanding, AbuDhabiLanding, DocumentLanding, SparePartsLanding } from './pages/LandingPages';
 import { TermsAndConditions, PrivacyPolicy } from './pages/Legal';
 import BusinessAccountInquiry from './pages/BusinessAccountInquiry';
+import DriverApplication from './pages/DriverApplication';
 import Track from './pages/Track';
 import { captureUTMs } from './lib/analytics';
 
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/spare-parts-delivery-uae" element={<SparePartsLanding />} />
           <Route path="/track" element={<Track />} />
           <Route path="/business-account" element={<BusinessAccountInquiry />} />
+          <Route path="/apply-driver" element={<DriverApplication />} />
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/dashboard" element={<Dashboard />} />
