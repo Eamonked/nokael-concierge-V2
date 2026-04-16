@@ -57,9 +57,14 @@ export default function DriverApplication() {
     const uploadData = new FormData();
     uploadData.append('file', file);
 
+    const apiKey = import.meta.env.VITE_NOKAEL_API_KEY;
+
     try {
       const response = await fetch('/api/upload-driver-doc', {
         method: 'POST',
+        headers: {
+          ...(apiKey ? { 'x-nokael-key': apiKey } : {}),
+        },
         body: uploadData,
       });
 

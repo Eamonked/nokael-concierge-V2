@@ -28,17 +28,16 @@ const upload = multer({
 export function createUploadRouter() {
   const router = Router();
 
-  // Auth via JWT service account
   const auth = new google.auth.JWT({
-    email: process.env.GOOGLE_DRIVE_CLIENT_EMAIL,
-    // Handle both literal \n and real newlines in the private key
-    key: (process.env.GOOGLE_DRIVE_PRIVATE_KEY ?? "").includes("\\n")
-      ? process.env.GOOGLE_DRIVE_PRIVATE_KEY!.replace(/\\n/g, "\n")
-      : process.env.GOOGLE_DRIVE_PRIVATE_KEY,
+    email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+    key: (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY ?? "").includes("\\n")
+      ? process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY!.replace(/\\n/g, "\n")
+      : process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY,
     scopes: ["https://www.googleapis.com/auth/drive.file"],
   });
 
   const drive = google.drive({ version: "v3", auth });
+  const uploadFolderId = process.env.GOOGLE_DRIVE_UPLOAD_FOLDER_ID;
 
   // Rate limit: 10 uploads per minute per IP
   router.post(
@@ -51,9 +50,8 @@ export function createUploadRouter() {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-      if (!folderId) {
-        console.error("[upload] GOOGLE_DRIVE_FOLDER_ID is not set");
+      if (!uploadFolderId) {
+        console.error("[upload] GOOGLE_DRIVE_UPLOAD_FOLDER_ID is not set");
         return res.status(500).json({ error: "Storage not configured" });
       }
 
@@ -64,7 +62,7 @@ export function createUploadRouter() {
         const file = await drive.files.create({
           requestBody: {
             name: fileName,
-            parents: [folderId],
+            parents: [uploadFolderId],
           },
           media: {
             mimeType: req.file.mimetype,
