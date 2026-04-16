@@ -41,10 +41,11 @@ const Hero = () => {
               <a
                 href={waUrl}
                 onClick={() => trackWhatsAppClick('hero')}
-                className="btn-primary px-10 py-5"
+                className="btn-primary px-10 py-5 group"
               >
                 <MessageSquare className="w-5 h-5" />
-                <span>Get Quote on WhatsApp</span>
+                <span>WhatsApp Driver Dispatch</span>
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </a>
               
               <a
@@ -53,12 +54,13 @@ const Hero = () => {
                 className="btn-secondary px-10 py-5"
               >
                 <Phone className="w-5 h-5" />
-                <span>Call Dispatch</span>
+                <span>Call Dispatch: {DISPLAY_PHONE}</span>
               </a>
             </div>
 
-            <p className="text-[10px] text-brand-muted uppercase tracking-[0.2em] font-bold mb-12">
-              Driver assigned immediately after confirmation
+            <p className="text-[10px] text-brand-neon uppercase tracking-[0.2em] font-bold mb-12 flex items-center gap-2">
+              <CheckCircle2 className="w-3 h-3" />
+              Fully Licensed UAE Courier Operator • Guaranteed Dispatch in 30 Mins
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 border-t border-brand-border pt-12">
@@ -444,10 +446,38 @@ const FinalAction = () => {
   );
 };
 
+const TrustBar = () => {
+  return (
+    <div className="bg-brand-surface/30 border-y border-brand-border py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap justify-center md:justify-between items-center gap-8 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+          <div className="flex items-center gap-2 font-display font-bold text-xl italic tracking-tighter">
+            <Shield className="w-5 h-5 text-brand-neon" />
+            <span>LEGAL<span className="text-brand-neon">CORP</span></span>
+          </div>
+          <div className="flex items-center gap-2 font-display font-bold text-xl italic tracking-tighter">
+            <Building2 className="w-5 h-5 text-brand-neon" />
+            <span>DIFC<span className="text-brand-neon">LOGISTICS</span></span>
+          </div>
+          <div className="flex items-center gap-2 font-display font-bold text-xl italic tracking-tighter">
+            <Zap className="w-5 h-5 text-brand-neon" />
+            <span>ADGM<span className="text-brand-neon">EXPRESS</span></span>
+          </div>
+          <div className="flex items-center gap-2 font-display font-bold text-xl italic tracking-tighter">
+            <Package className="w-5 h-5 text-brand-neon" />
+            <span>SUPPLY<span className="text-brand-neon">CHAIN</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function Home() {
   return (
     <div className="bg-brand-bg">
       <Hero />
+      <TrustBar />
       <SupportingSection />
       <ServiceCards />
       <BusinessAccounts />

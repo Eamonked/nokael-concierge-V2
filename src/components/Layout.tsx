@@ -13,6 +13,33 @@ import { ThemeToggle } from './ThemeToggle';
 import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE } from '../constants';
 import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
 
+const TopBar = () => {
+  return (
+    <div className="bg-brand-neon text-brand-bg py-2 px-4 relative z-[60]">
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em]">
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-brand-bg animate-pulse" />
+            Urgent Dispatch Active
+          </span>
+          <span className="hidden md:inline opacity-60">|</span>
+          <span className="hidden md:inline">Dubai ↔ Abu Dhabi (90-120 Min Delivery)</span>
+        </div>
+        <div className="flex items-center gap-6">
+          <a href={`tel:${PHONE_NUMBER}`} onClick={trackPhoneClick} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <Phone className="w-3 h-3 fill-brand-bg" />
+            <span>Call Now: {DISPLAY_PHONE}</span>
+          </a>
+          <a href={`https://wa.me/${WHATSAPP_NUMBER}`} onClick={() => trackWhatsAppClick('top_bar')} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <MessageSquare className="w-3 h-3 fill-brand-bg" />
+            <span>WhatsApp Dispatch</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const Navigation = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const location = useLocation();
@@ -24,7 +51,9 @@ export const Navigation = () => {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-brand-bg/80 backdrop-blur-md border-b border-brand-border">
+    <nav className={cn(
+      "bg-brand-bg/80 backdrop-blur-md border-b border-brand-border transition-all duration-300"
+    )}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           <Link to="/" className="flex items-center gap-2 group">
@@ -204,8 +233,13 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg selection:bg-brand-neon selection:text-brand-bg">
-      {!isDashboard && <Navigation />}
-      <main className={cn("flex-grow", !isDashboard && "pt-16")}>
+      {!isDashboard && (
+        <header className="fixed top-0 left-0 right-0 z-50">
+          <TopBar />
+          <Navigation />
+        </header>
+      )}
+      <main className={cn("flex-grow", !isDashboard && "pt-24 sm:pt-20")}>
         {children}
       </main>
       {!isDashboard && <Footer />}

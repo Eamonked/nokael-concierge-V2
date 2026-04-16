@@ -69,10 +69,11 @@ export const LandingTemplate = ({ title, subtitle, city, industry, heroImg, cont
               <a
                 href={`https://wa.me/${WHATSAPP_NUMBER}`}
                 onClick={() => trackWhatsAppClick(`landing_hero_${city || industry || 'unknown'}`)}
-                className="btn-primary w-full sm:w-auto px-10 py-5"
+                className="btn-primary w-full sm:w-auto px-10 py-5 group"
               >
                 <MessageSquare className="w-5 h-5" />
-                <span>WhatsApp Dispatch</span>
+                <span>WhatsApp Driver Dispatch</span>
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </a>
               
               <a
@@ -81,32 +82,56 @@ export const LandingTemplate = ({ title, subtitle, city, industry, heroImg, cont
                 className="btn-secondary w-full sm:w-auto px-10 py-5"
               >
                 <Phone className="w-5 h-5" />
-                <span>Call {DISPLAY_PHONE}</span>
+                <span>Call Dispatch: {DISPLAY_PHONE}</span>
               </a>
-
-              <Link
-                to="/get-quote"
-                className="hidden lg:flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-brand-muted hover:text-brand-neon transition-colors ml-4"
-              >
-                <span>Full Quote</span>
-                <ArrowRight className="w-3 h-3" />
-              </Link>
             </div>
 
-            <div className="flex items-center gap-8 border-t border-brand-border pt-8">
+            <div className="flex flex-wrap items-center gap-8 border-t border-brand-border pt-8">
               <div>
                 <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-1">Starting From</p>
                 <p className="text-xl font-display font-medium text-brand-neon">AED {PRICE_HERO_BUSINESS}</p>
               </div>
-              <div className="w-px h-8 bg-brand-border" />
+              <div className="w-px h-8 bg-brand-border hidden sm:block" />
               <div>
                 <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-1">Response Time</p>
                 <p className="text-xl font-display font-medium text-brand-text">2-5 Mins</p>
+              </div>
+              <div className="w-px h-8 bg-brand-border hidden sm:block" />
+              <div>
+                <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-1">Status</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-brand-neon animate-pulse" />
+                  <p className="text-xl font-display font-medium text-brand-text">Active</p>
+                </div>
               </div>
             </div>
           </motion.div>
         </div>
       </section>
+
+      {/* Trust Bar */}
+      <div className="bg-brand-surface/30 border-b border-brand-border py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap justify-center md:justify-between items-center gap-8 opacity-40 grayscale">
+            <div className="flex items-center gap-2 font-display font-bold text-lg italic tracking-tighter">
+              <Shield className="w-4 h-4 text-brand-neon" />
+              <span>LEGAL<span className="text-brand-neon">CORP</span></span>
+            </div>
+            <div className="flex items-center gap-2 font-display font-bold text-lg italic tracking-tighter">
+              <Zap className="w-4 h-4 text-brand-neon" />
+              <span>DIFC<span className="text-brand-neon">LOGISTICS</span></span>
+            </div>
+            <div className="flex items-center gap-2 font-display font-bold text-lg italic tracking-tighter">
+              <Navigation className="w-4 h-4 text-brand-neon" />
+              <span>ADGM<span className="text-brand-neon">EXPRESS</span></span>
+            </div>
+            <div className="flex items-center gap-2 font-display font-bold text-lg italic tracking-tighter">
+              <Truck className="w-4 h-4 text-brand-neon" />
+              <span>SUPPLY<span className="text-brand-neon">CHAIN</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Content Section */}
       <section className="py-32 bg-brand-bg">
@@ -117,6 +142,40 @@ export const LandingTemplate = ({ title, subtitle, city, industry, heroImg, cont
                 <h2 className="text-3xl font-display font-medium tracking-tighter mb-8 text-brand-text">Operational Overview</h2>
                 <div className="space-y-8 text-brand-muted leading-relaxed text-sm">
                   {content.map((p, i) => <p key={i}>{p}</p>)}
+                </div>
+              </div>
+
+              <div className="bg-brand-surface border border-brand-border rounded-3xl p-8 sm:p-12">
+                <h3 className="text-xl font-display font-medium tracking-tighter mb-8 text-brand-text">Service Level Agreement (SLA)</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-brand-neon">
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span className="text-xs font-bold uppercase tracking-widest">Guaranteed Dispatch</span>
+                    </div>
+                    <p className="text-sm text-brand-muted">Driver assigned within 5 minutes of confirmation. Immediate pickup within 30-60 minutes across major hubs.</p>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-brand-neon">
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span className="text-xs font-bold uppercase tracking-widest">Direct Point-to-Point</span>
+                    </div>
+                    <p className="text-sm text-brand-muted">No sorting hubs, no warehouses, no shared loads. Your item stays with one driver from pickup to dropoff.</p>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-brand-neon">
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span className="text-xs font-bold uppercase tracking-widest">Full Insurance</span>
+                    </div>
+                    <p className="text-sm text-brand-muted">Comprehensive transit insurance for all business documents and industrial spare parts up to AED 50,000.</p>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-brand-neon">
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span className="text-xs font-bold uppercase tracking-widest">Real-time Proof</span>
+                    </div>
+                    <p className="text-sm text-brand-muted">Instant proof of delivery (POD) sent via WhatsApp with recipient signature and timestamp.</p>
+                  </div>
                 </div>
               </div>
               
