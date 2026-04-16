@@ -14,7 +14,7 @@ import { createNotifyRouter } from "./routes/notify.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const SITE_URL = process.env.SITE_URL || "https://www.nokael.com";
+const SITE_URL = process.env.SITE_URL || "https://www.nokael.com" || "https://nokael.com";
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const PORT = Number(process.env.PORT) || 3000;
 

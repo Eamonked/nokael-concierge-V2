@@ -184,4 +184,5 @@ export const KNOWN_APP_ROUTES = [
   "/privacy",
   "/dashboard",
   "/login",
+  "/",
 ];
