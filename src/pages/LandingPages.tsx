@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { MapPin, Zap, MessageSquare, Phone, ArrowRight, Shield, Clock, CheckCircle2, Navigation, Truck, Star } from 'lucide-react';
+import { MapPin, Zap, MessageSquare, Phone, ArrowRight, Shield, Clock, CheckCircle2, Navigation, Truck, Star, User, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE, PRICE_HERO_BUSINESS } from '../constants';
 import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
@@ -41,13 +41,23 @@ export const LandingTemplate = ({ title, subtitle, city, industry, heroImg, cont
             animate={{ opacity: 1, y: 0 }}
             className="max-w-4xl"
           >
+            {/* Breadcrumbs */}
+            <nav className="flex items-center gap-2 mb-10 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-muted">
+              <Link to="/" className="hover:text-brand-text transition-colors">Home</Link>
+              <ChevronRight className="w-3 h-3" />
+              <Link to="/services" className="hover:text-brand-text transition-colors">Services</Link>
+              <ChevronRight className="w-3 h-3" />
+              <span className="text-brand-neon">{title.replace('.', '')}</span>
+            </nav>
+
             <div className="flex flex-wrap items-center gap-4 mb-10">
-              <div className="inline-flex items-center gap-3 px-4 py-2 rounded-lg bg-brand-neon/10 border border-brand-neon/20 text-brand-neon text-[10px] uppercase tracking-[0.3em] font-bold">
-                <MapPin className="w-3 h-3" />
+              <div className="inline-flex items-center gap-3 px-4 py-2 rounded-lg bg-brand-input border border-brand-input-border text-brand-neon text-[10px] uppercase tracking-[0.3em] font-bold">
+                <div className="w-1.5 h-1.5 rounded-full bg-brand-neon animate-pulse" />
                 <span>{city ? `Dispatch Sector: ${city}` : `Industry: ${industry}`}</span>
+                <span className="opacity-40 ml-2">| Live Active</span>
               </div>
               
-              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-surface border border-brand-border">
                 <div className="flex items-center gap-0.5">
                   {[1, 2, 3, 4, 5].map(i => (
                     <Star key={i} className="w-3 h-3 fill-brand-neon text-brand-neon" />
@@ -62,27 +72,33 @@ export const LandingTemplate = ({ title, subtitle, city, industry, heroImg, cont
             </h1>
             
             <p className="text-xl md:text-2xl text-brand-muted font-medium mb-12 max-w-2xl leading-relaxed">
-              {subtitle}
+              {subtitle} <br />
+              <span className="text-brand-text italic mt-2 block">Dedicated driver. No sorting hubs. Direct delivery.</span>
             </p>
             
             <div className="flex flex-col sm:flex-row items-center gap-4 mb-12">
               <a
                 href={`https://wa.me/${WHATSAPP_NUMBER}`}
                 onClick={() => trackWhatsAppClick(`landing_hero_${city || industry || 'unknown'}`)}
-                className="btn-primary w-full sm:w-auto px-10 py-5 group"
+                className="btn-primary w-full sm:w-auto px-10 py-6 group scale-105 origin-left"
               >
-                <MessageSquare className="w-5 h-5" />
-                <span>WhatsApp Driver Dispatch</span>
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                <div className="flex items-center gap-3 text-left">
+                   <MessageSquare className="w-6 h-6" />
+                   <div>
+                     <span className="block text-[10px] font-black uppercase tracking-widest opacity-60">Instant Dispatch</span>
+                     <span className="text-lg">WhatsApp Dispatch</span>
+                   </div>
+                </div>
+                <ArrowRight className="w-5 h-5 ml-4 group-hover:translate-x-1 transition-transform" />
               </a>
               
               <a
                 href={`tel:${PHONE_NUMBER}`}
                 onClick={trackPhoneClick}
-                className="btn-secondary w-full sm:w-auto px-10 py-5"
+                className="btn-secondary w-full sm:w-auto px-10 py-6"
               >
                 <Phone className="w-5 h-5" />
-                <span>Call Dispatch: {DISPLAY_PHONE}</span>
+                <span>Call Center: {DISPLAY_PHONE}</span>
               </a>
             </div>
 

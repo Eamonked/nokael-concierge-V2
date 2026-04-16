@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { MessageSquare, ArrowRight, Zap, Shield, MapPin, Clock, CheckCircle2, ChevronRight, Phone, X, Navigation, Package, Truck, Star, Building2 } from 'lucide-react';
+import { MessageSquare, ArrowRight, Zap, Shield, MapPin, Clock, CheckCircle2, ChevronRight, Phone, X, Navigation, Package, Truck, Star, Building2, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE, DEFAULT_WA_MESSAGE, BUSINESS_ACCOUNT_WA_MESSAGE, PRICE_HERO_BUSINESS, PRICE_HERO_DEDICATED, PRICE_TIER_STANDARD, PRICE_TIER_PRIORITY, PRICE_TIER_DEDICATED } from '../constants';
 import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
@@ -20,41 +20,42 @@ const Hero = () => {
           >
             <div className="inline-flex items-center space-x-3 px-4 py-2 rounded-lg bg-brand-input border border-brand-input-border text-brand-neon text-[11px] uppercase tracking-[0.2em] font-bold mb-6">
               <div className="w-2 h-2 rounded-full bg-brand-neon animate-pulse" />
-              <span>Business-Only Urgent Courier</span>
+              <span>LIVE DISPATCH ACTIVE</span>
             </div>
             
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-medium leading-[0.85] tracking-tighter mb-6 text-brand-text">
-              Dedicated Business <br />
-              <span className="text-brand-neon italic">Courier</span> <br />
-              for Fast Inter-Emirate Deliveries
+              Urgent Courier <br />
+              <span className="text-brand-neon italic">Dubai → Abu Dhabi</span> <br />
+              in 90–120 Minutes
             </h1>
             
-            <p className="text-lg md:text-xl text-brand-muted font-medium mb-6 max-w-xl leading-relaxed">
-              Same-day, express, and dedicated courier service for time-critical documents, parcels, tenders, spare parts, and sensitive business items.
-            </p>
-
-            <p className="text-sm text-brand-neon font-bold uppercase tracking-widest mb-12">
-              Direct driver assignment. No warehouses. No sorting hubs. Fast quote on WhatsApp.
+            <p className="text-xl md:text-2xl text-brand-muted font-medium mb-12 max-w-xl leading-snug">
+              Dedicated driver. <span className="text-brand-neon underline decoration-brand-neon/30 underline-offset-4 font-black">No hubs.</span> Immediate dispatch.
             </p>
             
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-12">
               <a
                 href={waUrl}
                 onClick={() => trackWhatsAppClick('hero')}
-                className="btn-primary px-10 py-5 group"
+                className="btn-primary px-10 py-6 group scale-105 origin-left"
               >
-                <MessageSquare className="w-5 h-5" />
-                <span>WhatsApp Driver Dispatch</span>
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                <div className="flex items-center gap-3">
+                  <MessageSquare className="w-6 h-6" />
+                  <div className="text-left">
+                    <span className="block text-[10px] font-black uppercase tracking-widest opacity-80">Urgent Pickup</span>
+                    <span className="text-lg">Dispatch via WhatsApp</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-5 h-5 ml-4 group-hover:translate-x-1 transition-transform" />
               </a>
               
               <a
                 href={`tel:${PHONE_NUMBER}`}
                 onClick={trackPhoneClick}
-                className="btn-secondary px-10 py-5"
+                className="btn-secondary px-10 py-6"
               >
                 <Phone className="w-5 h-5" />
-                <span>Call Dispatch: {DISPLAY_PHONE}</span>
+                <span>Call Now: {DISPLAY_PHONE}</span>
               </a>
             </div>
 
@@ -125,17 +126,50 @@ const Hero = () => {
   );
 };
 
+const Differentiators = () => {
+  return (
+    <section className="py-24 bg-brand-bg border-y border-brand-border">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-neon mb-4">The Distance of Speed</p>
+          <h2 className="text-4xl md:text-6xl font-display font-medium tracking-tighter text-brand-text">Why Nokael is Faster</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { title: 'No Warehouses', desc: 'Your item never sits in a sorting hub. We move it directly from pickup to destination.', icon: Navigation },
+            { title: 'Direct Assignment', desc: 'One driver is assigned to your job only. No multi-drop delays or shared routes.', icon: User },
+            { title: 'Immediate Dispatch', desc: 'Driver starts moving the second your request is confirmed on WhatsApp.', icon: Zap },
+            { title: 'Point-to-Point', desc: 'Direct route from your location to the receiver. The fastest line between two points.', icon: ArrowRight }
+          ].map((item, i) => (
+            <div key={i} className="p-8 rounded-3xl bg-brand-input border border-brand-input-border hover:border-brand-neon/20 transition-all group">
+              <div className="w-12 h-12 rounded-2xl bg-brand-neon/10 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+                <item.icon className="w-6 h-6 text-brand-neon" />
+              </div>
+              <h3 className="text-xl font-bold mb-4 text-brand-text whitespace-nowrap">{item.title}</h3>
+              <p className="text-xs text-brand-muted leading-relaxed font-medium uppercase tracking-widest">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const SupportingSection = () => {
   return (
     <section className="section-spacing bg-brand-bg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-20 max-w-3xl">
           <h2 className="text-4xl md:text-6xl font-display font-medium tracking-tighter mb-8 text-brand-text">
-            Built for businesses that <br />
-            <span className="text-brand-muted italic">cannot afford logistics delays.</span>
+            Same-Day Courier <br />
+            <span className="text-brand-muted italic">Dubai to Abu Dhabi</span>
           </h2>
+          <p className="text-xl text-brand-text font-bold leading-relaxed mb-6">
+            We provide same-day courier services from Dubai to Abu Dhabi, including express document delivery, urgent parcel transport, and dedicated business logistics across the UAE.
+          </p>
           <p className="text-lg text-brand-muted leading-relaxed">
-            Nokael helps businesses move critical items between Dubai and Abu Dhabi without relying on slow, low-priority courier networks.
+            Nokael helps businesses move critical items between Dubai and Abu Dhabi without relying on slow, low-priority courier networks. Used for legal, corporate, and time-critical deliveries.
           </p>
         </div>
         
@@ -205,12 +239,16 @@ const ServiceCards = () => {
               )}
             >
               <h3 className="text-xl font-bold mb-2 text-brand-text leading-tight">{s.title}</h3>
-              <div className="flex items-baseline gap-2 mb-8">
-                <span className="text-[10px] text-brand-muted uppercase tracking-widest">From</span>
-                <span className="text-3xl font-display font-medium text-brand-neon">{s.price}</span>
+              <div className="flex flex-col mb-8">
+                <span className="text-[10px] text-brand-muted uppercase tracking-widest mb-1">From</span>
+                <span className="text-5xl font-display font-medium text-brand-neon leading-none tracking-tighter">{s.price}</span>
               </div>
               
-              <ul className="space-y-4 mb-12 flex-1">
+              <ul className="space-y-6 mb-12 flex-1">
+                <li className="flex items-center gap-4 text-xs font-bold text-brand-text uppercase tracking-widest p-3 rounded-lg bg-brand-neon/10 border border-brand-neon/20">
+                  <Clock className="w-5 h-5 text-brand-neon" />
+                  <span>90–120 Min Delivery</span>
+                </li>
                 {s.features.map((f, j) => (
                   <li key={j} className="flex items-center gap-3 text-xs text-brand-muted">
                     <CheckCircle2 className="w-4 h-4 text-brand-neon" />
@@ -298,10 +336,12 @@ const BusinessAccounts = () => {
 
 const CorridorStatus = () => {
   const corridors = [
-    { from: 'Dubai', to: 'Abu Dhabi', status: 'Active', time: '90m' },
-    { from: 'Abu Dhabi', to: 'Dubai', status: 'Active', time: '95m' },
-    { from: 'Dubai', to: 'Sharjah', status: 'Active', time: '40m' },
-    { from: 'Dubai', to: 'RAK', status: 'High Demand', time: '120m' },
+    { name: 'DIFC', context: 'Legal & financial documents', status: 'Active' },
+    { name: 'Downtown Dubai', context: 'Business & retail deliveries', status: 'Active' },
+    { name: 'Jebel Ali', context: 'Industrial & spare parts', status: 'Active' },
+    { name: 'ADGM', context: 'Corporate & regulatory documents', status: 'Active' },
+    { name: 'Mussafah', context: 'Manufacturing & logistics', status: 'Active' },
+    { name: 'Khalifa City', context: 'Residential & corporate', status: 'Active' },
   ];
 
   return (
@@ -309,28 +349,27 @@ const CorridorStatus = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-neon mb-4">Network Status</p>
-            <h2 className="text-3xl md:text-5xl font-display font-medium tracking-tighter text-brand-text">Current Inter-Emirate Corridors</h2>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-neon mb-4">Areas We Serve</p>
+            <h2 className="text-3xl md:text-5xl font-display font-medium tracking-tighter text-brand-text">Dubai and Abu Dhabi Service Hubs</h2>
           </div>
           <div className="flex items-center gap-4 text-xs font-bold text-brand-muted">
-            <div className="w-2 h-2 rounded-full bg-brand-neon" />
+            <div className="w-2 h-2 rounded-full bg-brand-neon animate-pulse" />
             <span>Real-time availability</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {corridors.map((c, i) => (
-            <div key={i} className="p-6 rounded-2xl bg-brand-input border border-brand-input-border hover:border-brand-neon/20 transition-all">
-              <div className="flex items-center justify-between mb-6">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-brand-muted">{c.status}</span>
-                <Clock className="w-3 h-3 text-brand-muted" />
+            <div key={i} className="p-8 rounded-3xl bg-brand-input border border-brand-input-border hover:border-brand-neon/20 transition-all group overflow-hidden relative">
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-neon">{c.status}</span>
+                  <MapPin className="w-4 h-4 text-brand-muted group-hover:text-brand-neon transition-colors" />
+                </div>
+                <h3 className="text-2xl font-display font-medium text-brand-text mb-2 tracking-tight">{c.name}</h3>
+                <p className="text-xs text-brand-muted uppercase tracking-widest font-bold">{c.context}</p>
               </div>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-lg font-bold text-brand-text">{c.from}</span>
-                <ArrowRight className="w-4 h-4 text-brand-muted" />
-                <span className="text-lg font-bold text-brand-text">{c.to}</span>
-              </div>
-              <p className="text-xs text-brand-muted">Est. Transit: {c.time}</p>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-brand-neon/5 blur-3xl -translate-y-16 translate-x-16 group-hover:translate-y-0 group-hover:translate-x-0 transition-transform duration-700" />
             </div>
           ))}
         </div>
@@ -478,6 +517,7 @@ export default function Home() {
     <div className="bg-brand-bg">
       <Hero />
       <TrustBar />
+      <Differentiators />
       <SupportingSection />
       <ServiceCards />
       <BusinessAccounts />

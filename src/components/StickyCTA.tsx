@@ -15,8 +15,8 @@ export const StickyCTA = () => {
 
   React.useEffect(() => {
     const handleScroll = () => {
-      // Show CTA after scrolling 300px
-      if (window.scrollY > 300) {
+      // Show CTA after scrolling 100px (was 300px)
+      if (window.scrollY > 100) {
         setIsVisible(true);
       } else {
         setIsVisible(false);

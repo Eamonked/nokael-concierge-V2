@@ -23,7 +23,14 @@ export function getStructuredData(canonicalUrl: string, metadata: PageMetadata, 
       latitude: "25.2048",
       longitude: "55.2708",
     },
-    areaServed: { "@type": "Country", name: "UAE" },
+    areaServed: [
+      { "@type": "City", name: "Dubai" },
+      { "@type": "City", name: "Abu Dhabi" },
+    ],
+    sameAs: [
+      "https://www.linkedin.com/company/nokael",
+      "https://wa.me/971544324600",
+    ],
     description: metadata.description,
     address: {
       "@type": "PostalAddress",
@@ -98,7 +105,7 @@ export function buildSeoContent(metadata: PageMetadata): string {
 
   const zonesHtml = metadata.zones
     ? `<section style="margin-bottom:40px;">
-        <h2>Key Service Zones</h2>
+        <h2>Areas We Serve in Dubai and Abu Dhabi</h2>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           ${metadata.zones.map((z) => `<div style="padding:10px;background:#fff;border:1px solid #ddd;border-radius:6px;">${z}</div>`).join("")}
         </div>
@@ -127,12 +134,12 @@ export function buildSeoContent(metadata: PageMetadata): string {
       </header>
 
       <section style="margin-bottom:40px;">
-        <h2>Service Overview</h2>
+        <h2>Same-Day Courier Dubai to Abu Dhabi</h2>
         <p>${metadata.content}</p>
       </section>
 
       <section style="background:#f9f9f9;padding:30px;border-radius:12px;margin-bottom:40px;border:1px solid #eee;">
-        <h2 style="margin-top:0;">Pricing &amp; SLA</h2>
+        <h2 style="margin-top:0;">Pricing for Urgent Courier UAE</h2>
         <ul style="list-style:none;padding:0;">
           <li style="margin-bottom:10px;"><strong>Starting Price:</strong> From AED ${metadata.price ?? "150"}</li>
           <li style="margin-bottom:10px;"><strong>Guaranteed SLA:</strong> ${metadata.sla ?? "Fast dispatch"}</li>

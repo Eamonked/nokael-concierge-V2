@@ -44,12 +44,6 @@ export const Navigation = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const location = useLocation();
 
-  const navLinks = [
-    { name: 'Services', path: '/services' },
-    { name: 'Get Quote', path: '/get-quote' },
-    { name: 'Track', path: '/track' },
-  ];
-
   return (
     <nav className={cn(
       "bg-brand-bg/80 backdrop-blur-md border-b border-brand-border transition-all duration-300"
@@ -65,21 +59,37 @@ export const Navigation = () => {
             </span>
           </Link>
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
+            <div className="hidden md:flex items-center gap-8">
               <Link
-                key={link.path}
-                to={link.path}
+                to="/services"
                 className={cn(
                   "text-[11px] font-bold uppercase tracking-[0.2em] transition-colors hover:text-brand-neon",
-                  location.pathname === link.path ? "text-brand-neon" : "text-brand-muted"
+                  location.pathname === "/services" ? "text-brand-neon" : "text-brand-muted"
                 )}
               >
-                {link.name}
+                Urgent Courier Routes
               </Link>
-            ))}
-            <div className="flex items-center gap-4 border-l border-brand-border pl-8">
+              <Link
+                to="/get-quote"
+                className={cn(
+                  "text-[11px] font-bold uppercase tracking-[0.2em] transition-colors hover:text-brand-neon",
+                  location.pathname === "/get-quote" ? "text-brand-neon" : "text-brand-muted"
+                )}
+              >
+                Request Immediate Pickup
+              </Link>
+              <Link
+                to="/track"
+                className={cn(
+                  "text-[11px] font-bold uppercase tracking-[0.2em] transition-colors hover:text-brand-neon",
+                  location.pathname === "/track" ? "text-brand-neon" : "text-brand-muted"
+                )}
+              >
+                Live Tracking
+              </Link>
+            </div>
+
+            <div className="hidden md:flex items-center gap-4 border-l border-brand-border pl-8">
               <ThemeToggle />
               <Link
                 to="/get-quote"
@@ -88,9 +98,8 @@ export const Navigation = () => {
                 Dispatch Now
               </Link>
             </div>
-          </div>
 
-          {/* Mobile Toggle */}
+            {/* Mobile Toggle */}
           <div className="flex items-center gap-4 md:hidden">
             <ThemeToggle />
             <button
@@ -113,16 +122,27 @@ export const Navigation = () => {
             className="md:hidden bg-brand-bg border-b border-brand-border overflow-hidden"
           >
             <div className="px-4 py-8 space-y-6">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  onClick={() => setIsOpen(false)}
-                  className="block text-2xl font-display font-medium tracking-tighter"
-                >
-                  {link.name}
-                </Link>
-              ))}
+              <Link
+                to="/services"
+                onClick={() => setIsOpen(false)}
+                className="block text-2xl font-display font-medium tracking-tighter"
+              >
+                Urgent Courier Routes
+              </Link>
+              <Link
+                to="/get-quote"
+                onClick={() => setIsOpen(false)}
+                className="block text-2xl font-display font-medium tracking-tighter"
+              >
+                Request Immediate Pickup
+              </Link>
+              <Link
+                to="/track"
+                onClick={() => setIsOpen(false)}
+                className="block text-2xl font-display font-medium tracking-tighter"
+              >
+                Live Tracking
+              </Link>
               <div className="pt-6 grid grid-cols-1 gap-4">
                 <a
                   href={`https://wa.me/${WHATSAPP_NUMBER}`}
@@ -175,9 +195,18 @@ export const Footer = () => {
           <div className="md:col-span-3">
             <h4 className="text-brand-text font-bold uppercase tracking-[0.2em] text-[10px] mb-8">Logistics Corridors</h4>
             <ul className="space-y-4 text-xs text-brand-muted">
-              <li><Link to="/urgent-delivery-dubai" className="hover:text-brand-neon transition-colors">Dubai Dispatch</Link></li>
-              <li><Link to="/urgent-delivery-abu-dhabi" className="hover:text-brand-neon transition-colors">Abu Dhabi Dispatch</Link></li>
-              <li><Link to="/services" className="hover:text-brand-neon transition-colors">Inter-Emirate Routes</Link></li>
+              <li className="flex items-center gap-2 group/link">
+                <div className="w-1 h-1 rounded-full bg-brand-neon opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                <Link to="/urgent-delivery-dubai" className="hover:text-brand-neon transition-colors">Same-Day Courier in Dubai</Link>
+              </li>
+              <li className="flex items-center gap-2 group/link">
+                <div className="w-1 h-1 rounded-full bg-brand-neon opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                <Link to="/urgent-delivery-abu-dhabi" className="hover:text-brand-neon transition-colors">Urgent Delivery Abu Dhabi</Link>
+              </li>
+              <li className="flex items-center gap-2 group/link">
+                <div className="w-1 h-1 rounded-full bg-brand-neon opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                <Link to="/services" className="hover:text-brand-neon transition-colors">Urgent Inter-Emirate Routes</Link>
+              </li>
               <li><Link to="/document-delivery-uae" className="hover:text-brand-neon transition-colors">Document Tenders</Link></li>
               <li><Link to="/spare-parts-delivery-uae" className="hover:text-brand-neon transition-colors">Spare Parts Site Delivery</Link></li>
             </ul>

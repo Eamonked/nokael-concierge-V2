@@ -15,9 +15,9 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
     title: "Nokael | Urgent Business Courier Dubai to Abu Dhabi",
     description:
       "Urgent same-day business courier between Dubai and Abu Dhabi with direct driver assignment and fast delivery. Reliable inter-emirate logistics for time-critical items.",
-    h1: "Dedicated Business Courier for Fast Inter-Emirate Deliveries",
-    content: `Nokael provides urgent same-day business courier services between Dubai and Abu Dhabi. We offer direct driver assignment, no warehouses, and no sorting hubs for your time-critical documents, parcels, and spare parts.
-      Our network is built for businesses that cannot afford logistics delays. We specialize in the Dubai-Abu Dhabi corridor, providing point-to-point delivery with immediate driver dispatch.
+    h1: "Urgent Courier Dubai → Abu Dhabi in 90–120 Minutes",
+    content: `Dedicated driver. No hubs. Immediate dispatch. We provide same-day courier services from Dubai to Abu Dhabi, including express document delivery, urgent parcel transport, and dedicated business logistics across the UAE.
+      Nokael provides urgent same-day business courier services between Dubai and Abu Dhabi. We offer direct driver assignment, no warehouses, and no sorting hubs for your time-critical documents, parcels, and spare parts.
       Whether it is a legal tender, a sensitive contract, or an emergency spare part, our dedicated drivers ensure your items reach their destination safely and on time.`,
     price: "185",
     sla: "90-120 min delivery",
