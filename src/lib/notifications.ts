@@ -4,10 +4,12 @@
  */
 export const sendTelegramNotification = async (message: string) => {
   try {
+    const apiKey = import.meta.env.VITE_NOKAEL_API_KEY;
     const response = await fetch('/api/notify', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(apiKey ? { 'x-nokael-key': apiKey } : {}),
       },
       body: JSON.stringify({ message }),
     });

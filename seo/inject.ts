@@ -105,7 +105,7 @@ export function buildSeoContent(metadata: PageMetadata): string {
 
   const zonesHtml = metadata.zones
     ? `<section style="margin-bottom:40px;">
-        <h2>Service Areas & Core Hubs</h2>
+        <h2>Areas we serve</h2>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           ${metadata.zones.map((z) => `<div style="padding:10px;background:#fff;border:1px solid #ddd;border-radius:6px;">${z}</div>`).join("")}
         </div>
@@ -134,7 +134,7 @@ export function buildSeoContent(metadata: PageMetadata): string {
       </header>
 
       <section style="margin-bottom:40px;">
-        <h2>Service Overview: ${metadata.h1.replace(/\.$/, "")}</h2>
+        <h2>${metadata.h1}</h2>
         <p>${metadata.content}</p>
       </section>
 

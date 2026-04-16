@@ -14,6 +14,8 @@ import BusinessAccountInquiry from './pages/BusinessAccountInquiry';
 import DriverApplication from './pages/DriverApplication';
 import Track from './pages/Track';
 import { captureUTMs } from './lib/analytics';
+import NotFound from './pages/NotFound';
+
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -56,9 +58,9 @@ export default function App() {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/login" element={<Login />} />
-
-          {/* Fallback to Home */}
-          <Route path="*" element={<Home />} />
+          {/* 404 — must be last */}
+          <Route path="*" element={<NotFound />} />
+          
         </Routes>
       </Layout>
     </Router>
