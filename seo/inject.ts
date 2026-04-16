@@ -105,7 +105,7 @@ export function buildSeoContent(metadata: PageMetadata): string {
 
   const zonesHtml = metadata.zones
     ? `<section style="margin-bottom:40px;">
-        <h2>Areas We Serve in Dubai and Abu Dhabi</h2>
+        <h2>Service Areas & Core Hubs</h2>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           ${metadata.zones.map((z) => `<div style="padding:10px;background:#fff;border:1px solid #ddd;border-radius:6px;">${z}</div>`).join("")}
         </div>
@@ -115,7 +115,7 @@ export function buildSeoContent(metadata: PageMetadata): string {
   const faqsHtml =
     metadata.faqs && metadata.faqs.length > 0
       ? `<section style="margin-bottom:40px;">
-          <h2>Frequently Asked Questions</h2>
+          <h2>Logistics & Delivery FAQ</h2>
           ${metadata.faqs.map((f) => `<div style="margin-bottom:20px;"><h3 style="font-size:18px;margin-bottom:5px;">${f.q}</h3><p style="margin-top:0;">${f.a}</p></div>`).join("")}
         </section>`
       : "";
@@ -134,12 +134,12 @@ export function buildSeoContent(metadata: PageMetadata): string {
       </header>
 
       <section style="margin-bottom:40px;">
-        <h2>Same-Day Courier Dubai to Abu Dhabi</h2>
+        <h2>Service Overview: ${metadata.h1.replace(/\.$/, "")}</h2>
         <p>${metadata.content}</p>
       </section>
 
       <section style="background:#f9f9f9;padding:30px;border-radius:12px;margin-bottom:40px;border:1px solid #eee;">
-        <h2 style="margin-top:0;">Pricing for Urgent Courier UAE</h2>
+        <h2 style="margin-top:0;">Pricing & Logistics SLA</h2>
         <ul style="list-style:none;padding:0;">
           <li style="margin-bottom:10px;"><strong>Starting Price:</strong> From AED ${metadata.price ?? "150"}</li>
           <li style="margin-bottom:10px;"><strong>Guaranteed SLA:</strong> ${metadata.sla ?? "Fast dispatch"}</li>
@@ -152,8 +152,8 @@ export function buildSeoContent(metadata: PageMetadata): string {
       ${faqsHtml}
 
       <section style="border-top:1px solid #eee;padding-top:30px;">
-        <h2>Trusted by UAE Businesses</h2>
-        <p>Nokael is a fully licensed UAE courier operator specializing in high-priority, time-critical logistics for legal, corporate, and industrial sectors.</p>
+        <h2>Reliable UAE Business Courier</h2>
+        <p>Nokael is a fully licensed UAE courier operator specializing in high-priority, time-critical logistics for legal, corporate, and industrial sectors across the emirates.</p>
       </section>
 
       <nav style="margin-top:50px;padding:20px;background:#eee;border-radius:8px;">
@@ -179,12 +179,13 @@ export function injectMetadata(
   urlPath: string,
   metadata: PageMetadata,
   siteUrl: string,
-  isProduction: boolean
+  isProduction: boolean,
+  skipContent: boolean = false
 ): string {
   const canonical = `${siteUrl}${urlPath === "/" ? "" : urlPath}`;
   const structuredData = getStructuredData(canonical, metadata, siteUrl);
   const robots = isProduction ? "index,follow" : "noindex,follow";
-  const seoContent = buildSeoContent(metadata);
+  const seoContent = skipContent ? "" : buildSeoContent(metadata);
 
   return html
     .replace(/{{TITLE}}/g, metadata.title)
@@ -192,7 +193,7 @@ export function injectMetadata(
     .replace(/{{CANONICAL}}/g, canonical)
     .replace(/{{IMAGE}}/g, `${siteUrl}/og-image.jpg`)
     .replace(/{{STRUCTURED_DATA}}/g, structuredData)
-    .replace(/name="robots" content="index,follow"/g, `name="robots" content="${robots}"`)
+    .replace(/{{ROBOTS}}/g, robots)
     // Inject SEO article BEFORE the React root — crawlers see both, React mounts into #root
     .replace(
       '<div id="root"></div>',

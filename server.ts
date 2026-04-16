@@ -59,7 +59,8 @@ async function startServer() {
 
         const urlPath = req.path;
         const metadata = SEO_METADATA[urlPath] ?? DEFAULT_METADATA;
-        const html = injectMetadata(template, urlPath, metadata, SITE_URL, false);
+        const skipContent = KNOWN_APP_ROUTES.includes(urlPath);
+        const html = injectMetadata(template, urlPath, metadata, SITE_URL, false, skipContent);
 
         res.status(200).set("Content-Type", "text/html").end(html);
       } catch (e) {
@@ -101,7 +102,7 @@ async function startServer() {
         metadata = SEO_METADATA["/404"];
       }
 
-      const html = injectMetadata(INDEX_HTML, urlPath, metadata, SITE_URL, true);
+      const html = injectMetadata(INDEX_HTML, urlPath, metadata, SITE_URL, true, isAppRoute && !isSeoRoute);
       res.status(statusCode).set("Content-Type", "text/html").end(html);
     });
   }

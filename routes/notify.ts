@@ -4,6 +4,18 @@ import { requireApiKey, rateLimit } from "../middleware/security.js";
 // Max message length to prevent abuse
 const MAX_MESSAGE_LENGTH = 4096;
 
+/**
+ * Escapes HTML special characters for Telegram's HTML parse mode.
+ */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export function createNotifyRouter() {
   const router = Router();
 
@@ -21,6 +33,8 @@ export function createNotifyRouter() {
       });
     }
 
+    const sanitizedMessage = escapeHtml(message);
+
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_CHAT_ID;
 
@@ -37,7 +51,7 @@ export function createNotifyRouter() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             chat_id: chatId,
-            text: message,
+            text: sanitizedMessage,
             parse_mode: "HTML",
           }),
         }
