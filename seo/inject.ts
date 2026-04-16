@@ -197,6 +197,6 @@ export function injectMetadata(
     // Inject SEO article BEFORE the React root — crawlers see both, React mounts into #root
     .replace(
       '<div id="root"></div>',
-      `${seoContent}<div id="root"></div>`
+      `${seoContent ? `<div id="seo-content" aria-hidden="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;">${seoContent}</div>` : ""}<div id="root"></div>`
     );
 }
