@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import { google } from "googleapis";
@@ -25,6 +26,84 @@ async function startServer() {
   });
 
   const drive = google.drive({ version: "v3", auth });
+
+  const SITE_URL = process.env.SITE_URL || 'https://www.nokael.com';
+
+  const SEO_METADATA: Record<string, { title: string; description: string; h1: string; content: string }> = {
+    '/': {
+      title: 'Nokael | Urgent Business Courier Dubai to Abu Dhabi',
+      description: 'Urgent same-day business courier between Dubai and Abu Dhabi with direct driver assignment and fast delivery.',
+      h1: 'Dedicated Business Courier for Fast Inter-Emirate Deliveries',
+      content: 'Nokael provides urgent same-day business courier services between Dubai and Abu Dhabi. We offer direct driver assignment, no warehouses, and no sorting hubs for your time-critical documents, parcels, and spare parts.'
+    },
+    '/urgent-delivery-dubai': {
+      title: 'Urgent Courier Dubai | Nokael Business Delivery',
+      description: 'Urgent courier in Dubai with same-day dispatch and direct driver assignment for documents and parcels.',
+      h1: 'Dubai Dispatch.',
+      content: 'Fast inter-emirate transport starting from Dubai. Pickup typically within 30–60 minutes for immediate dispatch to Abu Dhabi, Sharjah, and beyond. Built for businesses that cannot afford logistics delays.'
+    },
+    '/urgent-delivery-abu-dhabi': {
+      title: 'Urgent Courier Abu Dhabi | Nokael Business Delivery',
+      description: 'Urgent courier in Abu Dhabi for same-day and inter-emirate delivery with fast response.',
+      h1: 'Abu Dhabi Dispatch.',
+      content: 'Premium inter-emirate logistics from the capital. Dedicated drivers for direct transport to Dubai and the Northern Emirates. Serving government, corporate, and private clients with precision.'
+    },
+    '/document-delivery-uae': {
+      title: 'Urgent Document Delivery UAE | Nokael Courier',
+      description: 'Secure urgent document delivery across the UAE for contracts and sensitive business paperwork.',
+      h1: 'Document & Legal.',
+      content: 'Secure, hand-to-hand transport for sensitive documents, contracts, and legal tenders across all emirates. Real-time tracking and immediate proof of delivery via WhatsApp.'
+    },
+    '/spare-parts-delivery-uae': {
+      title: 'Urgent Spare Parts Delivery UAE | Nokael Courier',
+      description: 'Emergency spare parts delivery across the UAE for automotive and industrial needs.',
+      h1: 'Spare Parts Logistics.',
+      content: 'Emergency transport for critical machinery, automotive, and industrial parts. Direct from supplier to site. 24/7 emergency dispatch for industrial hardware across the UAE.'
+    },
+    '/services': {
+      title: 'Direct Response Logistics Services | Nokael UAE',
+      description: 'Specialized urgent delivery services across the UAE including documents, spare parts, and inter-emirate corridors.',
+      h1: 'Direct Response Logistics.',
+      content: 'We provide specialized, high-speed transport solutions across the UAE. Built for speed, security, and direct accountability. Our services include urgent inter-emirate delivery, document & legal transport, and spare parts logistics.'
+    }
+  };
+
+  const DEFAULT_METADATA = {
+    title: 'Nokael | Urgent UAE Delivery',
+    description: 'Urgent business courier services across the UAE. Direct driver assignment and fast inter-emirate delivery.',
+    h1: 'Urgent UAE Delivery',
+    content: 'Nokael provides fast and reliable urgent delivery services across the UAE.'
+  };
+
+  const getStructuredData = (url: string) => {
+    return JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": "Nokael",
+      "url": url,
+      "areaServed": "UAE",
+      "description": "Urgent business courier services between Dubai and Abu Dhabi."
+    });
+  };
+
+  const injectMetadata = (html: string, urlPath: string) => {
+    const metadata = SEO_METADATA[urlPath] || DEFAULT_METADATA;
+    const canonical = `${SITE_URL}${urlPath === '/' ? '' : urlPath}`;
+    const structuredData = getStructuredData(canonical);
+    
+    return html
+      .replace(/{{TITLE}}/g, metadata.title)
+      .replace(/{{DESCRIPTION}}/g, metadata.description)
+      .replace(/{{CANONICAL}}/g, canonical)
+      .replace(/{{IMAGE}}/g, `${SITE_URL}/og-image.jpg`) // Placeholder OG image
+      .replace(/{{STRUCTURED_DATA}}/g, structuredData)
+      .replace('<div id="root"></div>', `<div id="root">
+        <div style="display:none">
+          <h1>${metadata.h1}</h1>
+          <p>${metadata.content}</p>
+        </div>
+      </div>`);
+  };
 
   // API Routes
   app.post("/api/upload-driver-doc", upload.single("file"), async (req, res) => {
@@ -118,11 +197,38 @@ async function startServer() {
       appType: "spa",
     });
     app.use(vite.middlewares);
+    
+    app.get("*", async (req, res, next) => {
+      const url = req.originalUrl;
+      try {
+        let template = fs.readFileSync(path.resolve(__dirname, "index.html"), "utf-8");
+        template = await vite.transformIndexHtml(url, template);
+        const html = injectMetadata(template, url);
+        res.status(200).set({ "Content-Type": "text/html" }).end(html);
+      } catch (e) {
+        vite.ssrFixStacktrace(e as Error);
+        next(e);
+      }
+    });
   } else {
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, { index: false }));
+    
     app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+      const url = req.originalUrl;
+      const indexPath = path.join(distPath, "index.html");
+      
+      if (!fs.existsSync(indexPath)) {
+        return res.status(404).send("Build not found");
+      }
+
+      let html = fs.readFileSync(indexPath, "utf-8");
+      html = injectMetadata(html, url);
+      
+      // Check if it's a known route or 404
+      const isKnownRoute = SEO_METADATA[url] || ['/get-quote', '/thank-you', '/track', '/business-account', '/apply-driver', '/terms', '/privacy', '/dashboard', '/login'].includes(url);
+      
+      res.status(isKnownRoute ? 200 : 404).send(html);
     });
   }
 

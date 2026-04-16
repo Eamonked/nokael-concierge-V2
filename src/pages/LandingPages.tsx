@@ -194,11 +194,32 @@ export const LandingTemplate = ({ title, subtitle, city, industry, heroImg, cont
                 <a
                   href={`https://wa.me/${WHATSAPP_NUMBER}`}
                   onClick={() => trackWhatsAppClick(`landing_card_${city || industry || 'unknown'}`)}
-                  className="w-full py-5 bg-brand-bg text-brand-neon font-black rounded-2xl uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 hover:scale-[1.02] transition-all shadow-xl"
+                  className="w-full py-5 bg-brand-bg text-brand-neon font-black rounded-2xl uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 hover:scale-[1.02] transition-all shadow-xl mb-6"
                 >
                   <MessageSquare className="w-5 h-5" />
                   <span>Instant Dispatch</span>
                 </a>
+
+                <div className="pt-6 border-t border-brand-bg/20">
+                  <p className="text-[9px] font-bold uppercase tracking-widest mb-4 opacity-70">Other Services</p>
+                  <div className="grid grid-cols-1 gap-3">
+                    {[
+                      { name: 'Document Delivery', path: '/document-delivery-uae' },
+                      { name: 'Spare Parts', path: '/spare-parts-delivery-uae' },
+                      { name: 'Dubai Dispatch', path: '/urgent-delivery-dubai' },
+                      { name: 'Abu Dhabi Dispatch', path: '/urgent-delivery-abu-dhabi' }
+                    ].filter(s => s.path !== window.location.pathname).slice(0, 2).map((s, i) => (
+                      <Link 
+                        key={i} 
+                        to={s.path}
+                        className="text-[10px] font-bold uppercase tracking-widest hover:underline flex items-center justify-between"
+                      >
+                        <span>{s.name}</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
