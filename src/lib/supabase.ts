@@ -185,12 +185,16 @@ export interface DriverDocument {
 
 export const submitDriverApplication = async (data: Driver) => {
   const supabase = getSupabase();
-  const { data: driver, error } = await supabase
+
+  // Generate ID client-side so we don't need a SELECT policy for the anon role.
+  // .select().single() after insert requires RLS SELECT permission which anon doesn't have.
+  const id = crypto.randomUUID();
+  const payload = { ...data, id };
+
+  const { error } = await supabase
     .from('drivers')
-    .insert([data])
-    .select()
-    .single();
-  
+    .insert([payload]);
+
   if (error) throw error;
 
   // Send Telegram Notification
@@ -207,7 +211,7 @@ export const submitDriverApplication = async (data: Driver) => {
   `.trim();
   await sendTelegramNotification(message);
 
-  return driver as Driver;
+  return payload as Driver;
 };
 
 export const uploadDriverDocument = async (data: DriverDocument) => {
