@@ -1,8 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, MapPin, Navigation, Clock, CheckCircle2, Loader2, MessageSquare, Phone, Zap, Truck } from 'lucide-react';
+import { Search, MapPin, Navigation, Clock, CheckCircle2, Loader2, MessageSquare, Phone, Zap, Truck, AlertCircle } from 'lucide-react';
 import { WHATSAPP_NUMBER } from '../constants';
 import { trackWhatsAppClick } from '../lib/analytics';
+import { getQuoteByTrackingId, type QuoteRequest } from '../lib/supabase';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -14,23 +15,29 @@ export default function Track() {
   const [trackingId, setTrackingId] = React.useState('');
   const [isSearching, setIsSearching] = React.useState(false);
   const [status, setStatus] = React.useState<'idle' | 'searching' | 'found' | 'not_found'>('idle');
+  const [activeJob, setActiveJob] = React.useState<QuoteRequest | null>(null);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!trackingId) return;
     
     setIsSearching(true);
     setStatus('searching');
     
-    // Simulate search
-    setTimeout(() => {
+    try {
+      const job = await getQuoteByTrackingId(trackingId);
       setIsSearching(false);
-      if (trackingId.toUpperCase() === 'NK-7721') {
+      if (job) {
+        setActiveJob(job);
         setStatus('found');
       } else {
         setStatus('not_found');
       }
-    }, 1500);
+    } catch (error) {
+      console.error('Tracking search error:', error);
+      setIsSearching(false);
+      setStatus('not_found');
+    }
   };
 
   return (
@@ -49,7 +56,7 @@ export default function Track() {
               <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-muted group-focus-within:text-brand-neon transition-colors" />
               <input
                 type="text"
-                placeholder="Enter Dispatch ID (e.g. NK-7721)"
+                placeholder="Enter Dispatch ID (e.g. NK-1234)"
                 className="w-full bg-brand-input border border-brand-input-border rounded-2xl py-6 pl-16 pr-6 text-xl text-brand-text focus:outline-none focus:border-brand-neon/50 transition-all font-display tracking-tight"
                 value={trackingId}
                 onChange={(e) => setTrackingId(e.target.value)}
@@ -63,7 +70,7 @@ export default function Track() {
               </button>
             </div>
             <p className="mt-4 text-[10px] text-brand-muted uppercase tracking-widest font-bold text-center">
-              Example: <button type="button" onClick={() => setTrackingId('NK-7721')} className="text-brand-neon hover:underline">NK-7721</button>
+              Enter the tracking ID from your confirmation message.
             </p>
           </form>
 
@@ -90,14 +97,14 @@ export default function Track() {
                 className="dispatch-card border-red-500/20 text-center py-16"
               >
                 <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Search className="w-8 h-8 text-red-500" />
+                  <AlertCircle className="w-8 h-8 text-red-500" />
                 </div>
                 <h3 className="text-xl font-display font-medium mb-2">Dispatch ID Not Found</h3>
-                <p className="text-brand-muted text-sm mb-8">We couldn't locate a live dispatch with that ID. Please check the number or contact dispatch.</p>
+                <p className="text-brand-muted text-sm mb-8">We couldn't locate a live dispatch with ID <b>{trackingId}</b>. Please check the ID or contact dispatch.</p>
                 <a 
                   href={`https://wa.me/${WHATSAPP_NUMBER}`} 
                   onClick={() => trackWhatsAppClick('track_not_found')}
-                  className="btn-secondary inline-flex py-3 px-8"
+                  className="btn-secondary inline-flex py-3 px-8 text-[10px]"
                 >
                   <MessageSquare className="w-4 h-4" />
                   <span>Contact Dispatch</span>
@@ -105,7 +112,7 @@ export default function Track() {
               </motion.div>
             )}
 
-            {status === 'found' && (
+            {status === 'found' && activeJob && (
               <motion.div
                 key="found"
                 initial={{ opacity: 0, y: 10 }}
@@ -117,27 +124,36 @@ export default function Track() {
                   <div className="flex items-center justify-between mb-8 pb-6 border-b border-brand-border">
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted mb-1">Dispatch ID</p>
-                      <p className="text-xl font-display font-medium tracking-tight text-brand-text">NK-7721</p>
+                      <p className="text-xl font-display font-medium tracking-tight text-brand-text">{activeJob.tracking_id}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-neon mb-1">Status: In Transit</p>
-                      <p className="text-xs text-brand-muted">E11 Highway • Dubai Corridor</p>
+                      <p className={cn(
+                        "text-[10px] font-bold uppercase tracking-[0.3em] mb-1",
+                        activeJob.status === 'completed' ? 'text-brand-neon' : 'text-blue-500'
+                      )}>
+                        Status: {activeJob.status === 'completed' ? 'Delivered' : activeJob.status === 'contacted' ? 'In Transit' : 'Scheduled'}
+                      </p>
+                      <p className="text-xs text-brand-muted">{activeJob.emirate} Corridor</p>
                     </div>
                   </div>
 
                   <div className="space-y-8">
                     <div className="relative pl-8 border-l border-brand-border space-y-12">
                       <div className="relative">
-                        <div className="absolute -left-[37px] top-0 w-4 h-4 rounded-full bg-brand-neon border-4 border-brand-bg shadow-[0_0_15px_rgba(57,255,20,0.5)]" />
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-brand-neon mb-1">Current Position</p>
-                        <p className="text-sm font-medium mb-1 text-brand-text">E11 Highway, near Jebel Ali</p>
-                        <p className="text-[10px] text-brand-muted uppercase tracking-widest">Last ping: 12 seconds ago</p>
+                        <div className={cn(
+                          "absolute -left-[37px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg",
+                          activeJob.status === 'pending' ? "bg-brand-neon shadow-[0_0_15px_rgba(57,255,20,0.5)]" : "bg-brand-border"
+                        )} />
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted mb-1">Origin</p>
+                        <p className="text-sm font-medium mb-1 text-brand-text">{activeJob.pickup_location}</p>
                       </div>
                       <div className="relative">
-                        <div className="absolute -left-[37px] top-0 w-4 h-4 rounded-full bg-brand-input border-4 border-brand-bg" />
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted mb-1">Next Stop</p>
-                        <p className="text-sm font-medium mb-1 text-brand-text">Abu Dhabi, Al Reem Island</p>
-                        <p className="text-[10px] text-brand-muted uppercase tracking-widest">Est. Arrival: 42 mins</p>
+                        <div className={cn(
+                          "absolute -left-[37px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg",
+                          activeJob.status === 'contacted' ? "bg-brand-neon shadow-[0_0_15px_rgba(57,255,20,0.5)]" : "bg-brand-border"
+                        )} />
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted mb-1">Destination</p>
+                        <p className="text-sm font-medium mb-1 text-brand-text">{activeJob.delivery_location}</p>
                       </div>
                     </div>
                   </div>
@@ -145,14 +161,14 @@ export default function Track() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="dispatch-card py-6">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted mb-4">Driver Assigned</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted mb-4">Assigned Dispatcher</p>
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-lg bg-brand-input flex items-center justify-center text-brand-muted">
-                        <Truck className="w-5 h-5" />
+                        <Zap className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-brand-text">Ahmed S.</p>
-                        <p className="text-[10px] text-brand-muted uppercase tracking-widest">Toyota Hiace • White</p>
+                        <p className="text-sm font-bold text-brand-text">Nokael Dispatch</p>
+                        <p className="text-[10px] text-brand-muted uppercase tracking-widest">24/7 Operations Hub</p>
                       </div>
                     </div>
                   </div>
@@ -163,7 +179,7 @@ export default function Track() {
                       className="btn-primary flex-1 py-3 text-[10px]"
                     >
                       <MessageSquare className="w-4 h-4" />
-                      <span>WhatsApp Driver</span>
+                      <span>Support Chat</span>
                     </a>
                   </div>
                 </div>

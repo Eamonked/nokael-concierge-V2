@@ -1,14 +1,24 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, Phone, Mail, MapPin, Truck, Clock, CheckCircle2, Upload, FileText, AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
+import { User, Phone, Mail, MapPin, Truck, Clock, CheckCircle2, Upload, FileText, AlertCircle, ArrowRight, Loader2, Calendar, Globe, Briefcase } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { submitDriverApplication, uploadDriverDocument, type Driver } from '../lib/supabase';
 
 const DOCUMENT_TYPES = [
-  { id: 'emirates_id', label: 'Emirates ID (Front & Back)', icon: FileText },
-  { id: 'license', label: 'Driving License', icon: FileText },
-  { id: 'registration', label: 'Vehicle Registration (Mulkiya)', icon: FileText },
-  { id: 'vehicle_photo', label: 'Vehicle Photo (Clear view)', icon: Truck },
+  { id: 'emirates_id', label: 'Emirates ID (Front & Back)', icon: FileText, description: 'High resolution scan or photo' },
+  { id: 'license', label: 'Driving License', icon: FileText, description: 'Valid UAE driving license' },
+  { id: 'registration', label: 'Vehicle Registration (Mulkiya)', icon: FileText, description: 'Current registration card' },
+  { id: 'vehicle_photo', label: 'Vehicle Photo (Clear view)', icon: Truck, description: 'Show front and side profile' },
+];
+
+const DAYS_OF_WEEK = [
+  { id: 'mon', label: 'Mon' },
+  { id: 'tue', label: 'Tue' },
+  { id: 'wed', label: 'Wed' },
+  { id: 'thu', label: 'Thu' },
+  { id: 'fri', label: 'Fri' },
+  { id: 'sat', label: 'Sat' },
+  { id: 'sun', label: 'Sun' },
 ];
 
 export default function DriverApplication() {
@@ -16,6 +26,12 @@ export default function DriverApplication() {
   const [step, setStep] = React.useState(1);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [driverId, setDriverId] = React.useState<string | null>(null);
+  
+  // Availability structure
+  const [selectedDays, setSelectedDays] = React.useState<string[]>(['mon', 'tue', 'wed', 'thu', 'fri']);
+  const [startTime, setStartTime] = React.useState('08:00');
+  const [endTime, setEndTime] = React.useState('20:00');
+
   const [formData, setFormData] = React.useState<Partial<Driver>>({
     full_name: '',
     phone: '',
@@ -26,6 +42,15 @@ export default function DriverApplication() {
     inter_emirate_yes_no: true,
     availability_hours: '',
   });
+
+  // Re-calculate availability string whenever days or times change
+  React.useEffect(() => {
+    const daysStr = selectedDays.map(id => DAYS_OF_WEEK.find(d => d.id === id)?.label).join(', ');
+    setFormData(prev => ({
+      ...prev,
+      availability_hours: `${daysStr} | ${startTime} - ${endTime}`
+    }));
+  }, [selectedDays, startTime, endTime]);
 
   const [uploads, setUploads] = React.useState<Record<string, { file: File | null, status: 'idle' | 'uploading' | 'success' | 'error' }>>({
     emirates_id: { file: null, status: 'idle' },
@@ -100,11 +125,11 @@ export default function DriverApplication() {
               <Truck className="w-3 h-3" />
               <span>Join the Dispatch Network</span>
             </div>
-            <h1 className="text-5xl md:text-6xl font-display font-medium tracking-tighter text-brand-text mb-6">
-              Become a <span className="text-brand-neon italic">Nokael Driver</span>
+            <h1 className="text-5xl md:text-7xl font-display font-medium tracking-tighter text-brand-text mb-6">
+              Join our <span className="text-brand-neon italic">Elite Fleet.</span>
             </h1>
-            <p className="text-lg text-brand-muted max-w-2xl mx-auto">
-              We provide direct-response logistics across the UAE. Apply today to start receiving high-priority inter-emirate delivery jobs.
+            <p className="text-lg text-brand-muted max-w-2xl mx-auto leading-relaxed">
+              Experience the highest volume corridor logistics in the UAE. We manage the jobs, you manage the drive. Direct driver dispatch, zero hub delays.
             </p>
           </motion.div>
         </div>
@@ -139,15 +164,15 @@ export default function DriverApplication() {
                 onSubmit={handleFormSubmit}
                 className="space-y-8"
               >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
                   <div className="space-y-3">
-                    <label className="text-[10px] uppercase tracking-widest text-brand-muted font-bold">Full Name</label>
-                    <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                    <label className="text-[10px] uppercase tracking-[0.3em] text-brand-muted font-black">Full Name</label>
+                    <div className="group relative">
+                      <User className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted group-focus-within:text-brand-neon transition-colors" />
                       <input
                         required
                         type="text"
-                        className="form-input pl-12 h-14"
+                        className="form-input pl-14 h-16 bg-brand-surface/50 border-brand-border/50"
                         placeholder="As per Emirates ID"
                         value={formData.full_name}
                         onChange={e => setFormData({ ...formData, full_name: e.target.value })}
@@ -155,27 +180,27 @@ export default function DriverApplication() {
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <label className="text-[10px] uppercase tracking-widest text-brand-muted font-bold">Email Address</label>
-                    <div className="relative">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                    <label className="text-[10px] uppercase tracking-[0.3em] text-brand-muted font-black">Email Address</label>
+                    <div className="group relative">
+                      <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted group-focus-within:text-brand-neon transition-colors" />
                       <input
                         required
                         type="email"
-                        className="form-input pl-12 h-14"
-                        placeholder="name@example.com"
+                        className="form-input pl-14 h-16 bg-brand-surface/50 border-brand-border/50"
+                        placeholder="logistics@nokael.com"
                         value={formData.email}
                         onChange={e => setFormData({ ...formData, email: e.target.value })}
                       />
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <label className="text-[10px] uppercase tracking-widest text-brand-muted font-bold">Phone Number</label>
-                    <div className="relative">
-                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                    <label className="text-[10px] uppercase tracking-[0.3em] text-brand-muted font-black">Phone Number</label>
+                    <div className="group relative">
+                      <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted group-focus-within:text-brand-neon transition-colors" />
                       <input
                         required
                         type="tel"
-                        className="form-input pl-12 h-14"
+                        className="form-input pl-14 h-16 bg-brand-surface/50 border-brand-border/50"
                         placeholder="+971"
                         value={formData.phone}
                         onChange={e => setFormData({ ...formData, phone: e.target.value })}
@@ -183,13 +208,13 @@ export default function DriverApplication() {
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <label className="text-[10px] uppercase tracking-widest text-brand-muted font-bold">WhatsApp Number</label>
-                    <div className="relative">
-                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                    <label className="text-[10px] uppercase tracking-[0.3em] text-brand-muted font-black">WhatsApp Number</label>
+                    <div className="group relative">
+                      <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted group-focus-within:text-brand-neon transition-colors" />
                       <input
                         required
                         type="tel"
-                        className="form-input pl-12 h-14"
+                        className="form-input pl-14 h-16 bg-brand-surface/50 border-brand-border/50"
                         placeholder="+971"
                         value={formData.whatsapp}
                         onChange={e => setFormData({ ...formData, whatsapp: e.target.value })}
@@ -197,13 +222,13 @@ export default function DriverApplication() {
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <label className="text-[10px] uppercase tracking-widest text-brand-muted font-bold">Base Location</label>
-                    <div className="relative">
-                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                    <label className="text-[10px] uppercase tracking-[0.3em] text-brand-muted font-black">Base Location (Area/City)</label>
+                    <div className="group relative">
+                      <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted group-focus-within:text-brand-neon transition-colors" />
                       <input
                         required
                         type="text"
-                        className="form-input pl-12 h-14"
+                        className="form-input pl-14 h-16 bg-brand-surface/50 border-brand-border/50"
                         placeholder="e.g. Al Barsha, Dubai"
                         value={formData.base_location}
                         onChange={e => setFormData({ ...formData, base_location: e.target.value })}
@@ -211,35 +236,103 @@ export default function DriverApplication() {
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <label className="text-[10px] uppercase tracking-widest text-brand-muted font-bold">Vehicle Type</label>
-                    <div className="relative">
-                      <Truck className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                    <label className="text-[10px] uppercase tracking-[0.3em] text-brand-muted font-black">Vehicle Category</label>
+                    <div className="group relative">
+                      <Truck className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted group-focus-within:text-brand-neon transition-colors" />
                       <select
-                        className="form-input pl-12 h-14 appearance-none"
+                        className="form-input pl-14 h-16 bg-brand-surface/50 border-brand-border/50 appearance-none"
                         value={formData.vehicle_type}
                         onChange={e => setFormData({ ...formData, vehicle_type: e.target.value })}
                       >
                         <option>Sedan</option>
-                        <option>SUV</option>
-                        <option>Van</option>
-                        <option>Motorcycle</option>
-                        <option>Pickup Truck</option>
+                        <option>Executive SUV</option>
+                        <option>Panel Van</option>
+                        <option>Motorcycle (License R)</option>
+                        <option>3-Ton Pickup</option>
                       </select>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <label className="text-[10px] uppercase tracking-widest text-brand-muted font-bold">Availability & Hours</label>
-                  <div className="relative">
-                    <Clock className="absolute left-4 top-4 w-4 h-4 text-brand-muted" />
-                    <textarea
-                      required
-                      className="form-input pl-12 min-h-[100px] py-4"
-                      placeholder="e.g. Mon-Fri, 8 AM - 8 PM"
-                      value={formData.availability_hours}
-                      onChange={e => setFormData({ ...formData, availability_hours: e.target.value })}
-                    />
+                <div className="pt-6 border-t border-brand-border/50 space-y-8">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div>
+                      <h3 className="text-xs font-black uppercase tracking-[0.3em] text-brand-text mb-1">Availability Window</h3>
+                      <p className="text-[10px] text-brand-muted uppercase tracking-widest">Select your active dispatch days and hours</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {DAYS_OF_WEEK.map((day) => (
+                        <button
+                          key={day.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedDays(prev => 
+                              prev.includes(day.id) ? prev.filter(d => d !== day.id) : [...prev, day.id]
+                            );
+                          }}
+                          className={`w-10 h-10 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border ${
+                            selectedDays.includes(day.id) 
+                              ? "bg-brand-neon text-brand-bg border-brand-neon shadow-[0_4px_12px_rgba(57,255,20,0.3)]" 
+                              : "bg-brand-surface text-brand-muted border-brand-border hover:border-brand-neon/50"
+                          }`}
+                        >
+                          {day.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <label className="text-[10px] uppercase tracking-[0.3em] text-brand-muted font-black">Start Shift</label>
+                      <div className="relative">
+                        <Clock className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                        <input 
+                          type="time" 
+                          className="form-input pl-14 h-16 bg-brand-surface/50 border-brand-border/50"
+                          value={startTime}
+                          onChange={(e) => setStartTime(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[10px] uppercase tracking-[0.3em] text-brand-muted font-black">End Shift</label>
+                      <div className="relative">
+                        <Clock className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                        <input 
+                          type="time" 
+                          className="form-input pl-14 h-16 bg-brand-surface/50 border-brand-border/50"
+                          value={endTime}
+                          onChange={(e) => setEndTime(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-brand-neon/5 border border-brand-neon/10 rounded-2xl p-6 flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-brand-bg">
+                    <Globe className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-widest text-brand-text mb-1">Inter-Emirate Dispatch</h4>
+                    <p className="text-[10px] text-brand-muted uppercase tracking-widest">Are you comfortable driving between Dubai, Abu Dhabi, and Northern Emirates?</p>
+                  </div>
+                  <div className="ml-auto flex items-center gap-3">
+                    {['Yes', 'No'].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, inter_emirate_yes_no: opt === 'Yes' })}
+                        className={`px-6 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                          (formData.inter_emirate_yes_no && opt === 'Yes') || (!formData.inter_emirate_yes_no && opt === 'No')
+                            ? "bg-brand-neon text-brand-bg shadow-[0_0_15px_rgba(57,255,20,0.2)]"
+                            : "bg-brand-surface text-brand-muted border border-brand-border"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -262,19 +355,25 @@ export default function DriverApplication() {
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {DOCUMENT_TYPES.map((doc) => (
-                    <div key={doc.id} className="dispatch-card p-6 border-brand-border hover:border-brand-neon/50 transition-colors">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="w-10 h-10 rounded bg-brand-neon/10 flex items-center justify-center text-brand-neon">
-                          <doc.icon className="w-5 h-5" />
+                    <div key={doc.id} className="dispatch-card p-6 border-brand-border/30 hover:border-brand-neon/50 transition-all duration-300 bg-brand-surface/20">
+                      <div className="flex items-start justify-between mb-6">
+                        <div className="w-12 h-12 rounded-xl bg-brand-neon/10 flex items-center justify-center text-brand-neon">
+                          <doc.icon className="w-6 h-6" />
                         </div>
-                        {uploads[doc.id].status === 'success' && (
-                          <CheckCircle2 className="w-5 h-5 text-brand-neon" />
-                        )}
-                        {uploads[doc.id].status === 'error' && (
-                          <AlertCircle className="w-5 h-5 text-red-500" />
-                        )}
+                        <div className="flex items-center gap-2">
+                          {uploads[doc.id].status === 'success' && (
+                            <div className="flex items-center gap-1.5 px-3 py-1 bg-brand-neon/10 text-brand-neon rounded-full">
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span className="text-[8px] font-black uppercase tracking-widest">Verified</span>
+                            </div>
+                          )}
+                          {uploads[doc.id].status === 'error' && (
+                            <AlertCircle className="w-5 h-5 text-red-500" />
+                          )}
+                        </div>
                       </div>
-                      <h4 className="text-xs font-bold text-brand-text uppercase tracking-widest mb-2">{doc.label}</h4>
+                      <h4 className="text-[10px] font-black text-brand-text uppercase tracking-[0.3em] mb-1">{doc.label}</h4>
+                      <p className="text-[9px] text-brand-muted uppercase tracking-widest mb-6">{(doc as any).description}</p>
                       
                       <div className="relative">
                         <input

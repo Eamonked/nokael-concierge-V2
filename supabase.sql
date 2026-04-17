@@ -20,6 +20,7 @@ create table if not exists public.quote_requests (
   customer_type text,
   company_name text,
   repeat_business boolean default false,
+  tracking_id text,
   utm_source text,
   utm_medium text,
   utm_campaign text,

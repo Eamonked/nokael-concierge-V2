@@ -29,6 +29,7 @@ export const formatQuoteNotification = (data: any) => {
   const dashboardUrl = `${window.location.origin}/login`;
   return `
 🚨 <b>New Quote Request</b>
+<b>ID:</b> <code>${data.tracking_id}</code>
 
 <b>Customer:</b> ${data.name}
 <b>Phone:</b> ${data.phone}

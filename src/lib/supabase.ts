@@ -34,6 +34,7 @@ export interface QuoteRequest {
   phone: string;
   whatsapp_opt_in: boolean;
   status?: 'pending' | 'contacted' | 'completed';
+  tracking_id?: string;
   // New Fields
   customer_type?: 'business' | 'personal';
   company_name?: string;
@@ -49,14 +50,19 @@ export interface QuoteRequest {
 
 export const submitQuoteRequest = async (data: QuoteRequest) => {
   const supabase = getSupabase();
+  
+  // Generate a human-readable tracking ID (e.g. NK-4921)
+  const tracking_id = `NK-${Math.floor(1000 + Math.random() * 9000)}`;
+  const payload = { ...data, tracking_id };
+
   const { error } = await supabase
     .from('quote_requests')
-    .insert([data]);
+    .insert([payload]);
   
   if (error) throw error;
 
   // Send Telegram Notification
-  await sendTelegramNotification(formatQuoteNotification(data));
+  await sendTelegramNotification(formatQuoteNotification(payload));
 };
 
 export const getQuoteRequests = async () => {
@@ -105,6 +111,18 @@ export const deleteQuoteRequest = async (id: string) => {
     .eq('id', id);
   
   if (error) throw error;
+};
+
+export const getQuoteByTrackingId = async (trackingId: string) => {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('quote_requests')
+    .select('*')
+    .eq('tracking_id', trackingId.toUpperCase())
+    .single();
+  
+  if (error) return null;
+  return data as QuoteRequest;
 };
 
 export interface BusinessInquiry {

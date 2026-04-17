@@ -368,7 +368,12 @@ export default function Dashboard() {
                       <tr key={req.id} className="hover:bg-brand-input transition-colors group">
                         <td className="px-10 py-8">
                           <div className="font-medium text-brand-text mb-1.5 text-sm">{req.name}</div>
-                          <div className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">{req.phone}</div>
+                          <div className="flex flex-col gap-1">
+                            <div className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">{req.phone}</div>
+                            {req.tracking_id && (
+                              <div className="text-[9px] text-brand-neon font-bold uppercase tracking-widest font-mono">ID: {req.tracking_id}</div>
+                            )}
+                          </div>
                         </td>
                         <td className="px-10 py-8">
                           <div className="flex items-center gap-3 text-sm font-medium mb-2">
