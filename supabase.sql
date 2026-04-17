@@ -21,6 +21,7 @@ create table if not exists public.quote_requests (
   company_name text,
   repeat_business boolean default false,
   tracking_id text,
+  assigned_driver_id uuid references public.drivers(id) on delete set null,
   utm_source text,
   utm_medium text,
   utm_campaign text,

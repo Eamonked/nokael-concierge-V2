@@ -79,6 +79,7 @@ export default function Dashboard() {
   const [error, setError] = React.useState<string | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filterStatus, setFilterStatus] = React.useState<string>('all');
+  const [filterVehicle, setFilterVehicle] = React.useState<string>('all');
   const navigate = useNavigate();
 
   // Auth check using real Supabase session
@@ -97,13 +98,13 @@ export default function Dashboard() {
     setLoading(true);
     setError(null);
     try {
-      if (activeTab === 'jobs') {
-        const data = await getQuoteRequests();
-        setRequests(data);
-      } else {
-        const data = await getDrivers();
-        setDrivers(data);
-      }
+      // Always fetch both so we can assign drivers in the jobs tab
+      const [requestsData, driversData] = await Promise.all([
+        getQuoteRequests(),
+        getDrivers()
+      ]);
+      setRequests(requestsData);
+      setDrivers(driversData);
     } catch (err: any) {
       console.error('Error fetching data:', err);
       setError(err.message || 'Failed to fetch data.');
@@ -118,6 +119,24 @@ export default function Dashboard() {
       setRequests(prev => prev.map(r => r.id === id ? { ...r, status } : r));
     } catch (error) {
       console.error('Error updating status:', error);
+    }
+  };
+
+  const handleAssignDriver = async (jobId: string, driverId: string) => {
+    try {
+      const actualDriverId = driverId === 'unassigned' ? null : driverId;
+      await assignDriverToJob(jobId, actualDriverId);
+      
+      // Update local state
+      const assignedDriver = drivers.find(d => d.id === actualDriverId);
+      setRequests(prev => prev.map(r => r.id === jobId ? { 
+        ...r, 
+        assigned_driver_id: actualDriverId || undefined,
+        assigned_driver: assignedDriver,
+        status: actualDriverId ? 'assigned' : 'pending'
+      } : r));
+    } catch (error) {
+      console.error('Error assigning driver:', error);
     }
   };
 
@@ -167,12 +186,18 @@ export default function Dashboard() {
   });
 
   const filteredDrivers = drivers.filter(d => {
-    const matchesSearch = d.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          d.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          d.phone.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || d.onboarding_status === filterStatus;
-    return matchesSearch && matchesFilter;
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = d.full_name.toLowerCase().includes(searchLower) || 
+                          d.email.toLowerCase().includes(searchLower) ||
+                          d.phone.toLowerCase().includes(searchLower) ||
+                          (d.base_location || '').toLowerCase().includes(searchLower) ||
+                          (d.vehicle_type || '').toLowerCase().includes(searchLower);
+    const matchesStatus = filterStatus === 'all' || d.onboarding_status === filterStatus;
+    const matchesVehicle = filterVehicle === 'all' || d.vehicle_type === filterVehicle;
+    return matchesSearch && matchesStatus && matchesVehicle;
   });
+
+  const approvedDrivers = drivers.filter(d => d.onboarding_status === 'approved');
 
   const stats = {
     total: requests.length,
@@ -346,6 +371,10 @@ export default function Dashboard() {
                   >
                     <option value="all">All Status</option>
                     <option value="pending">Pending</option>
+                    <option value="assigned">Assigned</option>
+                    <option value="picked_up">Picked Up</option>
+                    <option value="in_transit">In Transit</option>
+                    <option value="delivered">Delivered</option>
                     <option value="contacted">Contacted</option>
                     <option value="completed">Completed</option>
                   </select>
@@ -359,6 +388,7 @@ export default function Dashboard() {
                       <th className="px-10 py-5">Client Profile</th>
                       <th className="px-10 py-5">Dispatch Route</th>
                       <th className="px-10 py-5">Item / Urgency</th>
+                      <th className="px-10 py-5">Driver Assignment</th>
                       <th className="px-10 py-5">System Status</th>
                       <th className="px-10 py-5 text-right">Operations</th>
                     </tr>
@@ -395,17 +425,33 @@ export default function Dashboard() {
                           </div>
                         </td>
                         <td className="px-10 py-8">
+                          <select
+                            value={req.assigned_driver_id || 'unassigned'}
+                            onChange={(e) => handleAssignDriver(req.id!, e.target.value)}
+                            className="bg-brand-surface border border-brand-border rounded-lg px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-text focus:border-brand-neon/50 outline-none w-full max-w-[180px]"
+                          >
+                            <option value="unassigned">Unassigned</option>
+                            {approvedDrivers.map(d => (
+                              <option key={d.id} value={d.id}>{d.full_name} ({d.vehicle_type})</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-10 py-8">
                           <select 
                             value={req.status}
                             onChange={(e) => handleStatusUpdate(req.id!, e.target.value as any)}
                             className={`text-[9px] font-bold uppercase tracking-[0.2em] px-4 py-2 rounded-lg border outline-none transition-all ${
-                              req.status === 'completed' ? 'bg-brand-neon/5 border-brand-neon/20 text-brand-neon' :
-                              req.status === 'contacted' ? 'bg-blue-500/5 border-blue-500/20 text-blue-500' :
+                              req.status === 'completed' || req.status === 'delivered' ? 'bg-brand-neon/5 border-brand-neon/20 text-brand-neon' :
+                              req.status === 'in_transit' || req.status === 'picked_up' ? 'bg-blue-500/5 border-blue-500/20 text-blue-500' :
+                              req.status === 'assigned' ? 'bg-purple-500/5 border-purple-500/20 text-purple-500' :
                               'bg-yellow-500/5 border-yellow-500/20 text-yellow-500'
                             }`}
                           >
                             <option value="pending">Pending</option>
-                            <option value="contacted">Contacted</option>
+                            <option value="assigned">Assigned</option>
+                            <option value="picked_up">Picked Up</option>
+                            <option value="in_transit">In Transit</option>
+                            <option value="delivered">Delivered</option>
                             <option value="completed">Completed</option>
                           </select>
                         </td>
@@ -459,6 +505,18 @@ export default function Dashboard() {
                   <option value="pending">Pending</option>
                   <option value="approved">Approved</option>
                   <option value="rejected">Rejected</option>
+                </select>
+                <select 
+                  className="bg-brand-input border border-brand-input-border rounded-xl px-5 py-3 text-[10px] font-bold uppercase tracking-widest outline-none focus:border-brand-neon/50"
+                  value={filterVehicle}
+                  onChange={e => setFilterVehicle(e.target.value)}
+                >
+                  <option value="all">Vehicle Type</option>
+                  <option value="Sedan">Sedan</option>
+                  <option value="Executive SUV">Executive SUV</option>
+                  <option value="Panel Van">Panel Van</option>
+                  <option value="Motorcycle (License R)">Motorcycle</option>
+                  <option value="3-Ton Pickup">3-Ton Pickup</option>
                 </select>
               </div>
             </div>

@@ -33,8 +33,11 @@ export interface QuoteRequest {
   name: string;
   phone: string;
   whatsapp_opt_in: boolean;
-  status?: 'pending' | 'contacted' | 'completed';
+  status?: 'pending' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered' | 'completed' | 'contacted';
   tracking_id?: string;
+  assigned_driver_id?: string;
+  // Join data
+  assigned_driver?: Partial<Driver>;
   // New Fields
   customer_type?: 'business' | 'personal';
   company_name?: string;
@@ -69,11 +72,26 @@ export const getQuoteRequests = async () => {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('quote_requests')
-    .select('*')
+    .select('*, assigned_driver:drivers(*)')
     .order('created_at', { ascending: false });
   
   if (error) throw error;
   return data as QuoteRequest[];
+};
+
+export const assignDriverToJob = async (jobId: string, driverId: string | null) => {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('quote_requests')
+    .update({ 
+      assigned_driver_id: driverId,
+      status: driverId ? 'assigned' : 'pending'
+    })
+    .eq('id', jobId)
+    .select();
+  
+  if (error) throw error;
+  return data;
 };
 
 export const updateQuoteStatus = async (id: string, status: QuoteRequest['status']) => {

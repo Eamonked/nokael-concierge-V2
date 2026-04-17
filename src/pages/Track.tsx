@@ -129,9 +129,15 @@ export default function Track() {
                     <div className="text-right">
                       <p className={cn(
                         "text-[10px] font-bold uppercase tracking-[0.3em] mb-1",
-                        activeJob.status === 'completed' ? 'text-brand-neon' : 'text-blue-500'
+                        activeJob.status === 'completed' || activeJob.status === 'delivered' ? 'text-brand-neon' : 'text-blue-500'
                       )}>
-                        Status: {activeJob.status === 'completed' ? 'Delivered' : activeJob.status === 'contacted' ? 'In Transit' : 'Scheduled'}
+                        Status: {
+                          activeJob.status === 'completed' || activeJob.status === 'delivered' ? 'Delivered' : 
+                          activeJob.status === 'in_transit' ? 'In Transit' : 
+                          activeJob.status === 'picked_up' ? 'Picked Up' :
+                          activeJob.status === 'assigned' ? 'Driver Assigned' : 
+                          'Processing'
+                        }
                       </p>
                       <p className="text-xs text-brand-muted">{activeJob.emirate} Corridor</p>
                     </div>
@@ -141,18 +147,27 @@ export default function Track() {
                     <div className="relative pl-8 border-l border-brand-border space-y-12">
                       <div className="relative">
                         <div className={cn(
-                          "absolute -left-[37px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg",
-                          activeJob.status === 'pending' ? "bg-brand-neon shadow-[0_0_15px_rgba(57,255,20,0.5)]" : "bg-brand-border"
+                          "absolute -left-[37px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
+                          ['pending', 'assigned'].includes(activeJob.status || '') ? "bg-brand-neon shadow-[0_0_15px_rgba(57,255,20,0.5)]" : "bg-brand-neon"
                         )} />
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted mb-1">Origin</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted mb-1">Dispatch Booked</p>
                         <p className="text-sm font-medium mb-1 text-brand-text">{activeJob.pickup_location}</p>
                       </div>
                       <div className="relative">
                         <div className={cn(
-                          "absolute -left-[37px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg",
-                          activeJob.status === 'contacted' ? "bg-brand-neon shadow-[0_0_15px_rgba(57,255,20,0.5)]" : "bg-brand-border"
+                          "absolute -left-[37px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
+                          ['picked_up', 'in_transit'].includes(activeJob.status || '') ? "bg-brand-neon shadow-[0_0_15px_rgba(57,255,20,0.5)]" : 
+                          ['delivered', 'completed'].includes(activeJob.status || '') ? "bg-brand-neon" : "bg-brand-surface"
                         )} />
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted mb-1">Destination</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted mb-1">In Transit</p>
+                        <p className="text-sm font-medium mb-1 text-brand-text">En route to destination</p>
+                      </div>
+                      <div className="relative">
+                        <div className={cn(
+                          "absolute -left-[37px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
+                          ['delivered', 'completed'].includes(activeJob.status || '') ? "bg-brand-neon shadow-[0_0_15px_rgba(57,255,20,0.5)]" : "bg-brand-surface"
+                        )} />
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted mb-1">Delivered</p>
                         <p className="text-sm font-medium mb-1 text-brand-text">{activeJob.delivery_location}</p>
                       </div>
                     </div>
@@ -161,14 +176,20 @@ export default function Track() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="dispatch-card py-6">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted mb-4">Assigned Dispatcher</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted mb-4">
+                      {activeJob.assigned_driver ? 'Assigned Driver' : 'Assigned Dispatcher'}
+                    </p>
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-lg bg-brand-input flex items-center justify-center text-brand-muted">
-                        <Zap className="w-5 h-5" />
+                        {activeJob.assigned_driver ? <Truck className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-brand-text">Nokael Dispatch</p>
-                        <p className="text-[10px] text-brand-muted uppercase tracking-widest">24/7 Operations Hub</p>
+                        <p className="text-sm font-bold text-brand-text">
+                          {activeJob.assigned_driver?.full_name || 'Nokael Dispatch'}
+                        </p>
+                        <p className="text-[10px] text-brand-muted uppercase tracking-widest">
+                          {activeJob.assigned_driver?.vehicle_type || '24/7 Operations Hub'}
+                        </p>
                       </div>
                     </div>
                   </div>
