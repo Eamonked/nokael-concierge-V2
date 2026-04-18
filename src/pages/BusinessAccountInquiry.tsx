@@ -101,6 +101,8 @@ export default function BusinessAccountInquiry() {
               </p>
               <a 
                 href={waUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => trackWhatsAppClick('business_account_inquiry')}
                 className="inline-flex items-center gap-2 text-brand-neon text-[10px] font-bold uppercase tracking-widest hover:gap-3 transition-all"
               >

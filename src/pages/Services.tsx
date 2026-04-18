@@ -164,6 +164,8 @@ export default function Services() {
             </Link>
             <a
               href={`https://wa.me/${WHATSAPP_NUMBER}`}
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={() => trackWhatsAppClick('services_footer')}
               className="btn-secondary px-12 py-5"
             >

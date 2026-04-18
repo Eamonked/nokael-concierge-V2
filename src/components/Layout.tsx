@@ -30,7 +30,7 @@ const TopBar = () => {
             <Phone className="w-3 h-3 fill-brand-bg" />
             <span>Call Now: {DISPLAY_PHONE}</span>
           </a>
-          <a href={`https://wa.me/${WHATSAPP_NUMBER}`} onClick={() => trackWhatsAppClick('top_bar')} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer" onClick={() => trackWhatsAppClick('top_bar')} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <MessageSquare className="w-3 h-3 fill-brand-bg" />
             <span>WhatsApp Dispatch</span>
           </a>
@@ -146,6 +146,8 @@ export const Navigation = () => {
               <div className="pt-6 grid grid-cols-1 gap-4">
                 <a
                   href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   onClick={() => trackWhatsAppClick('mobile_nav')}
                   className="btn-primary w-full"
                 >
@@ -222,6 +224,8 @@ export const Footer = () => {
               <li>
                 <a 
                   href={`https://wa.me/${WHATSAPP_NUMBER}`} 
+                  target="_blank"
+                  rel="noopener noreferrer"
                   onClick={() => trackWhatsAppClick('footer')}
                   className="hover:text-brand-neon transition-colors"
                 >

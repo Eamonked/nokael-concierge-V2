@@ -44,16 +44,6 @@ export default function ThankYou() {
     }
   }, []);
 
-  // Countdown + redirect
-  React.useEffect(() => {
-    if (countdown <= 0) {
-      window.location.href = waUrl;
-      return;
-    }
-    const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [countdown, waUrl]);
-
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
       <motion.div
@@ -70,25 +60,23 @@ export default function ThankYou() {
         </h2>
 
         <p className="text-brand-muted mb-10 leading-relaxed text-sm">
-          Your dispatch request has been entered into the system. Connecting you to a live dispatcher on WhatsApp...
+          Your dispatch request has been entered into the system. A dispatcher is waiting to receive your details on WhatsApp.
         </p>
 
-        <div className="flex items-center justify-center gap-3 text-brand-neon font-bold uppercase tracking-[0.3em] text-[10px] mb-8">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          <span>Redirecting in {countdown}s...</span>
-        </div>
-
-        {/* Manual fallback in case redirect is blocked */}
+        {/* Action Button */}
         <a
           href={waUrl}
-          className="btn-primary w-full py-4 mt-4"
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => trackWhatsAppClick('thank_you_page')}
+          className="btn-primary w-full py-5 text-sm group"
         >
-          <MessageSquare className="w-4 h-4" />
-          <span>Open WhatsApp Now</span>
+          <MessageSquare className="w-4 h-4 fill-brand-bg group-hover:scale-110 transition-transform" />
+          <span>Connect with Dispatcher</span>
         </a>
 
         <p className="mt-8 text-[9px] text-brand-muted uppercase tracking-[0.3em] font-bold leading-relaxed">
-          A dispatcher will respond within 2–5 minutes.
+          Open WhatsApp to complete the booking.
         </p>
       </motion.div>
     </div>

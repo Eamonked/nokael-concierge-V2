@@ -103,6 +103,8 @@ export default function Track() {
                 <p className="text-brand-muted text-sm mb-8">We couldn't locate a live dispatch with ID <b>{trackingId}</b>. Please check the ID or contact dispatch.</p>
                 <a 
                   href={`https://wa.me/${WHATSAPP_NUMBER}`} 
+                  target="_blank"
+                  rel="noopener noreferrer"
                   onClick={() => trackWhatsAppClick('track_not_found')}
                   className="btn-secondary inline-flex py-3 px-8 text-[10px]"
                 >
@@ -196,6 +198,8 @@ export default function Track() {
                   <div className="dispatch-card py-6 flex items-center justify-center gap-4">
                     <a 
                       href={`https://wa.me/${WHATSAPP_NUMBER}`} 
+                      target="_blank"
+                      rel="noopener noreferrer"
                       onClick={() => trackWhatsAppClick('track_driver_chat')}
                       className="btn-primary flex-1 py-3 text-[10px]"
                     >

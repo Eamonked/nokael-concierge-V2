@@ -45,6 +45,8 @@ export const StickyCTA = () => {
             >
               <a
                 href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => trackWhatsAppClick('sticky_floating')}
                 className="flex items-center gap-3 bg-brand-neon text-brand-bg px-6 py-3.5 rounded-full shadow-[0_20px_50px_rgba(57,255,20,0.2)] hover:shadow-[0_20px_50px_rgba(57,255,20,0.4)] transition-all duration-500 group overflow-hidden"
               >
@@ -97,6 +99,8 @@ export const StickyCTA = () => {
                 </a>
                 <a
                   href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   onClick={() => trackWhatsAppClick('sticky_mobile_bar')}
                   className="flex-1 h-12 flex items-center justify-center gap-3 bg-brand-neon text-brand-bg rounded-xl font-black uppercase tracking-widest text-[9px] active:scale-[0.98] transition-transform shadow-[0_10px_30px_rgba(57,255,20,0.2)]"
                 >

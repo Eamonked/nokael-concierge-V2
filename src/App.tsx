@@ -53,6 +53,8 @@ function ErrorFallback({ error }: { error: Error }) {
         <div className="pt-4">
           <a
             href={`https://wa.me/${WHATSAPP_NUMBER}`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="btn-primary w-full py-4"
           >
             Chat on WhatsApp instead

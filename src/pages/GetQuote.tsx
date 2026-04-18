@@ -453,6 +453,8 @@ export default function GetQuote() {
             <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted mb-4">Urgent Support</p>
             <a
               href={`https://wa.me/${WHATSAPP_NUMBER}`}
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={() => trackWhatsAppClick('quote_sidebar')}
               className="flex items-center gap-3 text-brand-neon hover:underline text-sm font-bold"
             >

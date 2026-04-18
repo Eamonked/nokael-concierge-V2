@@ -129,7 +129,7 @@ export function buildSeoContent(metadata: PageMetadata): string {
         <p style="font-size:18px;font-weight:500;">Direct Driver Dispatch. No Delays. No Hubs.</p>
         <div style="margin-top:20px;">
           <a href="tel:${process.env.VITE_PHONE_NUMBER || "+971544324600"}" style="background:#000;color:#fff;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:bold;margin-right:10px;display:inline-block;">Call: ${process.env.VITE_DISPLAY_PHONE || "+971 54 432 4600"}</a>
-          <a href="https://wa.me/${process.env.VITE_WHATSAPP_NUMBER || "971544324600"}" style="background:#00ff00;color:#000;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block;">WhatsApp Dispatch</a>
+          <a href="https://wa.me/${process.env.VITE_WHATSAPP_NUMBER || "971544324600"}" target="_blank" rel="noopener noreferrer" style="background:#00ff00;color:#000;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block;">WhatsApp Dispatch</a>
         </div>
       </header>
 

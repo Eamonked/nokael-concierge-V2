@@ -36,6 +36,8 @@ const Hero = () => {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-12">
               <a
                 href={waUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => trackWhatsAppClick('hero')}
                 className="btn-primary px-10 py-6 group scale-105 origin-left"
               >
@@ -259,6 +261,8 @@ const ServiceCards = () => {
 
               <a
                 href={waUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => trackWhatsAppClick(`service_card_${i}`)}
                 className={cn(
                   "w-full py-4 rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all",
@@ -304,6 +308,8 @@ const BusinessAccounts = () => {
               
               <a
                 href={waUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => trackWhatsAppClick('business_section')}
                 className="btn-secondary w-full sm:w-auto px-10 py-5"
               >
@@ -458,6 +464,8 @@ const FinalAction = () => {
         <div className="flex flex-col md:flex-row items-center justify-center gap-6">
           <a
             href={waUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={() => trackWhatsAppClick('final_cta')}
             className="btn-primary px-12 py-6 text-lg"
           >

@@ -464,6 +464,8 @@ export default function Dashboard() {
                           <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
                             <a 
                               href={`https://wa.me/${req.phone.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="w-10 h-10 bg-brand-neon/10 text-brand-neon rounded-lg flex items-center justify-center hover:bg-brand-neon hover:text-brand-bg transition-all"
                             >
                               <MessageSquare className="w-4 h-4" />
