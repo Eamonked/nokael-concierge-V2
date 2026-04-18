@@ -28,16 +28,19 @@ export const sendTelegramNotification = async (message: string) => {
 export const formatQuoteNotification = (data: any) => {
   const dashboardUrl = `${window.location.origin}/login`;
   return `
-🚨 <b>New Quote Request</b>
-<b>ID:</b> <code>${data.tracking_id}</code>
+📦 <b>New Dispatch Booking</b>
+<b>Tracking ID:</b> <code>${data.tracking_id}</code>
 
-<b>Customer:</b> ${data.name}
-<b>Phone:</b> ${data.phone}
-<b>Type:</b> ${data.item_type}
-<b>Urgency:</b> ${data.urgency}
-<b>Route:</b> ${data.pickup_location} ➔ ${data.delivery_location}
+👤 <b>Client:</b> ${data.name}
+📞 <b>Contact:</b> ${data.phone}
 
-<a href="${dashboardUrl}">Open Dashboard</a>
+🚚 <b>Service:</b> ${data.item_type}
+⚡ <b>Priority:</b> ${data.urgency}
+
+📍 <b>Pickup:</b> ${data.pickup_location}
+🏁 <b>Dropoff:</b> ${data.delivery_location}
+
+<a href="${dashboardUrl}">Manage job in Dashboard</a>
   `.trim();
 };
 
@@ -47,14 +50,46 @@ export const formatQuoteNotification = (data: any) => {
 export const formatBusinessNotification = (data: any) => {
   const dashboardUrl = `${window.location.origin}/login`;
   return `
-🏢 <b>New Business Inquiry</b>
+🏢 <b>New Corporate Inquiry</b>
 
-<b>Company:</b> ${data.company_name}
-<b>Contact:</b> ${data.contact_person}
-<b>Phone:</b> ${data.phone_whatsapp}
-<b>Email:</b> ${data.email}
-<b>Volume:</b> ${data.estimated_monthly_volume || 'N/A'}
+🏭 <b>Company:</b> ${data.company_name}
+👤 <b>Person:</b> ${data.contact_person}
+📞 <b>Phone:</b> ${data.phone_whatsapp}
+✉️ <b>Email:</b> ${data.email}
+📊 <b>Volume:</b> ${data.estimated_monthly_volume || 'N/A'}
 
-<a href="${dashboardUrl}">Open Dashboard</a>
+<a href="${dashboardUrl}">Review Business Lead</a>
+  `.trim();
+};
+
+/**
+ * Formats a driver application for Telegram.
+ */
+export const formatDriverNotification = (data: any) => {
+  const dashboardUrl = `${window.location.origin}/login`;
+  return `
+🚛 <b>New Fleet Applicant</b>
+
+👤 <b>Driver:</b> ${data.full_name}
+📍 <b>Base:</b> ${data.base_location}
+🚐 <b>Vehicle:</b> ${data.vehicle_type}
+📞 <b>Phone:</b> ${data.phone}
+
+<a href="${dashboardUrl}">Verify Onboarding Docs</a>
+  `.trim();
+};
+
+/**
+ * Formats a status update for Telegram.
+ */
+export const formatStatusUpdateNotification = (name: string, status: string) => {
+  const dashboardUrl = `${window.location.origin}/login`;
+  return `
+🔄 <b>Dispatch Status Updated</b>
+
+👤 <b>Client:</b> ${name}
+📈 <b>New Status:</b> ${status.replace('_', ' ').toUpperCase()}
+
+<a href="${dashboardUrl}">View Updates</a>
   `.trim();
 };

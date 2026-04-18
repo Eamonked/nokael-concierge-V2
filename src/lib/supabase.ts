@@ -1,5 +1,11 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { sendTelegramNotification, formatQuoteNotification, formatBusinessNotification } from './notifications';
+import { 
+  sendTelegramNotification, 
+  formatQuoteNotification, 
+  formatBusinessNotification,
+  formatDriverNotification,
+  formatStatusUpdateNotification
+} from './notifications';
 
 let supabaseInstance: SupabaseClient | null = null;
 
@@ -106,16 +112,7 @@ export const updateQuoteStatus = async (id: string, status: QuoteRequest['status
 
   // Notify of status update
   if (data && data.length > 0) {
-    const dashboardUrl = `${window.location.origin}/login`;
-    const message = `
-🔄 <b>Quote Status Updated</b>
-
-<b>Customer:</b> ${data[0].name}
-<b>New Status:</b> ${status}
-
-<a href="${dashboardUrl}">Open Dashboard</a>
-    `.trim();
-    await sendTelegramNotification(message);
+    await sendTelegramNotification(formatStatusUpdateNotification(data[0].name, status || 'pending'));
   }
 
   return data;
@@ -234,18 +231,7 @@ export const submitDriverApplication = async (data: Driver) => {
   if (error) throw error;
 
   // Send Telegram Notification
-  const dashboardUrl = `${window.location.origin}/login`;
-  const message = `
-🚛 <b>New Driver Application</b>
-
-<b>Name:</b> ${data.full_name}
-<b>Location:</b> ${data.base_location}
-<b>Vehicle:</b> ${data.vehicle_type}
-<b>Phone:</b> ${data.phone}
-
-<a href="${dashboardUrl}">Review Application</a>
-  `.trim();
-  await sendTelegramNotification(message);
+  await sendTelegramNotification(formatDriverNotification(data));
 
   return payload as Driver;
 };
