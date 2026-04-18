@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { CheckCircle2, Loader2, MessageSquare } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import { trackFormSubmission } from '../lib/analytics';
+import { trackFormSubmission, trackWhatsAppClick } from '../lib/analytics';
 import { WHATSAPP_NUMBER } from '../constants';
 
 /**
