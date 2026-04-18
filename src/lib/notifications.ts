@@ -23,22 +23,33 @@ export const sendTelegramNotification = async (message: string) => {
 };
 
 /**
+ * Sanitizes strings for Telegram HTML parse mode.
+ */
+function esc(text: any): string {
+  if (text === undefined || text === null) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/**
  * Formats a quote request for Telegram.
  */
 export const formatQuoteNotification = (data: any) => {
   const dashboardUrl = `${window.location.origin}/login`;
   return `
 📦 <b>New Dispatch Booking</b>
-<b>Tracking ID:</b> <code>${data.tracking_id}</code>
+<b>Tracking ID:</b> <code>${esc(data.tracking_id)}</code>
 
-👤 <b>Client:</b> ${data.name}
-📞 <b>Contact:</b> ${data.phone}
+👤 <b>Client:</b> ${esc(data.name)}
+📞 <b>Contact:</b> ${esc(data.phone)}
 
-🚚 <b>Service:</b> ${data.item_type}
-⚡ <b>Priority:</b> ${data.urgency}
+🚚 <b>Service:</b> ${esc(data.item_type)}
+⚡ <b>Priority:</b> ${esc(data.urgency)}
 
-📍 <b>Pickup:</b> ${data.pickup_location}
-🏁 <b>Dropoff:</b> ${data.delivery_location}
+📍 <b>Pickup:</b> ${esc(data.pickup_location)}
+🏁 <b>Dropoff:</b> ${esc(data.delivery_location)}
 
 <a href="${dashboardUrl}">Manage job in Dashboard</a>
   `.trim();
@@ -52,11 +63,11 @@ export const formatBusinessNotification = (data: any) => {
   return `
 🏢 <b>New Corporate Inquiry</b>
 
-🏭 <b>Company:</b> ${data.company_name}
-👤 <b>Person:</b> ${data.contact_person}
-📞 <b>Phone:</b> ${data.phone_whatsapp}
-✉️ <b>Email:</b> ${data.email}
-📊 <b>Volume:</b> ${data.estimated_monthly_volume || 'N/A'}
+🏭 <b>Company:</b> ${esc(data.company_name)}
+👤 <b>Person:</b> ${esc(data.contact_person)}
+📞 <b>Phone:</b> ${esc(data.phone_whatsapp)}
+✉️ <b>Email:</b> ${esc(data.email)}
+📊 <b>Volume:</b> ${esc(data.estimated_monthly_volume || 'N/A')}
 
 <a href="${dashboardUrl}">Review Business Lead</a>
   `.trim();
@@ -70,10 +81,10 @@ export const formatDriverNotification = (data: any) => {
   return `
 🚛 <b>New Fleet Applicant</b>
 
-👤 <b>Driver:</b> ${data.full_name}
-📍 <b>Base:</b> ${data.base_location}
-🚐 <b>Vehicle:</b> ${data.vehicle_type}
-📞 <b>Phone:</b> ${data.phone}
+👤 <b>Driver:</b> ${esc(data.full_name)}
+📍 <b>Base:</b> ${esc(data.base_location)}
+🚐 <b>Vehicle:</b> ${esc(data.vehicle_type)}
+📞 <b>Phone:</b> ${esc(data.phone)}
 
 <a href="${dashboardUrl}">Verify Onboarding Docs</a>
   `.trim();
@@ -87,8 +98,8 @@ export const formatStatusUpdateNotification = (name: string, status: string) => 
   return `
 🔄 <b>Dispatch Status Updated</b>
 
-👤 <b>Client:</b> ${name}
-📈 <b>New Status:</b> ${status.replace('_', ' ').toUpperCase()}
+👤 <b>Client:</b> ${esc(name)}
+📈 <b>New Status:</b> ${esc(status.replace('_', ' ').toUpperCase())}
 
 <a href="${dashboardUrl}">View Updates</a>
   `.trim();

@@ -51,7 +51,7 @@ export function createNotifyRouter() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             chat_id: chatId,
-            text: sanitizedMessage,
+            text: message,
             parse_mode: "HTML",
           }),
         }

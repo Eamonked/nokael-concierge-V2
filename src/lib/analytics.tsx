@@ -84,8 +84,10 @@ export function getStoredUTMs(): UTMParams {
  */
 function getGtagId(id: string | undefined): string | undefined {
   if (!id) return undefined;
-  // Prepend AW- if it's a numeric ID (common for Google Ads)
-  return /^\d+$/.test(id) ? `AW-${id}` : id;
+  // If it already has a prefix (GT-, G-, AW-, GTM-), return as is
+  if (/^[A-Z0-9]+-/.test(id)) return id;
+  // Default to AW- for numeric IDs
+  return `AW-${id}`;
 }
 
 /**
