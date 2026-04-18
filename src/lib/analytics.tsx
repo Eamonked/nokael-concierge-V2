@@ -162,6 +162,32 @@ export function trackWhatsAppClick(source: string = 'unknown'): void {
 }
 
 /**
+ * Fires a virtual page view event for the SPA.
+ * Useful for GTM triggers and GA4 tracking.
+ */
+export function trackPageView(path: string): void {
+  const gtmId = 'GTM-T27LXT6W';
+  
+  // Update dataLayer for GTM to detect route change
+  if (window.dataLayer) {
+    window.dataLayer.push({
+      event: 'page_view',
+      page_path: path,
+      page_title: document.title,
+    });
+  }
+
+  // Also fire via gtag if configured
+  if (typeof window.gtag === 'function') {
+    window.gtag('event', 'page_view', {
+      page_path: path,
+      page_title: document.title,
+      send_to: gtmId,
+    });
+  }
+}
+
+/**
  * Fire when the phone number is clicked.
  */
 export function trackPhoneClick(): void {

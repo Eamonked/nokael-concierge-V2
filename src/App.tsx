@@ -13,7 +13,7 @@ import { TermsAndConditions, PrivacyPolicy } from './pages/Legal';
 import BusinessAccountInquiry from './pages/BusinessAccountInquiry';
 import DriverApplication from './pages/DriverApplication';
 import Track from './pages/Track';
-import { captureUTMs } from './lib/analytics';
+import { captureUTMs, trackPageView } from './lib/analytics';
 import NotFound from './pages/NotFound';
 import { ErrorBoundary } from 'react-error-boundary';
 import { WHATSAPP_NUMBER } from './constants';
@@ -25,6 +25,15 @@ function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
+// Track page views for GTM/Analytics in SPA
+function PageViewTracker() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    trackPageView(pathname);
   }, [pathname]);
   return null;
 }
@@ -75,6 +84,7 @@ export default function App() {
     <Router>
       <ScrollToTop />
       <UTMCapture />
+      <PageViewTracker />
       <Layout>
         <ErrorBoundary FallbackComponent={ErrorFallback}>
           <Routes>
