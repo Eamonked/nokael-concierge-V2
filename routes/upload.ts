@@ -40,16 +40,26 @@ export function createUploadRouter() {
       }
 
       const uploadFolderId = process.env.GOOGLE_DRIVE_UPLOAD_FOLDER_ID;
-      if (!uploadFolderId) {
-        console.error("[upload] GOOGLE_DRIVE_UPLOAD_FOLDER_ID is not set (read from inside handler)");
-        return res.status(500).json({ error: "Storage not configured" });
+      const clientId = process.env.GOOGLE_DRIVE_CLIENT_ID;
+      const clientSecret = process.env.GOOGLE_DRIVE_CLIENT_SECRET;
+      const refreshToken = process.env.GOOGLE_DRIVE_REFRESH_TOKEN;
+
+      const missing = [];
+      if (!uploadFolderId) missing.push("GOOGLE_DRIVE_UPLOAD_FOLDER_ID");
+      if (!clientId) missing.push("GOOGLE_DRIVE_CLIENT_ID");
+      if (!clientSecret) missing.push("GOOGLE_DRIVE_CLIENT_SECRET");
+      if (!refreshToken) missing.push("GOOGLE_DRIVE_REFRESH_TOKEN");
+
+      if (missing.length > 0) {
+        console.error(`[upload] Missing required environment variables: ${missing.join(", ")}`);
+        return res.status(500).json({ 
+          error: "Storage not configured", 
+          details: "Missing environment variables on server." 
+        });
       }
 
-      const auth = new google.auth.OAuth2(
-        process.env.GOOGLE_DRIVE_CLIENT_ID,
-        process.env.GOOGLE_DRIVE_CLIENT_SECRET
-      );
-      auth.setCredentials({ refresh_token: process.env.GOOGLE_DRIVE_REFRESH_TOKEN });
+      const auth = new google.auth.OAuth2(clientId, clientSecret);
+      auth.setCredentials({ refresh_token: refreshToken });
       const drive = google.drive({ version: "v3", auth });
 
       try {

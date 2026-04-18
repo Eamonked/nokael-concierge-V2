@@ -39,10 +39,11 @@ import {
   Area 
 } from 'recharts';
 import { 
-  getSupabase, 
+  supabase, 
   getQuoteRequests, 
   updateQuoteStatus, 
   deleteQuoteRequest, 
+  assignDriverToJob,
   type QuoteRequest,
   getDrivers,
   getDriverWithDocuments,
@@ -84,7 +85,10 @@ export default function Dashboard() {
 
   // Auth check using real Supabase session
   React.useEffect(() => {
-    const supabase = getSupabase();
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         navigate('/login');
@@ -92,7 +96,7 @@ export default function Dashboard() {
         fetchData();
       }
     });
-  }, [navigate, activeTab]);
+  }, [navigate]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -172,8 +176,9 @@ export default function Dashboard() {
   };
 
   const handleLogout = async () => {
-    const supabase = getSupabase();
-    await supabase.auth.signOut();
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
     navigate('/login');
   };
 

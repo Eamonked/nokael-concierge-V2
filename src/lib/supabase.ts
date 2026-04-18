@@ -7,26 +7,21 @@ import {
   formatStatusUpdateNotification
 } from './notifications';
 
-let supabaseInstance: SupabaseClient | null = null;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const getSupabase = (): SupabaseClient => {
-  if (!supabaseInstance) {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+if (!supabaseUrl || !supabaseKey) {
+  console.warn('[Nokael] Missing Supabase configuration. DB operations will be skipped. Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set.');
+}
 
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Supabase configuration missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
-    }
-
-    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = (supabaseUrl && supabaseKey) 
+  ? createClient(supabaseUrl, supabaseKey, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
       },
-    });
-  }
-  return supabaseInstance;
-};
+    })
+  : null;
 
 export interface QuoteRequest {
   id?: string;
@@ -58,24 +53,26 @@ export interface QuoteRequest {
 }
 
 export const submitQuoteRequest = async (data: QuoteRequest) => {
-  const supabase = getSupabase();
-  
   // Generate a human-readable tracking ID (e.g. NK-4921)
   const tracking_id = `NK-${Math.floor(1000 + Math.random() * 9000)}`;
   const payload = { ...data, tracking_id };
 
-  const { error } = await supabase
-    .from('quote_requests')
-    .insert([payload]);
-  
-  if (error) throw error;
+  if (supabase) {
+    const { error } = await supabase
+      .from('quote_requests')
+      .insert([payload]);
+    
+    if (error) throw error;
+  } else {
+    console.warn('[Nokael] Supabase not configured — skipping DB insert.');
+  }
 
-  // Send Telegram Notification
+  // Send Telegram Notification (still works via server-side API)
   await sendTelegramNotification(formatQuoteNotification(payload));
 };
 
 export const getQuoteRequests = async () => {
-  const supabase = getSupabase();
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from('quote_requests')
     .select('*, assigned_driver:drivers(*)')
@@ -86,7 +83,7 @@ export const getQuoteRequests = async () => {
 };
 
 export const assignDriverToJob = async (jobId: string, driverId: string | null) => {
-  const supabase = getSupabase();
+  if (!supabase) return null;
   const { data, error } = await supabase
     .from('quote_requests')
     .update({ 
@@ -101,14 +98,17 @@ export const assignDriverToJob = async (jobId: string, driverId: string | null) 
 };
 
 export const updateQuoteStatus = async (id: string, status: QuoteRequest['status']) => {
-  const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from('quote_requests')
-    .update({ status })
-    .eq('id', id)
-    .select();
-  
-  if (error) throw error;
+  let data: any[] | null = null;
+  if (supabase) {
+    const { data: updateData, error } = await supabase
+      .from('quote_requests')
+      .update({ status })
+      .eq('id', id)
+      .select();
+    
+    if (error) throw error;
+    data = updateData;
+  }
 
   // Notify of status update
   if (data && data.length > 0) {
@@ -119,7 +119,7 @@ export const updateQuoteStatus = async (id: string, status: QuoteRequest['status
 };
 
 export const deleteQuoteRequest = async (id: string) => {
-  const supabase = getSupabase();
+  if (!supabase) return;
   const { error } = await supabase
     .from('quote_requests')
     .delete()
@@ -129,7 +129,7 @@ export const deleteQuoteRequest = async (id: string) => {
 };
 
 export const getQuoteByTrackingId = async (trackingId: string) => {
-  const supabase = getSupabase();
+  if (!supabase) return null;
   const { data, error } = await supabase
     .from('quote_requests')
     .select('*')
@@ -161,19 +161,20 @@ export interface BusinessInquiry {
 }
 
 export const submitBusinessInquiry = async (data: BusinessInquiry) => {
-  const supabase = getSupabase();
-  const { error } = await supabase
-    .from('business_inquiries')
-    .insert([data]);
-  
-  if (error) throw error;
+  if (supabase) {
+    const { error } = await supabase
+      .from('business_inquiries')
+      .insert([data]);
+    
+    if (error) throw error;
+  }
 
   // Send Telegram Notification
   await sendTelegramNotification(formatBusinessNotification(data));
 };
 
 export const getBusinessInquiries = async () => {
-  const supabase = getSupabase();
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from('business_inquiries')
     .select('*')
@@ -217,18 +218,17 @@ export interface DriverDocument {
 }
 
 export const submitDriverApplication = async (data: Driver) => {
-  const supabase = getSupabase();
-
-  // Generate ID client-side so we don't need a SELECT policy for the anon role.
-  // .select().single() after insert requires RLS SELECT permission which anon doesn't have.
+  // Generate ID client-side
   const id = crypto.randomUUID();
   const payload = { ...data, id };
 
-  const { error } = await supabase
-    .from('drivers')
-    .insert([payload]);
+  if (supabase) {
+    const { error } = await supabase
+      .from('drivers')
+      .insert([payload]);
 
-  if (error) throw error;
+    if (error) throw error;
+  }
 
   // Send Telegram Notification
   await sendTelegramNotification(formatDriverNotification(data));
@@ -237,7 +237,7 @@ export const submitDriverApplication = async (data: Driver) => {
 };
 
 export const uploadDriverDocument = async (data: DriverDocument) => {
-  const supabase = getSupabase();
+  if (!supabase) return;
   const { error } = await supabase
     .from('driver_documents')
     .insert([data]);
@@ -246,7 +246,7 @@ export const uploadDriverDocument = async (data: DriverDocument) => {
 };
 
 export const getDrivers = async () => {
-  const supabase = getSupabase();
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from('drivers')
     .select('*')
@@ -257,7 +257,7 @@ export const getDrivers = async () => {
 };
 
 export const getDriverWithDocuments = async (id: string) => {
-  const supabase = getSupabase();
+  if (!supabase) throw new Error('Supabase not configured');
   const { data: driver, error: driverError } = await supabase
     .from('drivers')
     .select('*')
@@ -280,7 +280,7 @@ export const getDriverWithDocuments = async (id: string) => {
 };
 
 export const updateDriverStatus = async (id: string, updates: Partial<Driver>) => {
-  const supabase = getSupabase();
+  if (!supabase) return null;
   const { data, error } = await supabase
     .from('drivers')
     .update(updates)

@@ -79,6 +79,16 @@ export function getStoredUTMs(): UTMParams {
 // ─── gtag Helper ─────────────────────────────────────────────────────────────
 
 /**
+ * Ensures gtag is available. Useful if the script hasn't fully loaded or is
+ * loaded asynchronously.
+ */
+function getGtagId(id: string | undefined): string | undefined {
+  if (!id) return undefined;
+  // Prepend AW- if it's a numeric ID (common for Google Ads)
+  return /^\d+$/.test(id) ? `AW-${id}` : id;
+}
+
+/**
  * Safe wrapper around gtag and dataLayer — no-ops if they haven't loaded yet.
  * Standardizes event firing for both gtag.js and GTM.
  */
@@ -106,14 +116,18 @@ function pushEvent(eventName: string, params: Record<string, any> = {}): void {
  * This is your primary Google Ads conversion action.
  */
 export function trackFormSubmission(): void {
-  const conversionId = import.meta.env.VITE_GADS_CONVERSION_ID;
+  const rawId = import.meta.env.VITE_GADS_CONVERSION_ID;
+  const conversionId = getGtagId(rawId);
   const conversionLabel = import.meta.env.VITE_GADS_CONVERSION_LABEL;
 
   if (conversionId && conversionLabel) {
     if (typeof window.gtag === 'function') {
+      console.log(`[Analytics] Firing Google Ads Conversion: ${conversionId}/${conversionLabel}`);
       window.gtag('event', 'conversion', {
         send_to: `${conversionId}/${conversionLabel}`,
       });
+    } else {
+      console.warn('[Analytics] gtag.js not found. Conversion event queued in dataLayer only.');
     }
   }
 
@@ -128,7 +142,8 @@ export function trackFormSubmission(): void {
  * Fire when any WhatsApp CTA is clicked.
  */
 export function trackWhatsAppClick(source: string = 'unknown'): void {
-  const conversionId = import.meta.env.VITE_GADS_CONVERSION_ID;
+  const rawId = import.meta.env.VITE_GADS_CONVERSION_ID;
+  const conversionId = getGtagId(rawId);
   const waLabel = import.meta.env.VITE_GADS_WA_CONVERSION_LABEL;
 
   if (conversionId && waLabel) {

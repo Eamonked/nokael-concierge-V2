@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Lock, ArrowRight, Loader2, Terminal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getSupabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 export default function Login() {
   const [email, setEmail] = React.useState('');
@@ -13,7 +13,7 @@ export default function Login() {
 
   // Redirect if already authenticated
   React.useEffect(() => {
-    const supabase = getSupabase();
+    if (!supabase) return;
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) navigate('/dashboard');
     });
@@ -25,7 +25,9 @@ export default function Login() {
     setError('');
 
     try {
-      const supabase = getSupabase();
+      if (!supabase) {
+        throw new Error('Supabase not configured. Terminal access unavailable.');
+      }
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,

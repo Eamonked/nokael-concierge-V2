@@ -1,6 +1,6 @@
 export const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '971544324600';
-export const PHONE_NUMBER = import.meta.env.VITE_PHONE_NUMBER || '+971544324600';
-export const DISPLAY_PHONE = import.meta.env.VITE_DISPLAY_PHONE || '+971 54 432 4600';
+export const PHONE_NUMBER = import.meta.env.VITE_PHONE_NUMBER || '+971509710446';
+export const DISPLAY_PHONE = import.meta.env.VITE_DISPLAY_PHONE || '+971 50 971 0446';
 
 export const DEFAULT_WA_MESSAGE = `Hi Nokael, I need an urgent delivery.
 Pickup:

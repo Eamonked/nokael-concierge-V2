@@ -93,7 +93,10 @@ export default function DriverApplication() {
         body: uploadData,
       });
 
-      if (!response.ok) throw new Error('Upload failed');
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.details || errData.error || 'Upload failed');
+      }
 
       const result = await response.json();
 
@@ -105,9 +108,10 @@ export default function DriverApplication() {
       });
 
       setUploads(prev => ({ ...prev, [type]: { file, status: 'success' } }));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
       setUploads(prev => ({ ...prev, [type]: { ...prev[type], status: 'error' } }));
+      alert(`Upload failed: ${error.message}`);
     }
   };
 
