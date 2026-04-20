@@ -42,6 +42,7 @@ export interface QuoteRequest {
   // New Fields
   customer_type?: 'business' | 'personal';
   company_name?: string;
+  corporate_code?: string;
   repeat_business?: boolean;
   // UTM Attribution Fields
   utm_source?: string;
@@ -147,11 +148,14 @@ export interface BusinessInquiry {
   contact_person: string;
   phone_whatsapp: string;
   email: string;
+  corporate_code?: string;
   typical_routes?: string;
   item_types?: string;
   estimated_monthly_volume?: string;
   urgent_express_dedicated_needs?: string;
   invoicing_required?: boolean;
+  status?: 'pending' | 'active' | 'archived';
+  follow_up_notes?: string;
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;
@@ -161,16 +165,34 @@ export interface BusinessInquiry {
 }
 
 export const submitBusinessInquiry = async (data: BusinessInquiry) => {
+  // Generate a unique Business ID (e.g. NOK-9241)
+  const corporate_code = `NOK-${Math.floor(1000 + Math.random() * 9000)}`;
+  const payload = { ...data, corporate_code, status: 'pending' };
+
   if (supabase) {
     const { error } = await supabase
       .from('business_inquiries')
-      .insert([data]);
+      .insert([payload]);
     
     if (error) throw error;
   }
 
   // Send Telegram Notification
-  await sendTelegramNotification(formatBusinessNotification(data));
+  await sendTelegramNotification(formatBusinessNotification(payload));
+  
+  return payload;
+};
+
+export const updateBusinessInquiry = async (id: string, updates: Partial<BusinessInquiry>) => {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('business_inquiries')
+    .update(updates)
+    .eq('id', id)
+    .select();
+  
+  if (error) throw error;
+  return data;
 };
 
 export const getBusinessInquiries = async () => {

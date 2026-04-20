@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Package, Zap, User, Phone, CheckCircle2, ArrowRight, ArrowLeft, MessageSquare, Loader2, Navigation, Truck, Clock } from 'lucide-react';
+import { MapPin, Package, Zap, User, Phone, CheckCircle2, ArrowRight, ArrowLeft, MessageSquare, Loader2, Navigation, Truck, Clock, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { submitQuoteRequest, type QuoteRequest } from '../lib/supabase';
 import { captureUTMs, getStoredUTMs } from '../lib/analytics';
@@ -196,15 +196,30 @@ export default function GetQuote() {
                     </div>
 
                     {formData.customer_type === 'business' && (
-                      <div>
-                        <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">Company Name (Optional)</label>
-                        <input
-                          type="text"
-                          placeholder="Your Company"
-                          className="w-full bg-brand-input border border-brand-input-border rounded-xl py-4 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
-                          value={formData.company_name}
-                          onChange={e => updateForm({ company_name: e.target.value })}
-                        />
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">Company Name (Optional)</label>
+                          <input
+                            type="text"
+                            placeholder="Your Company"
+                            className="w-full bg-brand-input border border-brand-input-border rounded-xl py-4 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
+                            value={formData.company_name}
+                            onChange={e => updateForm({ company_name: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">Corporate ID / Ref Code (If Account Holder)</label>
+                          <div className="relative">
+                            <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-neon" />
+                            <input
+                              type="text"
+                              placeholder="e.g. NOK-9241"
+                              className="w-full bg-brand-input border border-brand-neon/20 rounded-xl py-4 pl-12 pr-4 text-brand-neon focus:outline-none focus:border-brand-neon transition-colors text-sm font-mono placeholder:text-brand-neon/30"
+                              value={formData.corporate_code || ''}
+                              onChange={e => updateForm({ corporate_code: e.target.value.toUpperCase() })}
+                            />
+                          </div>
+                        </div>
                       </div>
                     )}
 

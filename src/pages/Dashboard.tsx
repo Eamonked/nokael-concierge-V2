@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Activity,
   Shield,
+  User,
   Navigation,
   Package,
   Truck,
@@ -49,9 +50,13 @@ import {
   getDriverWithDocuments,
   updateDriverStatus,
   type Driver,
-  type DriverDocument
+  type DriverDocument,
+  getBusinessInquiries,
+  updateBusinessInquiry,
+  type BusinessInquiry
 } from '../lib/supabase';
 import { Link, useNavigate } from 'react-router-dom';
+import { cn } from '../lib/utils';
 
 const StatCard = ({ title, value, icon: Icon, trend, color }: any) => (
   <div className="dispatch-card group">
@@ -72,10 +77,12 @@ const StatCard = ({ title, value, icon: Icon, trend, color }: any) => (
 );
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = React.useState<'jobs' | 'drivers'>('jobs');
+  const [activeTab, setActiveTab] = React.useState<'jobs' | 'drivers' | 'business'>('jobs');
   const [requests, setRequests] = React.useState<QuoteRequest[]>([]);
   const [drivers, setDrivers] = React.useState<Driver[]>([]);
+  const [businessInquiries, setBusinessInquiries] = React.useState<BusinessInquiry[]>([]);
   const [selectedDriver, setSelectedDriver] = React.useState<(Driver & { documents: DriverDocument[] }) | null>(null);
+  const [selectedBusiness, setSelectedBusiness] = React.useState<BusinessInquiry | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -102,13 +109,15 @@ export default function Dashboard() {
     setLoading(true);
     setError(null);
     try {
-      // Always fetch both so we can assign drivers in the jobs tab
-      const [requestsData, driversData] = await Promise.all([
+      // Always fetch everything for cross-referencing
+      const [requestsData, driversData, businessData] = await Promise.all([
         getQuoteRequests(),
-        getDrivers()
+        getDrivers(),
+        getBusinessInquiries()
       ]);
       setRequests(requestsData);
       setDrivers(driversData);
+      setBusinessInquiries(businessData);
     } catch (err: any) {
       console.error('Error fetching data:', err);
       setError(err.message || 'Failed to fetch data.');
@@ -156,6 +165,18 @@ export default function Dashboard() {
     }
   };
 
+  const handleBusinessUpdate = async (id: string, updates: Partial<BusinessInquiry>) => {
+    try {
+      await updateBusinessInquiry(id, updates);
+      setBusinessInquiries(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
+      if (selectedBusiness?.id === id) {
+        setSelectedBusiness(prev => prev ? { ...prev, ...updates } : null);
+      }
+    } catch (error) {
+      console.error('Error updating business:', error);
+    }
+  };
+
   const handleViewDriver = async (id: string) => {
     try {
       const data = await getDriverWithDocuments(id);
@@ -185,7 +206,9 @@ export default function Dashboard() {
   const filteredRequests = requests.filter(r => {
     const matchesSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           r.pickup_location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          r.delivery_location.toLowerCase().includes(searchTerm.toLowerCase());
+                          r.delivery_location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (r.corporate_code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (r.tracking_id || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || r.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
@@ -202,6 +225,13 @@ export default function Dashboard() {
     return matchesSearch && matchesStatus && matchesVehicle;
   });
 
+  const filteredBusiness = businessInquiries.filter(b => {
+    const searchLower = searchTerm.toLowerCase();
+    return b.company_name.toLowerCase().includes(searchLower) || 
+           b.contact_person.toLowerCase().includes(searchLower) ||
+           (b.corporate_code || '').toLowerCase().includes(searchLower);
+  });
+
   const approvedDrivers = drivers.filter(d => d.onboarding_status === 'approved');
 
   const stats = {
@@ -210,6 +240,8 @@ export default function Dashboard() {
     completed: requests.filter(r => r.status === 'completed').length,
     drivers: drivers.length,
     pendingDrivers: drivers.filter(d => d.onboarding_status === 'pending').length,
+    business: businessInquiries.length,
+    pendingBusiness: businessInquiries.filter(b => b.status === 'pending').length,
   };
 
   // Mock data for chart (in real app derive from requests)
@@ -255,6 +287,12 @@ export default function Dashboard() {
               className={`text-[10px] font-bold uppercase tracking-[0.3em] transition-colors ${activeTab === 'drivers' ? 'text-brand-neon' : 'text-brand-muted hover:text-brand-text'}`}
             >
               Driver Network
+            </button>
+            <button 
+              onClick={() => setActiveTab('business')}
+              className={`text-[10px] font-bold uppercase tracking-[0.3em] transition-colors ${activeTab === 'business' ? 'text-brand-neon' : 'text-brand-muted hover:text-brand-text'}`}
+            >
+              Business Accounts
             </button>
           </nav>
         </div>
@@ -405,8 +443,14 @@ export default function Dashboard() {
                           <div className="font-medium text-brand-text mb-1.5 text-sm">{req.name}</div>
                           <div className="flex flex-col gap-1">
                             <div className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">{req.phone}</div>
+                            {req.corporate_code && (
+                              <div className="flex items-center gap-1.5">
+                                <Shield className="w-3 h-3 text-brand-neon" />
+                                <span className="text-[9px] text-brand-neon font-black uppercase tracking-widest font-mono">Corp: {req.corporate_code}</span>
+                              </div>
+                            )}
                             {req.tracking_id && (
-                              <div className="text-[9px] text-brand-neon font-bold uppercase tracking-widest font-mono">ID: {req.tracking_id}</div>
+                              <div className="text-[9px] text-brand-muted font-bold uppercase tracking-widest font-mono">ID: {req.tracking_id}</div>
                             )}
                           </div>
                         </td>
@@ -485,6 +529,89 @@ export default function Dashboard() {
               </div>
             </div>
           </>
+        ) : activeTab === 'business' ? (
+          <div className="dispatch-card overflow-hidden p-0">
+            <div className="p-10 border-b border-brand-border flex flex-col md:flex-row justify-between items-center gap-6">
+              <div>
+                <h2 className="text-xl font-display font-medium tracking-tighter mb-1">Business Accounts.</h2>
+                <p className="text-[10px] text-brand-muted uppercase tracking-[0.3em] font-bold">Manage corporate partnerships</p>
+              </div>
+              <div className="flex items-center gap-4 w-full md:w-auto">
+                <div className="relative flex-1 md:w-72">
+                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                  <input 
+                    type="text" 
+                    placeholder="Search accounts..."
+                    className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3 pl-12 pr-4 text-xs focus:border-brand-neon/50 outline-none transition-all"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto no-scrollbar">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-brand-input text-[9px] uppercase tracking-[0.3em] font-bold text-brand-muted">
+                    <th className="px-10 py-5">Company / Contact</th>
+                    <th className="px-10 py-5">Frequency / Route</th>
+                    <th className="px-10 py-5">Billing</th>
+                    <th className="px-10 py-5">Account Status</th>
+                    <th className="px-10 py-5 text-right">Operations</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-brand-border">
+                  {filteredBusiness.map((biz) => (
+                    <tr key={biz.id} className="hover:bg-brand-input transition-colors group">
+                      <td className="px-10 py-8">
+                        <div className="font-medium text-brand-text mb-1.5 text-sm">{biz.company_name}</div>
+                        <div className="flex flex-col gap-1">
+                          <div className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">{biz.contact_person} • {biz.phone_whatsapp}</div>
+                          <div className="text-[9px] text-brand-neon font-black uppercase tracking-widest font-mono">ID: {biz.corporate_code}</div>
+                        </div>
+                      </td>
+                      <td className="px-10 py-8">
+                        <div className="text-sm font-medium mb-1.5">{biz.estimated_monthly_volume} jobs/mo</div>
+                        <div className="text-[10px] uppercase tracking-[0.2em] text-brand-muted font-bold truncate max-w-[200px]">{biz.typical_routes}</div>
+                      </td>
+                      <td className="px-10 py-8">
+                        <div className={cn(
+                          "px-3 py-1 inline-block rounded text-[9px] font-black uppercase tracking-widest",
+                          biz.invoicing_required ? "bg-brand-neon/10 text-brand-neon border border-brand-neon/20" : "bg-brand-muted/10 text-brand-muted"
+                        )}>
+                          {biz.invoicing_required ? 'Monthly Invoicing' : 'Standard Pay'}
+                        </div>
+                      </td>
+                      <td className="px-10 py-8">
+                        <select 
+                          value={biz.status}
+                          onChange={(e) => handleBusinessUpdate(biz.id!, { status: e.target.value as any })}
+                          className={`text-[9px] font-bold uppercase tracking-[0.2em] px-4 py-2 rounded-lg border outline-none transition-all ${
+                            biz.status === 'active' ? 'bg-brand-neon/5 border-brand-neon/20 text-brand-neon' :
+                            biz.status === 'archived' ? 'bg-red-500/5 border-red-500/20 text-red-500' :
+                            'bg-yellow-500/5 border-yellow-500/20 text-yellow-500'
+                          }`}
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="active">Active</option>
+                          <option value="archived">Archived</option>
+                        </select>
+                      </td>
+                      <td className="px-10 py-8 text-right">
+                        <button 
+                          onClick={() => setSelectedBusiness(biz)}
+                          className="px-6 py-2.5 bg-brand-surface border border-brand-border text-brand-text text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-brand-neon hover:text-brand-bg transition-all"
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         ) : (
           <div className="dispatch-card overflow-hidden p-0">
             <div className="p-10 border-b border-brand-border flex flex-col md:flex-row justify-between items-center gap-6">
@@ -735,6 +862,131 @@ export default function Dashboard() {
                 className="flex-1 py-4 bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-bold uppercase tracking-[0.3em] rounded-xl hover:bg-red-500 hover:text-white transition-all"
               >
                 Reject Application
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      
+      {/* Business Details Modal */}
+      {selectedBusiness && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="absolute inset-0 bg-brand-bg/90 backdrop-blur-sm"
+            onClick={() => setSelectedBusiness(null)}
+          />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="relative w-full max-w-4xl bg-brand-bg border border-brand-border rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+          >
+            <div className="p-8 border-b border-brand-border flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-display font-medium tracking-tighter mb-1">{selectedBusiness.company_name}</h2>
+                <p className="text-[10px] text-brand-muted uppercase tracking-[0.3em] font-bold">Business Entity</p>
+              </div>
+              <button 
+                onClick={() => setSelectedBusiness(null)}
+                className="p-2 text-brand-muted hover:text-brand-text transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="flex-grow overflow-y-auto p-8 no-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                <div className="space-y-6">
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted">Point of Contact</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-sm">
+                      <User className="w-4 h-4 text-brand-neon" />
+                      <span>{selectedBusiness.contact_person}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Phone className="w-4 h-4 text-brand-neon" />
+                      <span>{selectedBusiness.phone_whatsapp}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Mail className="w-4 h-4 text-brand-neon" />
+                      <span>{selectedBusiness.email}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted">Operational Scope</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-sm">
+                      <Navigation className="w-4 h-4 text-brand-neon" />
+                      <span className="text-xs">{selectedBusiness.typical_routes}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Package className="w-4 h-4 text-brand-neon" />
+                      <span>{selectedBusiness.item_types}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Activity className="w-4 h-4 text-brand-neon" />
+                      <span>{selectedBusiness.estimated_monthly_volume} Jobs/mo</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted">Contract Admin</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-brand-muted">Status</label>
+                      <select 
+                        value={selectedBusiness.status}
+                        onChange={(e) => handleBusinessUpdate(selectedBusiness.id!, { status: e.target.value as any })}
+                        className="bg-brand-input border border-brand-input-border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest outline-none"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="active">Active</option>
+                        <option value="archived">Archived</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-3 h-3 rounded-full",
+                        selectedBusiness.invoicing_required ? "bg-brand-neon" : "bg-brand-muted"
+                      )} />
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-brand-text">
+                        {selectedBusiness.invoicing_required ? 'Monthly Invoicing' : 'Standard Payment'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted mb-6">CRM & Follow-up Notes</h3>
+                <textarea 
+                  className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-6 text-sm outline-none focus:border-brand-neon/50 transition-all min-h-[150px]"
+                  placeholder="Logs, pre-agreed rates, contract details..."
+                  value={selectedBusiness.follow_up_notes || ''}
+                  onChange={(e) => handleBusinessUpdate(selectedBusiness.id!, { follow_up_notes: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="p-8 border-t border-brand-border bg-brand-surface/50 flex gap-4">
+              <a 
+                href={`https://wa.me/${selectedBusiness.phone_whatsapp.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 py-4 bg-brand-neon text-brand-bg text-[10px] font-bold uppercase tracking-[0.3em] rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-3"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Contact Decision Maker
+              </a>
+              <button 
+                onClick={() => setSelectedBusiness(null)}
+                className="px-8 py-4 bg-brand-input border border-brand-input-border text-brand-text text-[10px] font-bold uppercase tracking-[0.3em] rounded-xl hover:bg-brand-surface transition-all"
+              >
+                Close
               </button>
             </div>
           </motion.div>
