@@ -4,7 +4,7 @@ import { MapPin, Package, Zap, User, Phone, CheckCircle2, ArrowRight, ArrowLeft,
 import { useNavigate } from 'react-router-dom';
 import { submitQuoteRequest, type QuoteRequest } from '../lib/supabase';
 import { captureUTMs, getStoredUTMs } from '../lib/analytics';
-import { WHATSAPP_NUMBER, DISPLAY_PHONE, PRICE_TIER_STANDARD, PRICE_TIER_DEDICATED } from '../constants';
+import { WHATSAPP_NUMBER, DISPLAY_PHONE, PRICE_TIER_NEXT_MORNING, PRICE_TIER_SAME_DAY, PRICE_TIER_DEDICATED } from '../constants';
 import { trackWhatsAppClick } from '../lib/analytics';
 import { cn } from '../lib/utils';
 
@@ -418,7 +418,7 @@ export default function GetQuote() {
             </div>
             {step === 4 && (
               <p className="mt-6 text-[9px] text-brand-muted uppercase tracking-[0.2em] text-center font-bold">
-                Business deliveries from AED {PRICE_TIER_STANDARD}. Dedicated urgent courier from AED {PRICE_TIER_DEDICATED}.
+                Same-Day AED {PRICE_TIER_SAME_DAY} • Next-Morning AED {PRICE_TIER_NEXT_MORNING} • Dedicated AED {PRICE_TIER_DEDICATED}
               </p>
             )}
           </form>

@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { MapPin, Zap, MessageSquare, Phone, ArrowRight, Shield, Clock, CheckCircle2, Navigation, Truck, Star, User, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE, PRICE_HERO_BUSINESS } from '../constants';
+import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE, PRICE_TIER_SAME_DAY } from '../constants';
 import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -107,7 +107,7 @@ export const LandingTemplate = ({ title, subtitle, city, industry, heroImg, cont
             <div className="flex flex-wrap items-center gap-8 border-t border-brand-border pt-8">
               <div>
                 <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-1">Starting From</p>
-                <p className="text-xl font-display font-medium text-brand-neon">AED {PRICE_HERO_BUSINESS}</p>
+                <p className="text-xl font-display font-medium text-brand-neon">AED {PRICE_TIER_SAME_DAY}</p>
               </div>
               <div className="w-px h-8 bg-brand-border hidden sm:block" />
               <div>
