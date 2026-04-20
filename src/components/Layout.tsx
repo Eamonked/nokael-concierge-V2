@@ -70,6 +70,15 @@ export const Navigation = () => {
                 Urgent Courier Routes
               </Link>
               <Link
+                to="/about"
+                className={cn(
+                  "text-[11px] font-bold uppercase tracking-[0.2em] transition-colors hover:text-brand-neon",
+                  location.pathname === "/about" ? "text-brand-neon" : "text-brand-muted"
+                )}
+              >
+                About Nokael
+              </Link>
+              <Link
                 to="/get-quote"
                 className={cn(
                   "text-[11px] font-bold uppercase tracking-[0.2em] transition-colors hover:text-brand-neon",
@@ -128,6 +137,13 @@ export const Navigation = () => {
                 className="block text-2xl font-display font-medium tracking-tighter"
               >
                 Urgent Courier Routes
+              </Link>
+              <Link
+                to="/about"
+                onClick={() => setIsOpen(false)}
+                className="block text-2xl font-display font-medium tracking-tighter"
+              >
+                About Nokael
               </Link>
               <Link
                 to="/get-quote"
@@ -211,6 +227,7 @@ export const Footer = () => {
               </li>
               <li><Link to="/document-delivery-uae" className="hover:text-brand-neon transition-colors">Document Tenders</Link></li>
               <li><Link to="/spare-parts-delivery-uae" className="hover:text-brand-neon transition-colors">Spare Parts Site Delivery</Link></li>
+              <li><Link to="/about" className="hover:text-brand-neon transition-colors">About the Network</Link></li>
             </ul>
           </div>
 

@@ -12,6 +12,7 @@ import { DubaiLanding, AbuDhabiLanding, DocumentLanding, SparePartsLanding } fro
 import { TermsAndConditions, PrivacyPolicy } from './pages/Legal';
 import BusinessAccountInquiry from './pages/BusinessAccountInquiry';
 import DriverApplication from './pages/DriverApplication';
+import About from './pages/About';
 import Track from './pages/Track';
 import { captureUTMs, trackPageView } from './lib/analytics';
 import NotFound from './pages/NotFound';
@@ -99,6 +100,7 @@ export default function App() {
             <Route path="/track" element={<Track />} />
             <Route path="/business-account" element={<BusinessAccountInquiry />} />
             <Route path="/apply-driver" element={<DriverApplication />} />
+            <Route path="/about" element={<About />} />
             <Route path="/terms" element={<TermsAndConditions />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/dashboard" element={<Dashboard />} />
