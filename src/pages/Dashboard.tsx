@@ -26,7 +26,8 @@ import {
   Star,
   X,
   Mail,
-  MapPin
+  MapPin,
+  Loader2
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -84,6 +85,7 @@ export default function Dashboard() {
   const [selectedDriver, setSelectedDriver] = React.useState<(Driver & { documents: DriverDocument[] }) | null>(null);
   const [selectedBusiness, setSelectedBusiness] = React.useState<BusinessInquiry | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [isUpdating, setIsUpdating] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filterStatus, setFilterStatus] = React.useState<string>('all');
@@ -154,14 +156,18 @@ export default function Dashboard() {
   };
 
   const handleDriverStatusUpdate = async (id: string, updates: Partial<Driver>) => {
+    setIsUpdating(id);
     try {
       await updateDriverStatus(id, updates);
       setDrivers(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
       if (selectedDriver?.id === id) {
         setSelectedDriver(prev => prev ? { ...prev, ...updates } : null);
       }
+      // Show success briefly? Or just let the UI update
     } catch (error) {
       console.error('Error updating driver:', error);
+    } finally {
+      setIsUpdating(null);
     }
   };
 
@@ -682,7 +688,7 @@ export default function Dashboard() {
                           <div className="px-3 py-1 bg-brand-neon/10 border border-brand-neon/20 rounded text-brand-neon text-[10px] font-bold">Tier {driver.tier}</div>
                           <div className="flex items-center gap-1.5 text-brand-text">
                             <Star className="w-3 h-3 text-brand-neon fill-brand-neon" />
-                            <span className="text-xs font-bold">{driver.reliability_score}</span>
+                            <span className="text-xs font-bold">{driver.reliability_score || 0}</span>
                           </div>
                         </div>
                       </td>
@@ -732,93 +738,121 @@ export default function Dashboard() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             className="relative w-full max-w-4xl bg-brand-bg border border-brand-border rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
           >
-            <div className="p-8 border-b border-brand-border flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-display font-medium tracking-tighter mb-1">{selectedDriver.full_name}</h2>
-                <p className="text-[10px] text-brand-muted uppercase tracking-[0.3em] font-bold">Driver ID: {selectedDriver.id?.substring(0, 8)}</p>
+            <div className="p-8 border-b border-brand-border flex justify-between items-center bg-brand-surface/30">
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 rounded-2xl bg-brand-neon/10 flex items-center justify-center border border-brand-neon/20">
+                  <User className="w-8 h-8 text-brand-neon" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-display font-medium tracking-tighter mb-1">{selectedDriver.full_name}</h2>
+                  <div className="flex items-center gap-3">
+                    <p className="text-[10px] text-brand-muted uppercase tracking-[0.3em] font-bold">Driver ID: {selectedDriver.id?.substring(0, 8)}</p>
+                    <div className={cn(
+                      "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border",
+                      selectedDriver.onboarding_status === 'approved' ? "bg-brand-neon/10 text-brand-neon border-brand-neon/20" :
+                      selectedDriver.onboarding_status === 'rejected' ? "bg-red-500/10 text-red-500 border-red-500/20" :
+                      "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                    )}>
+                      {selectedDriver.onboarding_status || 'pending'}
+                    </div>
+                  </div>
+                </div>
               </div>
               <button 
                 onClick={() => setSelectedDriver(null)}
-                className="p-2 text-brand-muted hover:text-brand-text transition-colors"
+                className="p-2 text-brand-muted hover:text-brand-text transition-colors bg-brand-input rounded-full"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <div className="flex-grow overflow-y-auto p-8 no-scrollbar">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
                 <div className="space-y-6">
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted">Contact Details</h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 text-sm">
-                      <Phone className="w-4 h-4 text-brand-neon" />
-                      <span>{selectedDriver.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <Mail className="w-4 h-4 text-brand-neon" />
-                      <span>{selectedDriver.email}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <MapPin className="w-4 h-4 text-brand-neon" />
-                      <span>{selectedDriver.base_location}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted">Vehicle & Logistics</h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 text-sm">
-                      <Truck className="w-4 h-4 text-brand-neon" />
-                      <span>{selectedDriver.vehicle_type}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <Navigation className="w-4 h-4 text-brand-neon" />
-                      <span>Inter-Emirate: {selectedDriver.inter_emirate_yes_no ? 'Yes' : 'No'}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <Clock className="w-4 h-4 text-brand-neon" />
-                      <span>{selectedDriver.availability_hours}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted">Internal Management</h3>
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted border-b border-brand-border pb-2">Contact Details</h3>
                   <div className="space-y-4">
                     <div className="flex items-center gap-4">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-brand-muted">Tier</label>
+                      <div className="p-2 bg-brand-input rounded-lg"><Phone className="w-4 h-4 text-brand-neon" /></div>
+                      <span className="text-sm font-mono tracking-tight">{selectedDriver.phone}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 bg-brand-input rounded-lg"><Mail className="w-4 h-4 text-brand-neon" /></div>
+                      <span className="text-sm truncate">{selectedDriver.email}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 bg-brand-input rounded-lg"><MapPin className="w-4 h-4 text-brand-neon" /></div>
+                      <span className="text-sm">{selectedDriver.base_location}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted border-b border-brand-border pb-2">Vehicle & Logistics</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 bg-brand-input rounded-lg"><Truck className="w-4 h-4 text-brand-neon" /></div>
+                      <span className="text-sm">{selectedDriver.vehicle_type}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 bg-brand-input rounded-lg"><Navigation className="w-4 h-4 text-brand-neon" /></div>
+                      <span className="text-sm">Inter-Emirate: {selectedDriver.inter_emirate_yes_no ? 'Yes' : 'No'}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 bg-brand-input rounded-lg"><Clock className="w-4 h-4 text-brand-neon" /></div>
+                      <span className="text-xs text-brand-muted">{selectedDriver.availability_hours}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted border-b border-brand-border pb-2">Internal Management</h3>
+                  <div className="space-y-4">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[9px] font-bold uppercase tracking-widest text-brand-muted">Tiering Strategy</label>
                       <select 
-                        value={selectedDriver.tier}
+                        value={selectedDriver.tier || 'D'}
                         onChange={(e) => handleDriverStatusUpdate(selectedDriver.id!, { tier: e.target.value as any })}
-                        className="bg-brand-input border border-brand-input-border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest outline-none"
+                        className="w-full bg-brand-input border border-brand-input-border rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest outline-none focus:border-brand-neon/50 transition-all font-mono"
                       >
-                        <option value="A">Tier A</option>
-                        <option value="B">Tier B</option>
-                        <option value="C">Tier C</option>
-                        <option value="D">Tier D</option>
+                        <option value="A">Elite Rank (A)</option>
+                        <option value="B">Priority Rank (B)</option>
+                        <option value="C">Standard Rank (C)</option>
+                        <option value="D">New Arrival (D)</option>
                       </select>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-brand-muted">Score</label>
-                      <input 
-                        type="number"
-                        value={selectedDriver.reliability_score}
-                        onChange={(e) => handleDriverStatusUpdate(selectedDriver.id!, { reliability_score: parseInt(e.target.value) })}
-                        className="w-20 bg-brand-input border border-brand-input-border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest outline-none"
-                      />
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[9px] font-bold uppercase tracking-widest text-brand-muted">Reliability Score (1-10)</label>
+                      <div className="flex items-center gap-3">
+                        <input 
+                          type="number"
+                          min="0"
+                          max="10"
+                          value={isNaN(selectedDriver.reliability_score!) ? 0 : (selectedDriver.reliability_score || 0)}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            handleDriverStatusUpdate(selectedDriver.id!, { reliability_score: isNaN(val) ? 0 : val });
+                          }}
+                          className="w-16 bg-brand-input border border-brand-input-border rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest outline-none focus:border-brand-neon transition-all font-mono"
+                        />
+                        <div className="flex-1 bg-brand-input h-2 rounded-full overflow-hidden border border-brand-border">
+                          <div 
+                            className="h-full bg-brand-neon transition-all" 
+                            style={{ width: `${(isNaN(selectedDriver.reliability_score!) ? 0 : (selectedDriver.reliability_score || 0)) * 10}%` }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="mb-12">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted mb-6">Uploaded Documents (Google Drive)</h3>
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted border-b border-brand-border pb-4 mb-6">Uploaded Documents (Google Drive)</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {selectedDriver.documents.map((doc) => (
-                    <div key={doc.id} className="p-6 bg-brand-input border border-brand-input-border rounded-2xl flex items-center justify-between group">
+                  {selectedDriver.documents?.map((doc) => (
+                    <div key={doc.id} className="p-6 bg-brand-input border border-brand-input-border rounded-2xl flex items-center justify-between group hover:border-brand-neon/30 transition-all">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg bg-brand-neon/10 flex items-center justify-center text-brand-neon">
+                        <div className="w-10 h-10 rounded-lg bg-brand-bg flex items-center justify-center text-brand-muted group-hover:text-brand-neon transition-all">
                           <FileText className="w-5 h-5" />
                         </div>
                         <div>
@@ -836,14 +870,20 @@ export default function Dashboard() {
                       </a>
                     </div>
                   ))}
+                  {(!selectedDriver.documents || selectedDriver.documents.length === 0) && (
+                    <div className="col-span-2 p-12 bg-brand-input rounded-3xl border border-dashed border-brand-border text-center opacity-50">
+                      <FileText className="w-10 h-10 text-brand-muted mx-auto mb-4" />
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted">No documents found</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div>
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted mb-6">Internal Notes</h3>
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted mb-6">Internal Audit Notes</h3>
                 <textarea 
-                  className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-6 text-sm outline-none focus:border-brand-neon/50 transition-all min-h-[120px]"
-                  placeholder="Add internal notes about this driver..."
+                  className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-6 text-sm outline-none focus:border-brand-neon/50 transition-all min-h-[150px] font-mono text-[11px]"
+                  placeholder="Record verification results or history..."
                   value={selectedDriver.internal_notes || ''}
                   onChange={(e) => handleDriverStatusUpdate(selectedDriver.id!, { internal_notes: e.target.value })}
                 />
@@ -852,15 +892,27 @@ export default function Dashboard() {
 
             <div className="p-8 border-t border-brand-border bg-brand-surface/50 flex gap-4">
               <button 
+                disabled={isUpdating === selectedDriver.id}
                 onClick={() => handleDriverStatusUpdate(selectedDriver.id!, { onboarding_status: 'approved' })}
-                className="flex-1 py-4 bg-brand-neon text-brand-bg text-[10px] font-bold uppercase tracking-[0.3em] rounded-xl hover:opacity-90 transition-all"
+                className="flex-1 py-5 bg-brand-neon text-brand-bg text-[10px] font-bold uppercase tracking-[0.3em] rounded-2xl hover:bg-white disabled:opacity-50 transition-all flex items-center justify-center gap-3 group"
               >
-                Approve Driver
+                {isUpdating === selectedDriver.id ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-brand-bg" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                )}
+                {selectedDriver.onboarding_status === 'approved' ? 'Update & Re-Approve' : 'Approve Driver'}
               </button>
               <button 
+                disabled={isUpdating === selectedDriver.id}
                 onClick={() => handleDriverStatusUpdate(selectedDriver.id!, { onboarding_status: 'rejected' })}
-                className="flex-1 py-4 bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-bold uppercase tracking-[0.3em] rounded-xl hover:bg-red-500 hover:text-white transition-all"
+                className="flex-1 py-5 bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-bold uppercase tracking-[0.3em] rounded-2xl hover:bg-red-500 hover:text-white disabled:opacity-50 transition-all flex items-center justify-center gap-3 group"
               >
+                {isUpdating === selectedDriver.id ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                )}
                 Reject Application
               </button>
             </div>
