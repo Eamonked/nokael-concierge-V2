@@ -51,10 +51,8 @@ export const Navigation = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded bg-black border border-brand-border flex items-center justify-center transition-transform group-hover:scale-105">
-              <span className="text-2xl font-serif font-black text-brand-neon select-none" style={{ fontFamily: 'Georgia, serif' }}>
-                N
-              </span>
+            <div className="w-9 h-9 rounded overflow-hidden border border-brand-border transition-transform group-hover:scale-105">
+              <img src="/logo.svg" alt="Nokael Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             </div>
             <span className="text-xl font-display font-medium tracking-tighter uppercase">
               Nokael<span className="text-brand-neon">.</span>
@@ -180,10 +178,8 @@ export const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-16 mb-24">
           <div className="md:col-span-5">
             <Link to="/" className="flex items-center gap-3 mb-8 group">
-              <div className="w-8 h-8 rounded bg-black border border-brand-border flex items-center justify-center transition-transform group-hover:scale-105">
-                <span className="text-xl font-serif font-black text-brand-neon select-none" style={{ fontFamily: 'Georgia, serif' }}>
-                  N
-                </span>
+              <div className="w-8 h-8 rounded overflow-hidden border border-brand-border transition-transform group-hover:scale-105">
+                <img src="/logo.svg" alt="Nokael Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               </div>
               <span className="text-lg font-display font-medium tracking-tighter uppercase">
                 Nokael<span className="text-brand-neon">.</span>

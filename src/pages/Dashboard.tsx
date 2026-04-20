@@ -237,10 +237,8 @@ export default function Dashboard() {
       <div className="fixed top-0 left-0 right-0 h-20 bg-brand-bg/80 backdrop-blur-xl border-b border-brand-border z-50 flex items-center justify-between px-8">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-black border border-brand-border rounded-lg flex items-center justify-center">
-              <span className="text-xl font-serif font-black text-brand-neon select-none" style={{ fontFamily: 'Georgia, serif' }}>
-                N
-              </span>
+            <div className="w-10 h-10 rounded-lg overflow-hidden border border-brand-border">
+              <img src="/logo.svg" alt="Nokael Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             </div>
             <h1 className="text-xl font-display font-medium tracking-tighter">Dispatch Command Center.</h1>
           </div>
