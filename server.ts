@@ -67,8 +67,14 @@ async function startServer() {
         const metadata = SEO_METADATA[urlPath] ?? DEFAULT_METADATA;
         const skipContent = KNOWN_APP_ROUTES.includes(urlPath);
         const html = injectMetadata(template, urlPath, metadata, SITE_URL, false, skipContent);
+        
+        // Customize the "Initialising" placeholder with the page's H1 for better LCP/FCP
+        const placeholderHtml = html.replace(
+          'Initialising Dispatch...',
+          metadata.h1 || 'Initialising Dispatch...'
+        );
 
-        res.status(200).set("Content-Type", "text/html").end(html);
+        res.status(200).set("Content-Type", "text/html").end(placeholderHtml);
       } catch (e) {
         vite.ssrFixStacktrace(e as Error);
         next(e);
@@ -115,7 +121,14 @@ async function startServer() {
       }
 
       const html = injectMetadata(INDEX_HTML, urlPath, metadata, SITE_URL, true, isAppRoute && !isSeoRoute);
-      res.status(statusCode).set("Content-Type", "text/html").end(html);
+      
+      // Customize the "Initialising" placeholder with the page's H1 for better LCP/FCP
+      const placeholderHtml = html.replace(
+        'Initialising Dispatch...',
+        metadata.h1 || 'Initialising Dispatch...'
+      );
+      
+      res.status(statusCode).set("Content-Type", "text/html").end(placeholderHtml);
     });
   }
 
