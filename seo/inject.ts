@@ -187,29 +187,34 @@ export function injectMetadata(
   const robots = isProduction ? "index,follow" : "noindex,follow";
   const seoContent = skipContent ? "" : buildSeoContent(metadata);
 
-  // Inject SEO article BEFORE the React root — crawlers see both, React mounts into #root
+  // Injects SEO article BEFORE the React root
+  let finalHtml = html;
   const rootTag = '<div id="root">';
   const rootIndex = html.indexOf(rootTag);
   
   if (rootIndex !== -1) {
     const beforeRoot = html.substring(0, rootIndex);
     const afterRoot = html.substring(rootIndex);
-    return beforeRoot + 
+    finalHtml = beforeRoot + 
       (seoContent ? `<div id="seo-content" aria-hidden="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;">${seoContent}</div>` : "") + 
-      afterRoot
-        .replace(/{{TITLE}}/g, metadata.title)
-        .replace(/{{DESCRIPTION}}/g, metadata.description)
-        .replace(/{{CANONICAL}}/g, canonical)
-        .replace(/{{IMAGE}}/g, `${siteUrl}/og-image.jpg`)
-        .replace(/{{STRUCTURED_DATA}}/g, structuredData)
-        .replace(/{{ROBOTS}}/g, robots);
+      afterRoot;
   }
 
-  return html
-    .replace(/{{TITLE}}/g, metadata.title)
-    .replace(/{{DESCRIPTION}}/g, metadata.description)
-    .replace(/{{CANONICAL}}/g, canonical)
-    .replace(/{{IMAGE}}/g, `${siteUrl}/og-image.jpg`)
-    .replace(/{{STRUCTURED_DATA}}/g, structuredData)
-    .replace(/{{ROBOTS}}/g, robots);
+  // Smart injection using regex to replace whatever is in the base index.html
+  // Support both self-closing tag formats and varying whitespace
+  finalHtml = finalHtml.replace(/<title>[\s\S]*?<\/title>/i, `<title>${metadata.title}</title>`);
+  finalHtml = finalHtml.replace(/<meta\s+name="description"\s+content="[\s\S]*?"\s*\/?>/i, `<meta name="description" content="${metadata.description}" />`);
+  finalHtml = finalHtml.replace(/<link\s+rel="canonical"\s+href="[\s\S]*?"\s*\/?>/i, `<link rel="canonical" href="${canonical}" />`);
+  finalHtml = finalHtml.replace(/<meta\s+property="og:title"\s+content="[\s\S]*?"\s*\/?>/i, `<meta property="og:title" content="${metadata.title}" />`);
+  finalHtml = finalHtml.replace(/<meta\s+property="og:description"\s+content="[\s\S]*?"\s*\/?>/i, `<meta property="og:description" content="${metadata.description}" />`);
+  finalHtml = finalHtml.replace(/<meta\s+property="og:url"\s+content="[\s\S]*?"\s*\/?>/i, `<meta property="og:url" content="${canonical}" />`);
+  finalHtml = finalHtml.replace(/<meta\s+property="og:image"\s+content="[\s\S]*?"\s*\/?>/i, `<meta property="og:image" content="${siteUrl}/og-image.jpg" />`);
+  finalHtml = finalHtml.replace(/<meta\s+name="robots"\s+content="[\s\S]*?"\s*\/?>/i, `<meta name="robots" content="${robots}" />`);
+
+  // Handle structured data placeholder separately if it exists, otherwise append it
+  if (finalHtml.includes("{{STRUCTURED_DATA}}")) {
+    finalHtml = finalHtml.split("{{STRUCTURED_DATA}}").join(structuredData);
+  }
+
+  return finalHtml;
 }

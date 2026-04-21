@@ -19,6 +19,7 @@ import NotFound from './pages/NotFound';
 import { ErrorBoundary } from 'react-error-boundary';
 import { WHATSAPP_NUMBER } from './constants';
 import { MessageSquare } from 'lucide-react';
+import { SEO_METADATA, DEFAULT_METADATA } from '../seo/metadata';
 
 
 // Scroll to top on route change
@@ -80,12 +81,33 @@ function ErrorFallback({ error }: { error: Error }) {
   );
 }
 
+// Manages browser tab titles in the SPA
+function TitleManager() {
+  const { pathname } = useLocation();
+  
+  useEffect(() => {
+    // Standardize path: remove trailing slash
+    const urlPath = pathname === "/" ? "/" : pathname.replace(/\/$/, "");
+    const metadata = SEO_METADATA[urlPath] || DEFAULT_METADATA;
+    
+    if (metadata?.title) {
+      document.title = metadata.title;
+      console.log(`[SEO] Title updated to: ${metadata.title} for path: ${urlPath}`);
+    } else {
+      console.warn(`[SEO] No title found for path: ${urlPath}`);
+    }
+  }, [pathname]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <Router>
       <ScrollToTop />
       <UTMCapture />
       <PageViewTracker />
+      <TitleManager />
       <ErrorBoundary FallbackComponent={ErrorFallback}>
         <Layout>
           <Routes>
