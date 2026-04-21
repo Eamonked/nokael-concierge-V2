@@ -187,16 +187,29 @@ export function injectMetadata(
   const robots = isProduction ? "index,follow" : "noindex,follow";
   const seoContent = skipContent ? "" : buildSeoContent(metadata);
 
+  // Inject SEO article BEFORE the React root — crawlers see both, React mounts into #root
+  const rootTag = '<div id="root">';
+  const rootIndex = html.indexOf(rootTag);
+  
+  if (rootIndex !== -1) {
+    const beforeRoot = html.substring(0, rootIndex);
+    const afterRoot = html.substring(rootIndex);
+    return beforeRoot + 
+      (seoContent ? `<div id="seo-content" aria-hidden="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;">${seoContent}</div>` : "") + 
+      afterRoot
+        .replace(/{{TITLE}}/g, metadata.title)
+        .replace(/{{DESCRIPTION}}/g, metadata.description)
+        .replace(/{{CANONICAL}}/g, canonical)
+        .replace(/{{IMAGE}}/g, `${siteUrl}/og-image.jpg`)
+        .replace(/{{STRUCTURED_DATA}}/g, structuredData)
+        .replace(/{{ROBOTS}}/g, robots);
+  }
+
   return html
     .replace(/{{TITLE}}/g, metadata.title)
     .replace(/{{DESCRIPTION}}/g, metadata.description)
     .replace(/{{CANONICAL}}/g, canonical)
     .replace(/{{IMAGE}}/g, `${siteUrl}/og-image.jpg`)
     .replace(/{{STRUCTURED_DATA}}/g, structuredData)
-    .replace(/{{ROBOTS}}/g, robots)
-    // Inject SEO article BEFORE the React root — crawlers see both, React mounts into #root
-    .replace(
-      '<div id="root"></div>',
-      `${seoContent ? `<div id="seo-content" aria-hidden="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;">${seoContent}</div>` : ""}<div id="root"></div>`
-    );
+    .replace(/{{ROBOTS}}/g, robots);
 }

@@ -12,10 +12,10 @@ export interface PageMetadata {
 
 export const SEO_METADATA: Record<string, PageMetadata> = {
   "/": {
-    title: "Nokael | Urgent Business Courier Dubai to Abu Dhabi",
+    title: "Nokael | Urgent B2B Courier Dubai to Abu Dhabi",
     description:
-      "Urgent same-day business courier between Dubai and Abu Dhabi with direct driver assignment and fast delivery. Reliable inter-emirate logistics for time-critical items.",
-    h1: "Urgent Courier Dubai → Abu Dhabi in 90–120 Minutes",
+      "Direct-response B2B courier service between Dubai and Abu Dhabi. Dedicated driver assignment for legal documents and corporate logistics. No warehouses, no delays.",
+    h1: "Urgent B2B Courier: Dubai ↔ Abu Dhabi Dispatch",
     content: `Dedicated driver. No hubs. Immediate dispatch. We provide same-day courier services from Dubai to Abu Dhabi, including express document delivery, urgent parcel transport, and dedicated business logistics across the UAE.
       Nokael provides urgent same-day business courier services between Dubai and Abu Dhabi. We offer direct driver assignment, no warehouses, and no sorting hubs for your time-critical documents, parcels, and spare parts.
       Whether it is a legal tender, a sensitive contract, or an emergency spare part, our dedicated drivers ensure your items reach their destination safely and on time.`,
@@ -84,12 +84,12 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
   },
 
   "/document-delivery-uae": {
-    title: "Urgent Document Delivery UAE | Nokael Courier",
+    title: "Urgent B2B Legal & Corporate Document Delivery UAE | Nokael",
     description:
-      "Secure urgent document delivery across the UAE for contracts and sensitive business paperwork. Hand-to-hand delivery with chain of custody.",
-    h1: "Urgent Document & Legal Delivery.",
-    content: `Secure, hand-to-hand transport for sensitive documents, contracts, and legal tenders across all emirates. Real-time tracking and immediate proof of delivery via WhatsApp.
-      In the legal and corporate world, some documents are too important for standard courier services. Nokael provides a premium document dispatch service that prioritizes security and chain of custody.
+      "Secure urgent document delivery for UAE legal tenders and corporate contracts. Hand-to-hand B2B courier with a dedicated driver and direct chain of custody.",
+    h1: "Urgent Legal & Corporate Document Dispatch.",
+    content: `Secure, hand-to-hand transport for sensitive legal documents, contracts, and government tenders across all emirates. Dedicated driver assignment with real-time tracking and immediate proof of delivery via WhatsApp.
+      In the B2B logistics world, some documents are too critical for standard courier networks. Nokael provides a premium dispatch service that prioritizes security and direct accountability.
       Our drivers handle your sensitive materials with the utmost care, providing hand-to-hand delivery from the sender directly to the recipient. We understand the critical nature of legal deadlines and government tender submissions.`,
     price: "230",
     sla: "Hand-to-hand security",
@@ -176,12 +176,12 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
 };
 
 export const DEFAULT_METADATA: PageMetadata = {
-  title: "Nokael | Urgent UAE Delivery",
+  title: "Nokael | Urgent UAE B2B Delivery",
   description:
-    "Urgent business courier services across the UAE. Direct driver assignment and fast inter-emirate delivery.",
-  h1: "Urgent UAE Delivery",
+    "Urgent B2B courier services across the UAE. Direct driver assignment, no hubs, and fast corporate delivery between Dubai and Abu Dhabi.",
+  h1: "Urgent UAE B2B Delivery",
   content:
-    "Nokael provides fast and reliable urgent delivery services across the UAE. We specialize in same-day business courier needs between major cities like Dubai and Abu Dhabi.",
+    "Nokael provides fast and reliable urgent B2B delivery services across the UAE. We specialize in time-critical corporate courier needs between major cities like Dubai and Abu Dhabi.",
   faqs: [],
   price: "230",
   sla: "Fast dispatch",
