@@ -10,8 +10,22 @@ const Hero = () => {
   const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(DEFAULT_WA_MESSAGE)}`;
 
   return (
-    <section className="relative min-h-screen flex items-start overflow-hidden highway-blur">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20 relative z-10">
+    <section className="relative min-h-screen flex items-start overflow-hidden bg-brand-bg">
+      {/* Hero Background Image - Optimized for LCP */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=1920&fm=webp" 
+          alt="Dubai to Abu Dhabi Highway" 
+          width="1920"
+          height="1080"
+          fetchPriority="high"
+          className="w-full h-full object-cover opacity-20 grayscale"
+          referrerPolicy="no-referrer"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-brand-bg/80 via-brand-bg to-brand-bg" />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20 relative z-10 w-full">
         <div className="asymmetric-grid items-center">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -385,8 +399,11 @@ const TrustGrounded = () => {
           <div className="order-2 lg:order-1">
             <div className="relative aspect-[4/5] rounded-3xl overflow-hidden">
               <img 
-                src="https://images.unsplash.com/photo-1580674285054-bed31e145f59?auto=format&fit=crop&q=80&w=1000" 
+                src="https://images.unsplash.com/photo-1580674285054-bed31e145f59?auto=format&fit=crop&q=80&w=1000&fm=webp" 
                 alt="UAE Logistics" 
+                width="1000"
+                height="1250"
+                loading="lazy"
                 className="w-full h-full object-cover grayscale opacity-40"
                 referrerPolicy="no-referrer"
               />

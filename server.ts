@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import compression from "compression";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -24,6 +25,7 @@ async function startServer() {
   // ---------------------------------------------------------------------------
   // Global middleware
   // ---------------------------------------------------------------------------
+  app.use(compression());
   app.use(express.json({ limit: "1mb" }));
   app.use(securityHeaders);
 
@@ -85,7 +87,11 @@ async function startServer() {
     // Cache the HTML template in memory — read once, reuse on every request
     const INDEX_HTML = fs.readFileSync(indexPath, "utf-8");
 
-    app.use(express.static(distPath, { index: false }));
+    app.use(express.static(distPath, { 
+      index: false,
+      maxAge: '1y',
+      immutable: true
+    }));
 
     app.get("*", (req, res) => {
       // Normalize path: remove trailing slash for comparison
