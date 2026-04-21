@@ -16,7 +16,7 @@ export function getStructuredData(canonicalUrl: string, metadata: PageMetadata, 
     logo: `${siteUrl}/logo.png`,
     image: `${siteUrl}/og-image.jpg`,
     telephone: process.env.VITE_PHONE_NUMBER || "+971509710446",
-    priceRange: "AED 185 - AED 500",
+    priceRange: "AED 230 - AED 500",
     openingHours: "Monday-Sunday 00:00-23:59",
     geo: {
       "@type": "GeoCoordinates",
@@ -54,7 +54,7 @@ export function getStructuredData(canonicalUrl: string, metadata: PageMetadata, 
         {
           "@type": "Offer",
           itemOffered: { "@type": "Service", name: metadata.h1 },
-          price: metadata.price ?? "185",
+          price: metadata.price ?? "230",
           priceCurrency: "AED",
         },
       ],
@@ -141,7 +141,7 @@ export function buildSeoContent(metadata: PageMetadata): string {
       <section style="background:#f9f9f9;padding:30px;border-radius:12px;margin-bottom:40px;border:1px solid #eee;">
         <h2 style="margin-top:0;">Pricing & Logistics SLA</h2>
         <ul style="list-style:none;padding:0;">
-          <li style="margin-bottom:10px;"><strong>Starting Price:</strong> From AED ${metadata.price ?? "185"}</li>
+          <li style="margin-bottom:10px;"><strong>Starting Price:</strong> From AED ${metadata.price ?? "230"}</li>
           <li style="margin-bottom:10px;"><strong>Guaranteed SLA:</strong> ${metadata.sla ?? "Fast dispatch"}</li>
           <li style="margin-bottom:10px;"><strong>Insurance:</strong> Fully insured transit for all business items</li>
           <li style="margin-bottom:10px;"><strong>Availability:</strong> 24/7 Emergency Dispatch</li>

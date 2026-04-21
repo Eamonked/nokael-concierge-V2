@@ -19,7 +19,7 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
     content: `Dedicated driver. No hubs. Immediate dispatch. We provide same-day courier services from Dubai to Abu Dhabi, including express document delivery, urgent parcel transport, and dedicated business logistics across the UAE.
       Nokael provides urgent same-day business courier services between Dubai and Abu Dhabi. We offer direct driver assignment, no warehouses, and no sorting hubs for your time-critical documents, parcels, and spare parts.
       Whether it is a legal tender, a sensitive contract, or an emergency spare part, our dedicated drivers ensure your items reach their destination safely and on time.`,
-    price: "185",
+    price: "230",
     sla: "90-120 min delivery",
     zones: ["DIFC", "Downtown Dubai", "Jebel Ali", "Abu Dhabi Global Market", "Mussafah"],
     faqs: [
@@ -43,7 +43,7 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
     content: `Fast inter-emirate transport starting from Dubai. Pickup typically within 30–60 minutes for immediate dispatch to Abu Dhabi, Sharjah, and beyond. Built for businesses that cannot afford logistics delays.
       Nokael provides a direct-response dispatch system for companies and individuals in Dubai who need items moved to other emirates immediately.
       Our drivers are strategically positioned across Dubai—from Downtown and DIFC to Jebel Ali and Dubai Marina—to ensure rapid response times. We don't use sorting hubs; your item goes from the pickup point directly to the delivery destination.`,
-    price: "185",
+    price: "230",
     sla: "30-60 min pickup",
     zones: ["DIFC", "Downtown", "Business Bay", "JLT", "Jebel Ali", "Dubai Marina"],
     faqs: [
@@ -67,7 +67,7 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
     content: `Premium inter-emirate logistics from the capital. Dedicated drivers for direct transport to Dubai and the Northern Emirates. Serving government, corporate, and private clients with precision.
       Abu Dhabi requires a higher level of logistics precision. Nokael serves the capital's most demanding delivery needs, providing dedicated transport for government, corporate, and private clients.
       Our Abu Dhabi dispatch network covers the entire city, including Al Reem Island, Khalifa City, and the Industrial areas. We specialize in the Abu Dhabi ↔ Dubai corridor, offering the fastest possible transit times between the two major hubs.`,
-    price: "185",
+    price: "230",
     sla: "30-60 min pickup",
     zones: ["Al Reem Island", "Khalifa City", "Mussafah", "ADGM", "Corniche"],
     faqs: [
@@ -91,7 +91,7 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
     content: `Secure, hand-to-hand transport for sensitive documents, contracts, and legal tenders across all emirates. Real-time tracking and immediate proof of delivery via WhatsApp.
       In the legal and corporate world, some documents are too important for standard courier services. Nokael provides a premium document dispatch service that prioritizes security and chain of custody.
       Our drivers handle your sensitive materials with the utmost care, providing hand-to-hand delivery from the sender directly to the recipient. We understand the critical nature of legal deadlines and government tender submissions.`,
-    price: "185",
+    price: "230",
     sla: "Hand-to-hand security",
     zones: ["All UAE Courts", "Free Zones", "Government Offices", "Embassies"],
     faqs: [
@@ -138,7 +138,7 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
     h1: "Direct Response Logistics Services.",
     content: `We provide specialized, high-speed transport solutions across the UAE. Built for speed, security, and direct accountability. Our services include urgent inter-emirate delivery, document & legal transport, and spare parts logistics.
       Traditional courier services rely on sorting hubs and shared vehicle loads. We bypass the traditional warehouse model entirely. One driver, one item, one direct route. We eliminate the friction of traditional logistics.`,
-    price: "185",
+    price: "230",
     sla: "Point-to-point delivery",
     zones: ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "RAK", "Fujairah", "UAQ"],
     faqs: [
@@ -170,7 +170,7 @@ export const DEFAULT_METADATA: PageMetadata = {
   content:
     "Nokael provides fast and reliable urgent delivery services across the UAE. We specialize in same-day business courier needs between major cities like Dubai and Abu Dhabi.",
   faqs: [],
-  price: "185",
+  price: "230",
   sla: "Fast dispatch",
 };
 
