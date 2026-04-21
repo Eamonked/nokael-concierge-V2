@@ -86,8 +86,8 @@ export default function App() {
       <ScrollToTop />
       <UTMCapture />
       <PageViewTracker />
-      <Layout>
-        <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <Layout>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/get-quote" element={<GetQuote />} />
@@ -107,10 +107,9 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             {/* 404 — must be last */}
             <Route path="*" element={<NotFound />} />
-            
           </Routes>
-        </ErrorBoundary>
-      </Layout>
+        </Layout>
+      </ErrorBoundary>
     </Router>
   );
 }

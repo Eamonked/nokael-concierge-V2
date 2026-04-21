@@ -58,7 +58,10 @@ async function startServer() {
         );
         template = await vite.transformIndexHtml(req.originalUrl, template);
 
-        const urlPath = req.path;
+        // Normalize path: remove trailing slash for comparison
+        let urlPath = req.path === "/" ? "/" : req.path.replace(/\/$/, "");
+        if (urlPath === "") urlPath = "/";
+
         const metadata = SEO_METADATA[urlPath] ?? DEFAULT_METADATA;
         const skipContent = KNOWN_APP_ROUTES.includes(urlPath);
         const html = injectMetadata(template, urlPath, metadata, SITE_URL, false, skipContent);
@@ -85,7 +88,9 @@ async function startServer() {
     app.use(express.static(distPath, { index: false }));
 
     app.get("*", (req, res) => {
-      const urlPath = req.path;
+      // Normalize path: remove trailing slash for comparison
+      let urlPath = req.path === "/" ? "/" : req.path.replace(/\/$/, "");
+      if (urlPath === "") urlPath = "/";
 
       // Determine metadata and status code
       const isSeoRoute = urlPath in SEO_METADATA;

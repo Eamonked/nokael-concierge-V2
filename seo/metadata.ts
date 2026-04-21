@@ -153,6 +153,19 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
     ],
   },
 
+  "/get-quote": {
+    title: "Request Urgent Courier Quote | Nokael UAE Dispatch",
+    description: "Get an immediate quote for time-critical document or parcel delivery between Dubai, Abu Dhabi, and all emirates. 5-minute driver assignment.",
+    h1: "Request an Immediate Courier Quote.",
+    content: "Our dispatch system provides instant routing and driver assignment for urgent logistics across the UAE. Fill out the route and item details for a dedicated courier dispatch.",
+    price: "230",
+    sla: "2-5 minute assignment",
+    breadcrumb: [
+      { name: "Home", url: "/" },
+      { name: "Request Quote", url: "/get-quote" },
+    ],
+  },
+
   "/404": {
     title: "Page Not Found | Nokael",
     description: "The page you are looking for does not exist. Return to Nokael's homepage for urgent UAE courier services.",

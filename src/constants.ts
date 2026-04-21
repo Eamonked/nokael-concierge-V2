@@ -22,7 +22,7 @@ Estimated monthly delivery volume:
 Best contact person:`;
 
 // PRICING CONSTANTS
-export const PRICE_TIER_NEXT_MORNING = Number(import.meta.env.VITE_PRICE_TIER_NEXT_MORNING || 230);
-export const PRICE_TIER_SAME_DAY = Number(import.meta.env.VITE_PRICE_TIER_SAME_DAY || 230);
-export const PRICE_TIER_DEDICATED = Number(import.meta.env.VITE_PRICE_TIER_DEDICATED || 380);
+export const PRICE_TIER_NEXT_MORNING = Number(import.meta.env.VITE_PRICE_TIER_NEXT_MORNING) || 230;
+export const PRICE_TIER_SAME_DAY = Number(import.meta.env.VITE_PRICE_TIER_SAME_DAY) || 230;
+export const PRICE_TIER_DEDICATED = Number(import.meta.env.VITE_PRICE_TIER_DEDICATED) || 380;
 
