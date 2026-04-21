@@ -111,6 +111,7 @@ export default function Services() {
       {/* Services Grid */}
       <section className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="sr-only">Our Specialized Logistics Services</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {services.map((s, i) => <ServiceCard key={i} {...s} index={i} />)}
           </div>

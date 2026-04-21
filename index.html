@@ -1,12 +1,32 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- Google Tag Manager -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-T27LXT6W');</script>
+    <!-- Preload Hero Image (LCP) - MUST BE FIRST to minimize resource load delay -->
+    <link rel="preload" as="image" href="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=40&w=1200&fm=webp" imagesrcset="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=60&w=640&fm=webp 640w, https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=60&w=1024&fm=webp 1024w, https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=40&w=1200&fm=webp 1200w" imagesizes="100vw" fetchpriority="high" />
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nokael | Urgent B2B Courier UAE</title>
+    <script>
+      (function() {
+        var gtmLoaded = false;
+        function loadGTM() {
+          if (gtmLoaded) return;
+          gtmLoaded = true;
+          (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+          new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+          j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+          'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+          })(window,document,'script','dataLayer','GTM-T27LXT6W');
+        }
+        window.addEventListener('load', function() {
+          setTimeout(loadGTM, 4000); // Fail-safe: load after 4s idle
+        });
+        window.addEventListener('scroll', loadGTM, {once: true, passive: true});
+        window.addEventListener('mousemove', loadGTM, {once: true, passive: true});
+        window.addEventListener('touchstart', loadGTM, {once: true, passive: true});
+      })();
+    </script>
     <!-- End Google Tag Manager -->
     
     <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
@@ -20,12 +40,6 @@
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Space+Grotesk:wght@300..700&display=swap" />
     </noscript>
 
-    <!-- Preload Hero Image (LCP) -->
-    <link rel="preload" as="image" href="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=60&w=1440&fm=webp" imagesrcset="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=640&fm=webp 640w, https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=1024&fm=webp 1024w, https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=60&w=1440&fm=webp 1440w" imagesizes="100vw" fetchpriority="high" />
-
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Nokael | Urgent B2B Courier UAE</title>
     <meta name="description" content="Urgent B2B courier services across the UAE. Direct driver assignment, no hubs, and fast corporate delivery." />
     <link rel="canonical" href="https://www.nokael.com" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
@@ -52,21 +66,41 @@
     <div id="root">
       <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0B0F14;color:#E6EAF0;font-family:sans-serif;padding:20px;">
         <div style="max-width:800px;text-align:center;">
+          <div style="width:80px;height:80px;background:#39FF14;border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 32px;overflow:hidden;">
+            <img src="/logo.svg" alt="Nokael" width="60" height="60" style="width:75%;height:75%;object-fit:contain;" />
+          </div>
           <h1 style="font-size:42px;margin-bottom:20px;line-height:1.1;letter-spacing:-0.05em;font-weight:bold;">Initialising Dispatch...</h1>
-          <p style="font-size:16px;color:#A3A3A3;letter-spacing:1px;text-transform:uppercase;">Nokael Direct Logistics Dispatch Active</p>
+          <p style="font-size:16px;color:#B3B3B3;letter-spacing:1px;text-transform:uppercase;font-weight:600;">Nokael Logistics Dispatch Active</p>
         </div>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
 
-    <!-- Marketing Scripts at Body End to Prevent Blocking -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=GT-M6BPWGQN"></script>
+    <!-- Marketing Scripts at Body End to Prevent Blocking (Deferred) -->
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'GT-M6BPWGQN');
-      gtag('config', 'AW-17877109298');
+      (function() {
+        var scriptsLoaded = false;
+        function loadMarketing() {
+          if (scriptsLoaded) return;
+          scriptsLoaded = true;
+          var gtagScript = document.createElement('script');
+          gtagScript.async = true;
+          gtagScript.src = 'https://www.googletagmanager.com/gtag/js?id=GT-M6BPWGQN';
+          document.body.appendChild(gtagScript);
+          
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'GT-M6BPWGQN');
+          gtag('config', 'AW-17877109298');
+        }
+        window.addEventListener('load', function() {
+          setTimeout(loadMarketing, 3000); // Also load after 3s if no interaction
+        });
+        window.addEventListener('scroll', loadMarketing, {once: true, passive: true});
+        window.addEventListener('mousemove', loadMarketing, {once: true, passive: true});
+        window.addEventListener('touchstart', loadMarketing, {once: true, passive: true});
+      })();
     </script>
   </body>
 </html>

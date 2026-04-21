@@ -16,17 +16,17 @@ const Hero = () => {
         <picture>
           <source 
             media="(max-width: 640px)" 
-            srcSet="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=640&fm=webp" 
+            srcSet="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=60&w=640&fm=webp" 
           />
           <source 
             media="(max-width: 1024px)" 
-            srcSet="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=1024&fm=webp" 
+            srcSet="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=60&w=1024&fm=webp" 
           />
           <img 
-            src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=60&w=1440&fm=webp" 
+            src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=40&w=1200&fm=webp" 
             alt="Dubai to Abu Dhabi Highway" 
-            width="1440"
-            height="810"
+            width="1200"
+            height="675"
             fetchPriority="high"
             className="w-full h-full object-cover opacity-20 grayscale"
             referrerPolicy="no-referrer"
@@ -111,10 +111,7 @@ const Hero = () => {
             </div>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1, delay: 0.2 }}
+          <div
             className="hidden lg:block relative"
           >
             <div className="dispatch-card relative z-10 rotate-2 translate-x-4">
@@ -144,7 +141,7 @@ const Hero = () => {
               </div>
             </div>
             <div className="absolute inset-0 bg-brand-neon/5 blur-[100px] rounded-full" />
-          </motion.div>
+          </div>
         </div>
       </div>
       

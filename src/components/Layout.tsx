@@ -213,7 +213,7 @@ export const Footer = () => {
           </div>
           
           <div className="md:col-span-3">
-            <h4 className="text-brand-text font-bold uppercase tracking-[0.2em] text-[10px] mb-8">Logistics Corridors</h4>
+            <h2 className="text-brand-text font-bold uppercase tracking-[0.2em] text-[10px] mb-8">Logistics Corridors</h2>
             <ul className="space-y-4 text-xs text-brand-muted">
               <li className="flex items-center gap-2 group/link">
                 <div className="w-1 h-1 rounded-full bg-brand-neon opacity-0 group-hover/link:opacity-100 transition-opacity" />
@@ -234,7 +234,7 @@ export const Footer = () => {
           </div>
 
           <div className="md:col-span-4">
-            <h4 className="text-brand-text font-bold uppercase tracking-[0.2em] text-[10px] mb-8">Dispatch Command</h4>
+            <h2 className="text-brand-text font-bold uppercase tracking-[0.2em] text-[10px] mb-8">Dispatch Command</h2>
             <ul className="space-y-4 text-xs text-brand-muted">
               <li><Link to="/track" className="hover:text-brand-neon transition-colors">Live GPS Tracking</Link></li>
               <li><Link to="/get-quote" className="hover:text-brand-neon transition-colors">Request Quote</Link></li>
