@@ -90,23 +90,25 @@ export const StickyCTA = () => {
               className="pointer-events-auto"
             >
               <div className="bg-brand-bg/80 backdrop-blur-xl border border-brand-border rounded-2xl p-1.5 flex items-center gap-2 shadow-2xl">
-                <a
-                  href={`tel:${PHONE_NUMBER}`}
-                  onClick={trackPhoneClick}
-                  className="w-12 h-12 flex items-center justify-center bg-brand-input text-brand-text rounded-xl border border-brand-input-border active:scale-95 transition-transform"
-                >
-                  <Phone className="w-4 h-4" />
-                </a>
-                <a
-                  href={`https://wa.me/${WHATSAPP_NUMBER}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackWhatsAppClick('sticky_mobile_bar')}
-                  className="flex-1 h-12 flex items-center justify-center gap-3 bg-brand-neon text-brand-bg rounded-xl font-black uppercase tracking-widest text-[9px] active:scale-[0.98] transition-transform shadow-[0_10px_30px_rgba(57,255,20,0.2)]"
-                >
-                  <MessageSquare className="w-4 h-4 fill-current" />
-                  <span>Request via WhatsApp</span>
-                </a>
+                 <a
+                   href={`tel:${PHONE_NUMBER}`}
+                   onClick={trackPhoneClick}
+                   className="w-12 h-12 flex items-center justify-center bg-brand-input text-brand-text rounded-xl border border-brand-input-border active:scale-95 transition-transform"
+                   aria-label="Call Dispatch"
+                 >
+                   <Phone className="w-4 h-4" />
+                 </a>
+                 <a
+                   href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   onClick={() => trackWhatsAppClick('sticky_mobile_bar')}
+                   className="flex-1 h-12 flex items-center justify-center gap-3 bg-brand-neon text-brand-bg rounded-xl font-black uppercase tracking-widest text-[9px] active:scale-[0.98] transition-transform shadow-[0_10px_30px_rgba(57,255,20,0.2)]"
+                   aria-label="Request Dispatch via WhatsApp"
+                 >
+                   <MessageSquare className="w-4 h-4 fill-current" />
+                   <span>Request via WhatsApp</span>
+                 </a>
               </div>
             </motion.div>
           )}

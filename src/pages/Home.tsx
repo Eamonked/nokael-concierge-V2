@@ -23,10 +23,10 @@ const Hero = () => {
             srcSet="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=1024&fm=webp" 
           />
           <img 
-            src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=1920&fm=webp" 
+            src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=60&w=1440&fm=webp" 
             alt="Dubai to Abu Dhabi Highway" 
-            width="1920"
-            height="1080"
+            width="1440"
+            height="810"
             fetchPriority="high"
             className="w-full h-full object-cover opacity-20 grayscale"
             referrerPolicy="no-referrer"
@@ -434,30 +434,30 @@ const TrustGrounded = () => {
             
             <div className="space-y-12">
               <div>
-                <h4 className="text-lg font-bold mb-4 flex items-center gap-3 text-brand-text">
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-3 text-brand-text">
                   <div className="w-1 h-6 bg-brand-neon rounded-full" />
                   Emergency Items
-                </h4>
+                </h3>
                 <p className="text-brand-muted leading-relaxed">
                   Left your passport in Dubai but flying from Abu Dhabi? We assign a driver to your door in 30 minutes.
                 </p>
               </div>
               
               <div>
-                <h4 className="text-lg font-bold mb-4 flex items-center gap-3 text-brand-text">
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-3 text-brand-text">
                   <div className="w-1 h-6 bg-brand-blue rounded-full" />
                   Business Tenders
-                </h4>
+                </h3>
                 <p className="text-brand-muted leading-relaxed">
                   When a physical contract needs to be in a government office by 2 PM, we are the only reliable option.
                 </p>
               </div>
 
               <div>
-                <h4 className="text-lg font-bold mb-4 flex items-center gap-3 text-brand-text">
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-3 text-brand-text">
                   <div className="w-1 h-6 bg-brand-border rounded-full" />
                   Spare Parts
-                </h4>
+                </h3>
                 <p className="text-brand-muted leading-relaxed">
                   Critical machinery down? We transport parts directly from supplier to site, anywhere in the UAE.
                 </p>

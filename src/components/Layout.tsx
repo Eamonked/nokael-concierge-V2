@@ -112,11 +112,13 @@ export const Navigation = () => {
           <div className="flex items-center gap-4 md:hidden">
             <ThemeToggle />
             <button
-              className="p-2 text-brand-muted hover:text-brand-text transition-colors"
-              onClick={() => setIsOpen(!isOpen)}
-            >
-              {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+               className="p-2 text-brand-muted hover:text-brand-text transition-colors"
+               onClick={() => setIsOpen(!isOpen)}
+               aria-label="Toggle Menu"
+               aria-expanded={isOpen}
+             >
+               {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+             </button>
           </div>
         </div>
       </div>

@@ -1,26 +1,35 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, Suspense, lazy } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import Home from './pages/Home';
-import GetQuote from './pages/GetQuote';
-import Thankyou from './pages/Thankyou';
-import Services from './pages/Services';
-import Dashboard from './pages/Dashboard';
-import Login from './pages/Login';
+
+// Code splitting for improved performance/LCP/TBT
+const GetQuote = lazy(() => import('./pages/GetQuote'));
+const Thankyou = lazy(() => import('./pages/Thankyou'));
+const Services = lazy(() => import('./pages/Services'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Login = lazy(() => import('./pages/Login'));
+const BusinessAccountInquiry = lazy(() => import('./pages/BusinessAccountInquiry'));
+const DriverApplication = lazy(() => import('./pages/DriverApplication'));
+const About = lazy(() => import('./pages/About'));
+const Track = lazy(() => import('./pages/Track'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+
 import { DubaiLanding, AbuDhabiLanding, DocumentLanding, SparePartsLanding } from './pages/LandingPages';
 import { TermsAndConditions, PrivacyPolicy } from './pages/Legal';
-import BusinessAccountInquiry from './pages/BusinessAccountInquiry';
-import DriverApplication from './pages/DriverApplication';
-import About from './pages/About';
-import Track from './pages/Track';
 import { captureUTMs, trackPageView } from './lib/analytics';
-import NotFound from './pages/NotFound';
 import { ErrorBoundary } from 'react-error-boundary';
 import { WHATSAPP_NUMBER } from './constants';
 import { MessageSquare } from 'lucide-react';
 import { SEO_METADATA, DEFAULT_METADATA } from '../seo/metadata';
 
+// Loading Fallback
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-brand-bg">
+    <div className="w-8 h-8 border-2 border-brand-neon border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -110,26 +119,28 @@ export default function App() {
       <TitleManager />
       <ErrorBoundary FallbackComponent={ErrorFallback}>
         <Layout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/get-quote" element={<GetQuote />} />
-            <Route path="/thank-you" element={<Thankyou />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/urgent-delivery-dubai" element={<DubaiLanding />} />
-            <Route path="/urgent-delivery-abu-dhabi" element={<AbuDhabiLanding />} />
-            <Route path="/document-delivery-uae" element={<DocumentLanding />} />
-            <Route path="/spare-parts-delivery-uae" element={<SparePartsLanding />} />
-            <Route path="/track" element={<Track />} />
-            <Route path="/business-account" element={<BusinessAccountInquiry />} />
-            <Route path="/apply-driver" element={<DriverApplication />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/terms" element={<TermsAndConditions />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/login" element={<Login />} />
-            {/* 404 — must be last */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/get-quote" element={<GetQuote />} />
+              <Route path="/thank-you" element={<Thankyou />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/urgent-delivery-dubai" element={<DubaiLanding />} />
+              <Route path="/urgent-delivery-abu-dhabi" element={<AbuDhabiLanding />} />
+              <Route path="/document-delivery-uae" element={<DocumentLanding />} />
+              <Route path="/spare-parts-delivery-uae" element={<SparePartsLanding />} />
+              <Route path="/track" element={<Track />} />
+              <Route path="/business-account" element={<BusinessAccountInquiry />} />
+              <Route path="/apply-driver" element={<DriverApplication />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/terms" element={<TermsAndConditions />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/login" element={<Login />} />
+              {/* 404 — must be last */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </Layout>
       </ErrorBoundary>
     </Router>

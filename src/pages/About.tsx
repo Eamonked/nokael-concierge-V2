@@ -82,7 +82,7 @@ export default function About() {
                     <Navigation className="w-6 h-6 text-brand-neon" />
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold mb-4 text-brand-text">Synchronous Logistics</h4>
+                    <h3 className="text-xl font-bold mb-4 text-brand-text">Synchronous Logistics</h3>
                     <p className="text-brand-muted leading-relaxed max-w-lg">
                       Traditional couriers are asynchronous—packets sit in hubs waiting for the next truck. Nokael is synchronous. The moment we pick up, the driver is heading to your destination.
                     </p>
@@ -94,7 +94,7 @@ export default function About() {
                     <Truck className="w-6 h-6 text-brand-blue" />
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold mb-4 text-brand-text">Dedicated Capacity</h4>
+                    <h3 className="text-xl font-bold mb-4 text-brand-text">Dedicated Capacity</h3>
                     <p className="text-brand-muted leading-relaxed max-w-lg">
                       Every "Urgent" booking gets a dedicated driver. They are not juggling 50 other deliveries. Their only mission is your item.
                     </p>
@@ -106,7 +106,7 @@ export default function About() {
                     <Shield className="w-6 h-6 text-brand-text" />
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold mb-4 text-brand-text">Ironclad Accountability</h4>
+                    <h3 className="text-xl font-bold mb-4 text-brand-text">Ironclad Accountability</h3>
                     <p className="text-brand-muted leading-relaxed max-w-lg">
                       We track every movement via GPS and provide real-time updates directly on WhatsApp. You have a direct line to the system handling your cargo.
                     </p>
@@ -180,7 +180,7 @@ export default function About() {
                 <div className="w-12 h-12 rounded-2xl bg-brand-surface border border-brand-border flex items-center justify-center mx-auto mb-6 text-brand-neon">
                   <industry.icon className="w-6 h-6" />
                 </div>
-                <h4 className="text-sm font-bold text-brand-text mb-3">{industry.title}</h4>
+                <h3 className="text-sm font-bold text-brand-text mb-3">{industry.title}</h3>
                 <p className="text-[10px] text-brand-muted uppercase tracking-widest leading-relaxed">{industry.desc}</p>
               </div>
             ))}

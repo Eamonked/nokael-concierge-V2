@@ -219,7 +219,7 @@ export const LandingTemplate = ({ title, subtitle, city, industry, heroImg, cont
                 ].map((item, i) => (
                   <div key={i} className="dispatch-card py-8">
                     <item.icon className="w-6 h-6 text-brand-neon mb-6" />
-                    <h4 className="text-xs font-bold uppercase tracking-[0.2em] mb-3 text-brand-text">{item.title}</h4>
+                    <h3 className="text-xs font-bold uppercase tracking-[0.2em] mb-3 text-brand-text">{item.title}</h3>
                     <p className="text-[10px] text-brand-muted uppercase tracking-widest leading-relaxed">{item.desc}</p>
                   </div>
                 ))}
