@@ -14,7 +14,7 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
   "/": {
     title: "Nokael | Urgent B2B Courier Dubai to Abu Dhabi",
     description:
-      "Direct-response B2B courier service between Dubai and Abu Dhabi. Dedicated driver assignment for legal documents and corporate logistics. No warehouses, no delays.",
+      "Direct-response B2B courier between Dubai and Abu Dhabi. Dedicated driver assignment for legal documents and corporate logistics. No hubs, no delays.",
     h1: "Urgent B2B Courier: Dubai ↔ Abu Dhabi Dispatch",
     content: `Dedicated driver. No hubs. Immediate dispatch. We provide same-day courier services from Dubai to Abu Dhabi, including express document delivery, urgent parcel transport, and dedicated business logistics across the UAE.
       Nokael provides urgent same-day business courier services between Dubai and Abu Dhabi. We offer direct driver assignment, no warehouses, and no sorting hubs for your time-critical documents, parcels, and spare parts.
@@ -38,7 +38,7 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
   "/urgent-delivery-dubai": {
     title: "Urgent Courier Dubai | Nokael Business Delivery",
     description:
-      "Urgent courier in Dubai with same-day dispatch and direct driver assignment for documents and parcels. Fast inter-emirate transport from Dubai to all emirates.",
+      "Urgent courier in Dubai with same-day dispatch for documents and parcels. Dedicated drivers for fast inter-emirate transport to all emirates.",
     h1: "Urgent Courier Dubai Dispatch.",
     content: `Fast inter-emirate transport starting from Dubai. Pickup typically within 30–60 minutes for immediate dispatch to Abu Dhabi, Sharjah, and beyond. Built for businesses that cannot afford logistics delays.
       Nokael provides a direct-response dispatch system for companies and individuals in Dubai who need items moved to other emirates immediately.
