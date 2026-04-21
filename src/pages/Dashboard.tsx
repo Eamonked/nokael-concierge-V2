@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   LayoutDashboard, 
   Users, 
@@ -27,7 +27,15 @@ import {
   X,
   Mail,
   MapPin,
-  Loader2
+  Loader2,
+  Plus,
+  ChevronRight,
+  Download,
+  AlertCircle,
+  AlertTriangle,
+  Calendar,
+  Send,
+  BarChart3
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -54,10 +62,21 @@ import {
   type DriverDocument,
   getBusinessInquiries,
   updateBusinessInquiry,
-  type BusinessInquiry
+  type BusinessInquiry,
+  getJobs,
+  createJob,
+  updateJob,
+  subscribeToJobs,
+  type Job,
+  type JobStatus,
+  type ItemType,
+  type UrgencyType
 } from '../lib/supabase';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
+import { format } from 'date-fns';
+import { generateJobPOC } from '../lib/pdf-export';
+import { sendTelegramNotification, formatJobAssignmentNotification } from '../lib/notifications';
 
 const StatCard = ({ title, value, icon: Icon, trend, color }: any) => (
   <div className="dispatch-card group">
@@ -78,12 +97,19 @@ const StatCard = ({ title, value, icon: Icon, trend, color }: any) => (
 );
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = React.useState<'jobs' | 'drivers' | 'business'>('jobs');
+  const [activeTab, setActiveTab] = React.useState<'pipeline' | 'quotes' | 'drivers' | 'business'>('pipeline');
+  const [jobs, setJobs] = React.useState<Job[]>([]);
   const [requests, setRequests] = React.useState<QuoteRequest[]>([]);
   const [drivers, setDrivers] = React.useState<Driver[]>([]);
   const [businessInquiries, setBusinessInquiries] = React.useState<BusinessInquiry[]>([]);
+  
   const [selectedDriver, setSelectedDriver] = React.useState<(Driver & { documents: DriverDocument[] }) | null>(null);
   const [selectedBusiness, setSelectedBusiness] = React.useState<BusinessInquiry | null>(null);
+  const [selectedJob, setSelectedJob] = React.useState<Job | null>(null);
+  const [showJobCreateModal, setShowJobCreateModal] = React.useState(false);
+  const [jobPrefillData, setJobPrefillData] = React.useState<Partial<Job> | undefined>(undefined);
+  const [jobViewMode, setJobViewMode] = React.useState<'kanban' | 'list'>('kanban');
+
   const [loading, setLoading] = React.useState(true);
   const [isUpdating, setIsUpdating] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -98,6 +124,7 @@ export default function Dashboard() {
       setLoading(false);
       return;
     }
+    
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         navigate('/login');
@@ -105,21 +132,41 @@ export default function Dashboard() {
         fetchData();
       }
     });
-  }, [navigate]);
+
+    // Subscribe to job changes
+    const subscription = subscribeToJobs((payload) => {
+      if (payload.eventType === 'INSERT') {
+        setJobs(prev => [payload.new as Job, ...prev]);
+      } else if (payload.eventType === 'UPDATE') {
+        setJobs(prev => prev.map(job => job.id === payload.new.id ? payload.new as Job : job));
+        if (selectedJob?.id === payload.new.id) {
+          setSelectedJob(payload.new as Job);
+        }
+      } else if (payload.eventType === 'DELETE') {
+        setJobs(prev => prev.filter(job => job.id !== payload.old.id));
+      }
+    });
+
+    return () => {
+      if (subscription) supabase.removeChannel(subscription);
+    };
+  }, [navigate, selectedJob?.id]);
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
       // Always fetch everything for cross-referencing
-      const [requestsData, driversData, businessData] = await Promise.all([
+      const [requestsData, driversData, businessData, jobsData] = await Promise.all([
         getQuoteRequests(),
         getDrivers(),
-        getBusinessInquiries()
+        getBusinessInquiries(),
+        getJobs()
       ]);
       setRequests(requestsData);
       setDrivers(driversData);
       setBusinessInquiries(businessData);
+      setJobs(jobsData);
     } catch (err: any) {
       console.error('Error fetching data:', err);
       setError(err.message || 'Failed to fetch data.');
@@ -135,6 +182,21 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Error updating status:', error);
     }
+  };
+
+  const handleConvertToJob = (quote: QuoteRequest) => {
+    setJobPrefillData({
+      sender_name: quote.name,
+      sender_phone: quote.phone,
+      pickup_emirate: quote.emirate || 'Dubai',
+      pickup_location: quote.pickup_location,
+      delivery_emirate: quote.emirate === 'Dubai' ? 'Abu Dhabi' : 'Dubai',
+      delivery_location: quote.delivery_location,
+      item_type: quote.item_type as any,
+      urgency: quote.urgency as any,
+      quote_id: quote.id
+    });
+    setShowJobCreateModal(true);
   };
 
   const handleAssignDriver = async (jobId: string, driverId: string) => {
@@ -283,8 +345,14 @@ export default function Dashboard() {
           
           <nav className="hidden md:flex items-center gap-6">
             <button 
-              onClick={() => setActiveTab('jobs')}
-              className={`text-[10px] font-bold uppercase tracking-[0.3em] transition-colors ${activeTab === 'jobs' ? 'text-brand-neon' : 'text-brand-muted hover:text-brand-text'}`}
+              onClick={() => setActiveTab('pipeline')}
+              className={`text-[10px] font-bold uppercase tracking-[0.3em] transition-colors ${activeTab === 'pipeline' ? 'text-brand-neon' : 'text-brand-muted hover:text-brand-text'}`}
+            >
+              Command Centre
+            </button>
+            <button 
+              onClick={() => setActiveTab('quotes')}
+              className={`text-[10px] font-bold uppercase tracking-[0.3em] transition-colors ${activeTab === 'quotes' ? 'text-brand-neon' : 'text-brand-muted hover:text-brand-text'}`}
             >
               Dispatch Log
             </button>
@@ -334,13 +402,139 @@ export default function Dashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <StatCard title="Total Dispatch" value={stats.total} icon={LayoutDashboard} trend="+12%" />
-          <StatCard title="Pending Pickup" value={stats.pending} icon={Clock} />
+          <StatCard title="Live Mission Ops" value={jobs.filter(j => j.status !== 'completed').length} icon={Zap} color="neon" />
+          <StatCard title="Quotation Pool" value={stats.total} icon={LayoutDashboard} trend="+12%" />
           <StatCard title="Active Units" value={stats.drivers} icon={Truck} />
-          <StatCard title="Driver Intake" value={stats.pendingDrivers} icon={Users} />
+          <StatCard title="Corporate Leads" value={stats.business} icon={Shield} />
         </div>
 
-        {activeTab === 'jobs' ? (
+        {activeTab === 'pipeline' ? (
+          <div className="space-y-8">
+            <div className="flex justify-between items-center bg-brand-surface/20 p-6 rounded-3xl border border-brand-border">
+              <div className="flex items-center gap-8">
+                <nav className="flex items-center gap-6">
+                  <button 
+                    onClick={() => setJobViewMode('kanban')}
+                    className={cn(
+                      "flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] transition-all py-2 border-b-2",
+                      jobViewMode === 'kanban' ? "text-brand-neon border-brand-neon" : "text-brand-muted border-transparent hover:text-brand-text"
+                    )}
+                  >
+                    <LayoutDashboard className="w-3.5 h-3.5" />
+                    Board View
+                  </button>
+                  <button 
+                    onClick={() => setJobViewMode('list')}
+                    className={cn(
+                      "flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] transition-all py-2 border-b-2",
+                      jobViewMode === 'list' ? "text-brand-neon border-brand-neon" : "text-brand-muted border-transparent hover:text-brand-text"
+                    )}
+                  >
+                    <Activity className="w-3.5 h-3.5" />
+                    Live Pipeline
+                  </button>
+                </nav>
+              </div>
+              <button 
+                onClick={() => setShowJobCreateModal(true)}
+                className="flex items-center gap-3 bg-brand-neon text-brand-bg px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(57,255,20,0.2)]"
+              >
+                <Plus className="w-4 h-4" />
+                Manual Mission Dispatch
+              </button>
+            </div>
+
+            {jobViewMode === 'kanban' ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-[calc(100vh-350px)] min-h-[600px]">
+                <KanbanColumn 
+                  title="Pending Dispatch" 
+                  status="pending" 
+                  jobs={jobs.filter(j => j.status === 'pending')} 
+                  onJobClick={setSelectedJob} 
+                />
+                <KanbanColumn 
+                  title="In Transit / Operational" 
+                  status="in_transit" 
+                  jobs={jobs.filter(j => ['client_pickup', 'driver_pickup', 'driver_delivery'].includes(j.status))} 
+                  onJobClick={setSelectedJob} 
+                />
+                <KanbanColumn 
+                  title="Audit / Completed" 
+                  status="completed" 
+                  jobs={jobs.filter(j => j.status === 'completed')} 
+                  onJobClick={setSelectedJob} 
+                />
+              </div>
+            ) : (
+              <div className="dispatch-card p-0 overflow-hidden">
+                <div className="overflow-x-auto no-scrollbar">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="bg-brand-input/50 text-[9px] font-black uppercase tracking-[0.3em] text-brand-muted">
+                        <th className="px-10 py-5">Job Reference</th>
+                        <th className="px-10 py-5">Route & Timeline</th>
+                        <th className="px-10 py-5">Stakeholders</th>
+                        <th className="px-10 py-5">Chain of Custody</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-brand-border">
+                      {jobs.map((job) => (
+                        <tr 
+                          key={job.id} 
+                          className="hover:bg-brand-surface/30 transition-colors group cursor-pointer"
+                          onClick={() => setSelectedJob(job)}
+                        >
+                          <td className="px-10 py-8">
+                              <div className="text-sm font-mono font-black text-brand-neon mb-1">#{job.job_ref?.toString().padStart(4, '0')}</div>
+                              <span className={cn(
+                                "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded",
+                                job.status === 'completed' ? "bg-brand-neon/10 text-brand-neon" : "bg-yellow-500/10 text-yellow-500"
+                              )}>{job.status?.replace('_', ' ')}</span>
+                          </td>
+                          <td className="px-10 py-8">
+                              <div className="flex items-center gap-3 text-sm font-medium mb-2">
+                                <span>{job.pickup_location}</span>
+                                <ArrowRight className="w-3 h-3 text-brand-neon" />
+                                <span>{job.delivery_location}</span>
+                              </div>
+                              <div className="text-[10px] font-bold uppercase tracking-widest text-brand-muted">{job.pickup_emirate} Corridor</div>
+                          </td>
+                          <td className="px-10 py-8">
+                              <p className="text-xs font-medium text-brand-text mb-1">{job.sender_name}</p>
+                              <div className="flex gap-2 items-center">
+                                <Truck className="w-3 h-3 text-brand-muted" />
+                                <p className="text-[10px] text-brand-muted font-bold">{job.driver_name || 'Pilot Pending'}</p>
+                              </div>
+                          </td>
+                          <td className="px-10 py-8">
+                              <div className="flex gap-1.5">
+                                {[
+                                  { key: 'client_pickup_confirmed_at', label: 'Handover' },
+                                  { key: 'driver_pickup_confirmed_at', label: 'Pickup' },
+                                  { key: 'driver_delivery_confirmed_at', label: 'Inbound' },
+                                  { key: 'client_delivery_confirmed_at', label: 'Final' }
+                                ].map((step) => (
+                                  <div 
+                                      key={step.key}
+                                      className={cn(
+                                        "w-6 h-6 rounded-lg flex items-center justify-center border",
+                                        (job as any)[step.key] ? "bg-brand-neon border-brand-neon text-brand-bg" : "bg-brand-input border-brand-border text-brand-muted opacity-30"
+                                      )}
+                                  >
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                  </div>
+                                ))}
+                              </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : activeTab === 'quotes' ? (
           <>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
               {/* Chart Section */}
@@ -512,6 +706,13 @@ export default function Dashboard() {
                         </td>
                         <td className="px-10 py-8 text-right">
                           <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
+                            <button 
+                              onClick={() => handleConvertToJob(req)}
+                              title="Convert to Active Job"
+                              className="w-10 h-10 bg-brand-neon/10 text-brand-neon rounded-lg flex items-center justify-center hover:bg-brand-neon hover:text-brand-bg transition-all"
+                            >
+                              <Zap className="w-4 h-4" />
+                            </button>
                             <a 
                               href={`https://wa.me/${req.phone.replace(/\D/g, '')}`}
                               target="_blank"
@@ -1050,6 +1251,469 @@ export default function Dashboard() {
           </motion.div>
         </div>
       )}
+
+      {/* Unified Mission Modals */}
+      <AnimatePresence>
+        {selectedJob && (
+           <JobDetailModal 
+            job={selectedJob} 
+            onClose={() => setSelectedJob(null)}
+            onUpdate={fetchData}
+           />
+        )}
+        {showJobCreateModal && (
+          <JobCreateModal 
+            initialData={jobPrefillData}
+            onClose={() => {
+              setShowJobCreateModal(false);
+              setJobPrefillData(undefined);
+            }}
+            onSuccess={fetchData}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+
+// ==========================================
+// UNIFIED COMMAND CENTRE SUB-COMPONENTS
+// ==========================================
+
+const KanbanColumn = ({ title, status, jobs, onJobClick }: { title: string, status: JobStatus | 'in_transit', jobs: Job[], onJobClick: (job: Job) => void }) => {
+  return (
+    <div className="flex flex-col h-full bg-brand-surface/30 rounded-3xl border border-brand-border/50 overflow-hidden">
+      <div className="p-6 border-b border-brand-border flex justify-between items-center bg-brand-surface/50">
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            "w-2 h-2 rounded-full animate-pulse",
+            status === 'pending' ? "bg-yellow-500" :
+            status === 'client_pickup' || status === 'driver_pickup' ? "bg-blue-500" :
+            status === 'driver_delivery' ? "bg-purple-500" : "bg-brand-neon"
+          )} />
+          <h3 className="text-sm font-bold uppercase tracking-widest text-brand-text">{title}</h3>
+        </div>
+        <span className="text-[10px] font-mono font-black text-brand-muted bg-brand-bg px-2 py-0.5 rounded border border-brand-border">{jobs.length}</span>
+      </div>
+      <div className="p-4 flex-grow overflow-y-auto no-scrollbar space-y-4">
+        {jobs.map((job) => (
+          <motion.div
+            layoutId={job.id}
+            key={job.id}
+            onClick={() => onJobClick(job)}
+            className="dispatch-card p-5 cursor-pointer hover:border-brand-neon/50 transition-all group"
+          >
+            <div className="flex justify-between items-start mb-4">
+              <span className="text-[9px] font-black font-mono text-brand-neon bg-brand-neon/10 px-2 py-0.5 rounded">#{job.job_ref?.toString().padStart(4, '0')}</span>
+              <span className="text-[9px] font-bold uppercase tracking-widest text-brand-muted">{format(new Date(job.created_at || new Date()), 'HH:mm')}</span>
+            </div>
+            <div className="space-y-3 mb-4">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-3 h-3 text-brand-muted" />
+                <p className="text-xs font-medium truncate">{job.pickup_location}</p>
+              </div>
+              <ChevronRight className="w-3 h-3 text-brand-muted mx-auto" />
+              <div className="flex items-center gap-2">
+                <Navigation className="w-3 h-3 text-brand-muted" />
+                <p className="text-xs font-medium truncate">{job.delivery_location}</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-4 border-t border-brand-border">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-brand-input flex items-center justify-center border border-brand-border">
+                  <User className="w-3 h-3 text-brand-muted" />
+                </div>
+                <span className="text-[10px] text-brand-muted font-bold truncate max-w-[80px]">{job.sender_name}</span>
+              </div>
+              <div className={cn(
+                "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest",
+                job.urgency === 'immediate' ? "bg-red-500/10 text-red-500 border border-red-500/20" :
+                job.urgency === 'today' ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20" :
+                "bg-blue-500/10 text-blue-500 border border-blue-500/20"
+              )}>
+                {job.urgency}
+              </div>
+            </div>
+          </motion.div>
+        ))}
+        {jobs.length === 0 && (
+          <div className="h-32 flex items-center justify-center border-2 border-dashed border-brand-border rounded-2xl opacity-30">
+            <span className="text-[10px] font-bold uppercase tracking-widest">Clear</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const JobDetailModal = ({ job, onClose, onUpdate }: { job: Job, onClose: () => void, onUpdate: () => void }) => {
+  const dispatchWhatsApp = (type: 'sender' | 'driver' | 'recipient') => {
+    let message = '';
+    let phone = '';
+    
+    if (type === 'sender') {
+      phone = job.sender_phone;
+      message = `Hi ${job.sender_name}, your Nokael pickup is confirmed.\nRoute: ${job.pickup_location} → ${job.delivery_location}\nItem: ${job.item_type} | Urgency: ${job.urgency}\n\nWhen handing over your package, tap to confirm:\nnokael.com/confirm/${job.token_client_pickup}/client-pickup\nNo internet? Give the driver your OTP: ${job.otp_sender}`;
+    } else if (type === 'driver') {
+      phone = job.driver_phone || '';
+      message = `New job assigned — Job #${job.job_ref}\nPickup: ${job.pickup_location}, ${job.pickup_emirate}\nDelivery: ${job.delivery_location}, ${job.delivery_emirate}\nItem: ${job.item_type} | Urgency: ${job.urgency}\nSender: ${job.sender_name} | Recipient: ${job.recipient_name}\n\n── PICKUP ──\nnokael.com/confirm/${job.token_driver_pickup}/driver-pickup\n\n── DELIVERY ──\nnokael.com/confirm/${job.token_driver_delivery}/driver-delivery`;
+    } else {
+      phone = job.recipient_phone;
+      message = `Hi ${job.recipient_name}, a package is on its way to you.\nFrom: ${job.sender_name} | Route: ${job.pickup_location} → ${job.delivery_location}\nItem: ${job.item_type}\n\nWhen you receive it, tap to confirm:\nnokael.com/confirm/${job.token_client_delivery}/client-delivery\nNo internet? Give the driver your OTP: ${job.otp_recipient}`;
+    }
+    
+    window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+    
+    // Update local sent flag
+    const updatePayload: any = {};
+    if (type === 'sender') updatePayload.whatsapp_sender_sent = true;
+    if (type === 'driver') updatePayload.whatsapp_driver_sent = true;
+    if (type === 'recipient') updatePayload.whatsapp_recipient_sent = true;
+    
+    updateJob(job.id, updatePayload).then(onUpdate);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-brand-bg/90 backdrop-blur-md"
+        onClick={onClose}
+      />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative w-full max-w-5xl bg-brand-bg border border-brand-border rounded-[40px] shadow-3xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]"
+      >
+        <div className="md:w-1/2 p-12 border-r border-brand-border overflow-y-auto no-scrollbar">
+          <div className="flex justify-between items-start mb-10">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-xs font-mono font-black text-brand-neon bg-brand-neon/10 px-3 py-1 rounded">#{job.job_ref?.toString().padStart(4, '0')}</span>
+                <span className="text-xs font-bold uppercase tracking-[0.2em] text-brand-muted">{format(new Date(job.created_at || new Date()), 'PPP')}</span>
+              </div>
+              <h2 className="text-3xl font-display font-medium tracking-tighter">Job Manifest.</h2>
+            </div>
+            <div className={cn(
+              "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border",
+              job.status === 'completed' ? "bg-brand-neon/10 text-brand-neon border-brand-neon/20" : "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+            )}>
+              {job.status?.replace('_', ' ')}
+            </div>
+          </div>
+
+          <div className="space-y-10">
+             <div className="grid grid-cols-2 gap-8">
+               <div className="space-y-4">
+                 <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Consignor (Sender)</p>
+                 <div className="p-5 bg-brand-input rounded-2xl border border-brand-border">
+                   <p className="text-sm font-medium mb-1">{job.sender_name}</p>
+                   <p className="text-[11px] font-mono text-brand-muted">{job.sender_phone}</p>
+                 </div>
+               </div>
+               <div className="space-y-4">
+                 <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Consignee (Recipient)</p>
+                 <div className="p-5 bg-brand-input rounded-2xl border border-brand-border">
+                   <p className="text-sm font-medium mb-1">{job.recipient_name}</p>
+                   <p className="text-[11px] font-mono text-brand-muted">{job.recipient_phone}</p>
+                 </div>
+               </div>
+             </div>
+
+             <div className="space-y-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Pilot Assignment</p>
+                <div className="p-6 bg-brand-surface border border-brand-neon/20 rounded-3xl flex justify-between items-center group">
+                   <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-brand-neon/10 flex items-center justify-center border border-brand-neon/20 group-hover:scale-110 transition-transform">
+                        <Truck className="w-6 h-6 text-brand-neon" />
+                      </div>
+                      <div>
+                        {job.driver_name ? (
+                          <>
+                            <p className="text-sm font-medium text-brand-text mb-1">{job.driver_name}</p>
+                            <p className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">Active: {job.driver_phone}</p>
+                          </>
+                        ) : (
+                          <p className="text-sm font-medium text-brand-muted">No Driver Assigned Yet</p>
+                        )}
+                      </div>
+                   </div>
+                   <button className="btn-secondary px-6 py-2 h-auto text-[10px] uppercase">Reassign</button>
+                </div>
+             </div>
+
+             <div className="space-y-4 pt-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Operational Comms</p>
+                <div className="grid grid-cols-3 gap-4">
+                   {[
+                     { id: 'sender', label: 'Sender Dsp.', sent: job.whatsapp_sender_sent },
+                     { id: 'driver', label: 'Driver Dsp.', sent: job.whatsapp_driver_sent },
+                     { id: 'recipient', label: 'Client Dsp.', sent: job.whatsapp_recipient_sent }
+                   ].map((btn) => (
+                     <button
+                        key={btn.id}
+                        onClick={() => dispatchWhatsApp(btn.id as any)}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-6 rounded-2xl border transition-all gap-4",
+                          btn.sent ? "bg-brand-surface border-brand-border grayscale" : "bg-brand-input border-brand-neon/20 hover:border-brand-neon hover:shadow-[0_0_15px_rgba(57,255,20,0.1)]"
+                        )}
+                     >
+                        <MessageSquare className={cn("w-6 h-6", btn.sent ? "text-brand-muted" : "text-brand-neon")} />
+                        <div className="text-center">
+                          <span className="block text-[8px] font-black uppercase tracking-[0.2em] mb-1">{btn.label}</span>
+                          <span className={cn("text-[7px] font-bold uppercase tracking-widest", btn.sent ? "text-brand-muted" : "text-brand-neon")}>
+                            {btn.sent ? 'Dispatched' : 'Ready'}
+                          </span>
+                        </div>
+                     </button>
+                   ))}
+                </div>
+             </div>
+          </div>
+        </div>
+
+        <div className="md:w-1/2 p-12 bg-brand-surface/30 flex flex-col">
+           <div className="flex justify-between items-center mb-12">
+              <h3 className="text-xl font-display font-medium tracking-tighter">Chain of Custody (COC).</h3>
+              <button 
+                onClick={onClose}
+                className="p-2 bg-brand-input rounded-full text-brand-muted hover:text-brand-text transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+           </div>
+
+           <div className="flex-grow space-y-12 relative">
+              <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-brand-border" />
+              
+              {[
+                { label: 'Sender Handover', status: job.client_pickup_confirmed_at, key: 'token_client_pickup', icon: Package },
+                { label: 'Driver Pickup Confirmed', status: job.driver_pickup_confirmed_at, key: 'token_driver_pickup', icon: Truck },
+                { label: 'In-Transit Validation', status: job.driver_delivery_confirmed_at, key: 'token_driver_delivery', icon: Navigation },
+                { label: 'Final Receipt & Signature', status: job.client_delivery_confirmed_at, key: 'token_client_delivery', icon: Shield }
+              ].map((step, i) => (
+                <div key={i} className="flex gap-8 relative z-10">
+                   <div className={cn(
+                     "w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-500",
+                     step.status ? "bg-brand-neon border-brand-neon text-brand-bg shadow-[0_0_15px_rgba(57,255,20,0.3)]" : "bg-brand-bg border-brand-border text-brand-muted"
+                   )}>
+                      {step.status ? <CheckCircle2 className="w-5 h-5" /> : <step.icon className="w-5 h-5" />}
+                   </div>
+                   <div className="flex-grow min-w-0">
+                      <div className="flex justify-between items-start mb-1">
+                         <p className={cn("text-sm font-bold uppercase tracking-widest", step.status ? "text-brand-text" : "text-brand-muted")}>{step.label}</p>
+                         {step.status && (
+                            <span className="text-[10px] font-mono text-brand-neon font-black">{format(new Date(step.status), 'HH:mm:ss')}</span>
+                         )}
+                      </div>
+                      <p className="text-[10px] text-brand-muted font-bold leading-relaxed">
+                        {step.status ? 
+                          `Authorized via ${job.client_pickup_method || 'Link'} Authentication` : 
+                          `Waiting for digital confirmation via token [${(job as any)[step.key]?.toString().substring(0, 8)}...]`
+                        }
+                      </p>
+                   </div>
+                </div>
+              ))}
+           </div>
+
+           {job.status === 'completed' && (
+             <motion.div 
+               initial={{ opacity: 0, y: 10 }}
+               animate={{ opacity: 1, y: 0 }}
+               className="pt-10 border-t border-brand-border"
+             >
+                <button 
+                  onClick={() => generateJobPOC(job)}
+                  className="btn-primary w-full py-5 text-sm flex items-center justify-center gap-3"
+                >
+                   <Download className="w-5 h-5" />
+                   Generate COC Certificate (PDF)
+                </button>
+             </motion.div>
+           )}
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+const JobCreateModal = ({ onClose, onSuccess, initialData }: { onClose: () => void, onSuccess: () => void, initialData?: Partial<Job> }) => {
+  const [loading, setLoading] = React.useState(false);
+  const [formData, setFormData] = React.useState({
+    sender_name: initialData?.sender_name || '',
+    sender_phone: initialData?.sender_phone || '',
+    recipient_name: initialData?.recipient_name || '',
+    recipient_phone: initialData?.recipient_phone || '',
+    pickup_emirate: initialData?.pickup_emirate || 'Dubai',
+    pickup_location: initialData?.pickup_location || '',
+    delivery_emirate: initialData?.delivery_emirate || 'Abu Dhabi',
+    delivery_location: initialData?.delivery_location || '',
+    item_type: initialData?.item_type || 'parcel' as ItemType,
+    urgency: initialData?.urgency || 'immediate' as UrgencyType,
+    driver_name: initialData?.driver_name || '',
+    driver_phone: initialData?.driver_phone || '',
+    notes: initialData?.notes || '',
+    quote_id: initialData?.quote_id || null
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      const genOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
+      const tokens = {
+        token_client_pickup: crypto.randomUUID(),
+        token_driver_pickup: crypto.randomUUID(),
+        token_driver_delivery: crypto.randomUUID(),
+        token_client_delivery: crypto.randomUUID()
+      };
+
+      const payload = {
+        ...formData,
+        ...tokens,
+        otp_sender: genOtp(),
+        otp_driver: genOtp(),
+        otp_recipient: genOtp(),
+        source: 'manual' as any,
+        status: 'pending' as any
+      };
+      
+      const result = await createJob(payload);
+
+      // If it came from a quote, update the quote status
+      if (formData.quote_id && supabase) {
+        await supabase
+          .from('quote_requests')
+          .update({ status: 'assigned' })
+          .eq('id', formData.quote_id);
+      }
+
+      await sendTelegramNotification(formatJobAssignmentNotification({
+        ...payload,
+        job_ref: result.job_ref
+      }));
+
+      onSuccess();
+      onClose();
+    } catch (err) {
+      console.error('Error creating job:', err);
+      alert('Failed to create job');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-brand-bg/90 backdrop-blur-md"
+        onClick={onClose}
+      />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative w-full max-w-4xl bg-brand-bg border border-brand-border rounded-[40px] shadow-3xl overflow-hidden max-h-[90vh] flex flex-col"
+      >
+        <div className="p-10 border-b border-brand-border flex justify-between items-center bg-brand-surface/20">
+           <div>
+              <h2 className="text-2xl font-display font-medium tracking-tighter mb-1">Manual Job Intake.</h2>
+              <p className="text-[10px] text-brand-muted uppercase tracking-[0.3em] font-bold font-mono">Operator manual dispatch override</p>
+           </div>
+           <button onClick={onClose} className="p-2 bg-brand-input rounded-full text-brand-muted hover:text-brand-text transition-colors">
+              <X className="w-6 h-6" />
+           </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-10 overflow-y-auto no-scrollbar space-y-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+               <div className="space-y-6">
+                 <h3 className="text-[10px] font-black uppercase tracking-widest text-brand-neon flex items-center gap-2">
+                   <User className="w-3 h-3" />
+                   Sender Information
+                 </h3>
+                 <div className="space-y-4">
+                   <input required value={formData.sender_name} onChange={e => setFormData({...formData, sender_name: e.target.value})} type="text" placeholder="Full Name / Company" className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
+                   <input required value={formData.sender_phone} onChange={e => setFormData({...formData, sender_phone: e.target.value})} type="tel" placeholder="WhatsApp Number" className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
+                 </div>
+               </div>
+               <div className="space-y-6">
+                 <h3 className="text-[10px] font-black uppercase tracking-widest text-brand-neon flex items-center gap-2">
+                   <User className="w-3 h-3" />
+                   Recipient Information
+                 </h3>
+                 <div className="space-y-4">
+                   <input required value={formData.recipient_name} onChange={e => setFormData({...formData, recipient_name: e.target.value})} type="text" placeholder="Full Name / Company" className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
+                   <input required value={formData.recipient_phone} onChange={e => setFormData({...formData, recipient_phone: e.target.value})} type="tel" placeholder="WhatsApp Number" className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
+                 </div>
+               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+               <div className="space-y-6">
+                 <h3 className="text-[10px] font-black uppercase tracking-widest text-brand-neon flex items-center gap-2">
+                   <MapPin className="w-3 h-3" />
+                   Pickup Logistics
+                 </h3>
+                 <div className="space-y-4">
+                   <select required value={formData.pickup_emirate} onChange={e => setFormData({...formData, pickup_emirate: e.target.value})} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none">
+                     {['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'RAK', 'Fujairah', 'UMM Al Quwain'].map(e => <option key={e} value={e}>{e}</option>)}
+                   </select>
+                   <input required value={formData.pickup_location} onChange={e => setFormData({...formData, pickup_location: e.target.value})} type="text" placeholder="Specific Pickup Address / Area" className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
+                 </div>
+               </div>
+               <div className="space-y-6">
+                 <h3 className="text-[10px] font-black uppercase tracking-widest text-brand-neon flex items-center gap-2">
+                   <Navigation className="w-3 h-3" />
+                   Delivery Logistics
+                 </h3>
+                 <div className="space-y-4">
+                    <select required value={formData.delivery_emirate} onChange={e => setFormData({...formData, delivery_emirate: e.target.value})} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none">
+                     {['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'RAK', 'Fujairah', 'UMM Al Quwain'].map(e => <option key={e} value={e}>{e}</option>)}
+                   </select>
+                   <input required value={formData.delivery_location} onChange={e => setFormData({...formData, delivery_location: e.target.value})} type="text" placeholder="Specific Delivery Address / Area" className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
+                 </div>
+               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+               <div className="space-y-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Item Category</p>
+                  <select value={formData.item_type} onChange={e => setFormData({...formData, item_type: e.target.value as any})} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none">
+                    <option value="parcel">Standard Parcel</option>
+                    <option value="document">Legal Document</option>
+                    <option value="spare_part">Machine Spare Part</option>
+                    <option value="other">Other Manifest</option>
+                  </select>
+               </div>
+               <div className="space-y-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Urgency Status</p>
+                  <select value={formData.urgency} onChange={e => setFormData({...formData, urgency: e.target.value as any})} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none">
+                    <option value="immediate">Immediate Dispatch</option>
+                    <option value="today">Same Day UAE</option>
+                    <option value="scheduled">Scheduled Logistics</option>
+                  </select>
+               </div>
+               <div className="space-y-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Driver Assignment</p>
+                  <input value={formData.driver_name} onChange={e => setFormData({...formData, driver_name: e.target.value})} type="text" placeholder="Pilot Name" className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none" />
+               </div>
+            </div>
+
+            <button disabled={loading} type="submit" className="btn-primary w-full py-6 flex items-center justify-center gap-4 text-sm font-black transition-all">
+               {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Zap className="w-6 h-6" />}
+               Commit Dispatch to Pipeline
+            </button>
+        </form>
+      </motion.div>
+    </div>
+  );
+};

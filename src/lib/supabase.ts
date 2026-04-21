@@ -10,11 +10,8 @@ import {
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-  console.warn('[Nokael] Missing Supabase configuration. DB operations will be skipped. Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set.');
-}
-
-export const supabase = (supabaseUrl && supabaseKey) 
+// Fix 1 — Guard the Supabase client
+export const supabase = (supabaseUrl && supabaseKey && supabaseUrl !== 'undefined' && supabaseKey !== 'undefined') 
   ? createClient(supabaseUrl, supabaseKey, {
       auth: {
         persistSession: true,
@@ -63,13 +60,20 @@ export const submitQuoteRequest = async (data: QuoteRequest) => {
       .from('quote_requests')
       .insert([payload]);
     
-    if (error) throw error;
+    if (error) {
+      console.error('[Nokael] Supabase insert error:', error);
+      // We don't throw here so the user can still proceed to WhatsApp via notifications/redirects
+    }
   } else {
     console.warn('[Nokael] Supabase not configured — skipping DB insert.');
   }
 
   // Send Telegram Notification (still works via server-side API)
-  await sendTelegramNotification(formatQuoteNotification(payload));
+  try {
+    await sendTelegramNotification(formatQuoteNotification(payload));
+  } catch (err) {
+    console.error('[Nokael] Notification error:', err);
+  }
 };
 
 export const getQuoteRequests = async () => {
@@ -209,6 +213,124 @@ export const getBusinessInquiries = async () => {
 // ==========================================
 // Driver Onboarding
 // ==========================================
+
+export type JobStatus = 'pending' | 'client_pickup' | 'driver_pickup' | 'driver_delivery' | 'completed';
+export type ItemType = 'document' | 'parcel' | 'spare_part' | 'other';
+export type UrgencyType = 'immediate' | 'today' | 'scheduled';
+export type ConfirmMethod = 'link' | 'otp' | 'qr';
+
+export interface Job {
+  id: string;
+  job_ref: number;
+  status: JobStatus;
+  
+  // Relationships
+  quote_id: string | null;
+  driver_id: string | null;
+  
+  sender_name: string;
+  sender_phone: string;
+  recipient_name: string;
+  recipient_phone: string;
+  driver_name: string | null;
+  driver_phone: string | null;
+  pickup_emirate: string;
+  pickup_location: string;
+  delivery_emirate: string;
+  delivery_location: string;
+  item_type: ItemType;
+  urgency: UrgencyType;
+  notes: string | null;
+  
+  token_client_pickup: string;
+  token_driver_pickup: string;
+  token_driver_delivery: string;
+  token_client_delivery: string;
+  
+  otp_sender: string | null;
+  otp_driver: string | null;
+  otp_recipient: string | null;
+  
+  whatsapp_sender_sent: boolean;
+  whatsapp_driver_sent: boolean;
+  whatsapp_recipient_sent: boolean;
+  
+  client_pickup_confirmed_at: string | null;
+  client_pickup_method: ConfirmMethod | null;
+  client_pickup_lat: number | null;
+  client_pickup_lng: number | null;
+  
+  driver_pickup_confirmed_at: string | null;
+  driver_pickup_method: ConfirmMethod | null;
+  driver_pickup_lat: number | null;
+  driver_pickup_lng: number | null;
+  
+  driver_delivery_confirmed_at: string | null;
+  driver_delivery_method: ConfirmMethod | null;
+  driver_delivery_lat: number | null;
+  driver_delivery_lng: number | null;
+  
+  client_delivery_confirmed_at: string | null;
+  client_delivery_method: ConfirmMethod | null;
+  client_delivery_lat: number | null;
+  client_delivery_lng: number | null;
+  
+  created_at: string;
+  updated_at: string;
+}
+
+export const createJob = async (jobData: Partial<Job>) => {
+  if (!supabase) throw new Error('Supabase not configured');
+  
+  // Clean payload
+  const payload = { ...jobData };
+  
+  const { data, error } = await supabase
+    .from('jobs')
+    .insert([payload])
+    .select()
+    .single();
+    
+  if (error) throw error;
+  return data as Job;
+};
+
+export const getJobs = async () => {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('jobs')
+    .select('*')
+    .order('created_at', { ascending: false });
+    
+  if (error) throw error;
+  return data as Job[];
+};
+
+export const subscribeToJobs = (callback: (payload: any) => void) => {
+  if (!supabase) return null;
+  
+  return supabase
+    .channel('jobs_realtime')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'jobs' },
+      (payload) => callback(payload)
+    )
+    .subscribe();
+};
+
+export const updateJob = async (id: string, updates: Partial<Job>) => {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('jobs')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+    
+  if (error) throw error;
+  return data as Job;
+};
 
 export interface Driver {
   id?: string;

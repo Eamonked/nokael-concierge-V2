@@ -6,6 +6,7 @@ import Home from './pages/Home';
 
 // Code splitting for improved performance/LCP/TBT
 const GetQuote = lazy(() => import('./pages/GetQuote'));
+const ConfirmationPage = lazy(() => import('./pages/ConfirmationPage'));
 const Thankyou = lazy(() => import('./pages/Thankyou'));
 const Services = lazy(() => import('./pages/Services'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -122,7 +123,11 @@ export default function App() {
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/get-quote" element={<GetQuote />} />
+              <Route path="/get-quote" element={
+                <ErrorBoundary FallbackComponent={ErrorFallback}>
+                  <GetQuote />
+                </ErrorBoundary>
+              } />
               <Route path="/thank-you" element={<Thankyou />} />
               <Route path="/services" element={<Services />} />
               <Route path="/urgent-delivery-dubai" element={<DubaiLanding />} />
@@ -136,6 +141,8 @@ export default function App() {
               <Route path="/terms" element={<TermsAndConditions />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/admin" element={<Dashboard />} />
+              <Route path="/confirm/:token/:action" element={<ConfirmationPage />} />
               <Route path="/login" element={<Login />} />
               {/* 404 — must be last */}
               <Route path="*" element={<NotFound />} />

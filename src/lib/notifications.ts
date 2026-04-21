@@ -104,3 +104,22 @@ export const formatStatusUpdateNotification = (name: string, status: string) => 
 <a href="${dashboardUrl}">View Updates</a>
   `.trim();
 };
+
+/**
+ * Formats a job pipeline assignment for Telegram.
+ */
+export const formatJobAssignmentNotification = (data: any) => {
+  const dashboardUrl = `${window.location.origin}/admin`;
+  return `
+⚡ <b>New Job Assigned to Pipeline</b>
+<b>REF:</b> #${esc(data.job_ref)}
+
+👤 <b>Sender:</b> ${esc(data.sender_name)}
+🏁 <b>Route:</b> ${esc(data.pickup_location)} → ${esc(data.delivery_location)}
+📦 <b>Item:</b> ${esc(data.item_type)}
+
+🚚 <b>Pilot:</b> ${esc(data.driver_name || 'Unassigned')}
+
+<a href="${dashboardUrl}">Track Chain of Custody</a>
+  `.trim();
+};
