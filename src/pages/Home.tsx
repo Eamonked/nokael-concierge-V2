@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { MessageSquare, ArrowRight, Zap, Shield, MapPin, Clock, CheckCircle2, ChevronRight, Phone, X, Navigation, Package, Truck, Star, Building2, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE, DEFAULT_WA_MESSAGE, BUSINESS_ACCOUNT_WA_MESSAGE, PRICE_TIER_NEXT_MORNING, PRICE_TIER_SAME_DAY, PRICE_TIER_DEDICATED } from '../constants';
+import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE, DEFAULT_WA_MESSAGE, BUSINESS_ACCOUNT_WA_MESSAGE, PRICE_TIER_SAME_DAY, PRICE_TIER_DEDICATED } from '../constants';
 import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
 import { cn } from '../lib/utils';
 
@@ -293,29 +293,6 @@ const ServiceCards = () => {
               </a>
             </div>
           ))}
-        </div>
-
-        {/* Next Morning Option */}
-        <div className="max-w-5xl mx-auto">
-          <div className="p-8 bg-brand-input border-l-4 border-l-brand-neon border-brand-border rounded-xl flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex-1">
-              <h4 className="text-lg font-display font-medium text-brand-text uppercase tracking-tight mb-2">
-                NEXT MORNING — <span className="text-brand-neon font-black">AED {PRICE_TIER_NEXT_MORNING}</span>
-              </h4>
-              <p className="text-xs text-brand-muted max-w-xl">
-                Not urgent? Book a next-morning slot for documents and parcels where timing is flexible.
-              </p>
-            </div>
-            <a 
-              href={waUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackWhatsAppClick('next_morning_cta')}
-              className="px-8 py-3 bg-brand-surface border border-brand-border rounded-lg text-[10px] font-black uppercase tracking-widest text-brand-text hover:border-brand-neon/50 transition-all"
-            >
-              Book Morning Slot
-            </a>
-          </div>
         </div>
       </div>
     </section>
