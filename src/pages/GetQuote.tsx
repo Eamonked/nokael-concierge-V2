@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { submitQuoteRequest, type QuoteRequest } from '../lib/supabase';
 import { captureUTMs, getStoredUTMs } from '../lib/analytics';
 import { WHATSAPP_NUMBER, DISPLAY_PHONE, PRICE_TIER_SAME_DAY, PRICE_TIER_DEDICATED } from '../constants';
-import { trackWhatsAppClick } from '../lib/analytics';
+import { trackWhatsAppClick, trackFormSubmission } from '../lib/analytics';
 import { cn } from '../lib/utils';
 
 const emirates = [
@@ -93,6 +93,9 @@ export default function GetQuote() {
       };
 
       await submitQuoteRequest(enrichedData);
+      
+      // FIRE ANALYTICS CONVERSATION
+      trackFormSubmission();
 
       // Build the pre-filled WhatsApp message
       const message = encodeURIComponent(
@@ -433,7 +436,7 @@ export default function GetQuote() {
             </div>
             {step === 4 && (
               <p className="mt-6 text-[9px] text-brand-muted uppercase tracking-[0.2em] text-center font-bold">
-                Same-Day AED {PRICE_TIER_SAME_DAY} • Dedicated AED {PRICE_TIER_DEDICATED}
+                Same-Day AED {PRICE_TIER_SAME_DAY || 230} • Dedicated AED {PRICE_TIER_DEDICATED || 380}
               </p>
             )}
           </form>

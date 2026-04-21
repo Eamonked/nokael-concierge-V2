@@ -893,8 +893,11 @@ export default function Dashboard() {
             <div className="p-8 border-t border-brand-border bg-brand-surface/50 flex gap-4">
               <button 
                 disabled={isUpdating === selectedDriver.id}
-                onClick={() => handleDriverStatusUpdate(selectedDriver.id!, { onboarding_status: 'approved' })}
-                className="flex-1 py-5 bg-brand-neon text-brand-bg text-[10px] font-bold uppercase tracking-[0.3em] rounded-2xl hover:bg-white disabled:opacity-50 transition-all flex items-center justify-center gap-3 group"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  await handleDriverStatusUpdate(selectedDriver.id!, { onboarding_status: 'approved' });
+                }}
+                className="flex-1 py-5 bg-brand-neon text-brand-bg text-[10px] font-bold uppercase tracking-[0.3em] rounded-2xl hover:bg-white disabled:opacity-50 transition-all flex items-center justify-center gap-3 group shadow-lg shadow-brand-neon/10"
               >
                 {isUpdating === selectedDriver.id ? (
                   <Loader2 className="w-4 h-4 animate-spin text-brand-bg" />
@@ -905,7 +908,10 @@ export default function Dashboard() {
               </button>
               <button 
                 disabled={isUpdating === selectedDriver.id}
-                onClick={() => handleDriverStatusUpdate(selectedDriver.id!, { onboarding_status: 'rejected' })}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  await handleDriverStatusUpdate(selectedDriver.id!, { onboarding_status: 'rejected' });
+                }}
                 className="flex-1 py-5 bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-bold uppercase tracking-[0.3em] rounded-2xl hover:bg-red-500 hover:text-white disabled:opacity-50 transition-all flex items-center justify-center gap-3 group"
               >
                 {isUpdating === selectedDriver.id ? (
