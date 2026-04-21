@@ -11,17 +11,27 @@ const Hero = () => {
 
   return (
     <section className="relative min-h-screen flex items-start overflow-hidden bg-brand-bg">
-      {/* Hero Background Image - Optimized for LCP */}
+      {/* Hero Background Image - Optimized for LCP and Mobile responsive */}
       <div className="absolute inset-0 z-0">
-        <img 
-          src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=1920&fm=webp" 
-          alt="Dubai to Abu Dhabi Highway" 
-          width="1920"
-          height="1080"
-          fetchPriority="high"
-          className="w-full h-full object-cover opacity-20 grayscale"
-          referrerPolicy="no-referrer"
-        />
+        <picture>
+          <source 
+            media="(max-width: 640px)" 
+            srcSet="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=640&fm=webp" 
+          />
+          <source 
+            media="(max-width: 1024px)" 
+            srcSet="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=1024&fm=webp" 
+          />
+          <img 
+            src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=1920&fm=webp" 
+            alt="Dubai to Abu Dhabi Highway" 
+            width="1920"
+            height="1080"
+            fetchPriority="high"
+            className="w-full h-full object-cover opacity-20 grayscale"
+            referrerPolicy="no-referrer"
+          />
+        </picture>
         <div className="absolute inset-0 bg-gradient-to-b from-brand-bg/80 via-brand-bg to-brand-bg" />
       </div>
 

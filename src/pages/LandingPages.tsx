@@ -26,15 +26,25 @@ export const LandingTemplate = ({ title, subtitle, city, industry, heroImg, cont
       {/* Hero */}
       <section className="relative min-h-[80vh] flex items-center overflow-hidden border-b border-brand-border">
         <div className="absolute inset-0 z-0">
-          <img 
-            src={`${heroImg}&fm=webp`} 
-            alt={title} 
-            width="1920"
-            height="1080"
-            fetchPriority="high"
-            className="w-full h-full object-cover opacity-30 grayscale"
-            referrerPolicy="no-referrer"
-          />
+          <picture>
+            <source 
+              media="(max-width: 640px)" 
+              srcSet={`${heroImg}&fm=webp&w=640`} 
+            />
+            <source 
+              media="(max-width: 1024px)" 
+              srcSet={`${heroImg}&fm=webp&w=1024`} 
+            />
+            <img 
+              src={`${heroImg}&fm=webp&w=1920`} 
+              alt={title} 
+              width="1920"
+              height="1080"
+              fetchPriority="high"
+              className="w-full h-full object-cover opacity-30 grayscale"
+              referrerPolicy="no-referrer"
+            />
+          </picture>
           <div className="absolute inset-0 bg-gradient-to-t from-brand-bg via-brand-bg/90 to-transparent" />
         </div>
         

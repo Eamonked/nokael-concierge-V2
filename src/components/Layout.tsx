@@ -52,7 +52,7 @@ export const Navigation = () => {
         <div className="flex justify-between h-16 items-center">
           <Link to="/" className="flex items-center gap-3 group">
             <div className="w-9 h-9 rounded overflow-hidden border border-brand-border transition-transform group-hover:scale-105">
-              <img src="/logo.svg" alt="Nokael Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <img src="/logo.svg" alt="Nokael Logo" width="36" height="36" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             </div>
             <span className="text-xl font-display font-medium tracking-tighter uppercase">
               Nokael<span className="text-brand-neon">.</span>
@@ -195,7 +195,7 @@ export const Footer = () => {
           <div className="md:col-span-5">
             <Link to="/" className="flex items-center gap-3 mb-8 group">
               <div className="w-8 h-8 rounded overflow-hidden border border-brand-border transition-transform group-hover:scale-105">
-                <img src="/logo.svg" alt="Nokael Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <img src="/logo.svg" alt="Nokael Logo" width="32" height="32" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               </div>
               <span className="text-lg font-display font-medium tracking-tighter uppercase">
                 Nokael<span className="text-brand-neon">.</span>
