@@ -44,12 +44,12 @@ export function getStructuredData(canonicalUrl: string, metadata: PageMetadata, 
   schemas.push({
     "@context": "https://schema.org",
     "@type": "Service",
-    serviceType: "Urgent Courier",
+    serviceType: "Dedicated  Executive Transit",
     provider: { "@type": "LocalBusiness", name: "Nokael" },
     areaServed: "UAE",
     hasOfferCatalog: {
       "@type": "OfferCatalog",
-      name: "Courier Services",
+      name: "Private Point -to-point Logistics",
       itemListElement: [
         {
           "@type": "Offer",
@@ -152,17 +152,17 @@ export function buildSeoContent(metadata: PageMetadata): string {
       ${faqsHtml}
 
       <section style="border-top:1px solid #eee;padding-top:30px;">
-        <h2>Reliable UAE Business Courier</h2>
-        <p>Nokael is a fully licensed UAE courier operator specializing in high-priority, time-critical logistics for legal, corporate, and industrial sectors across the emirates.</p>
+        <h2>Reliable UAE Business Logistics</h2>
+        <p>Nokael is a fully licensed UAE logistics operator specializing in high-priority, time-critical logistics for legal, corporate, and industrial sectors across the emirates.</p>
       </section>
 
       <nav style="margin-top:50px;padding:20px;background:#eee;border-radius:8px;">
         <p style="font-weight:bold;margin-top:0;">Explore Our Services:</p>
         <ul style="display:flex;flex-wrap:wrap;gap:15px;list-style:none;padding:0;">
-          <li><a href="/" style="color:#000;font-weight:bold;">Urgent Courier Dubai to Abu Dhabi</a></li>
+          <li><a href="/" style="color:#000;font-weight:bold;">Dedicated Executive Transit</a></li>
           <li><a href="/services" style="color:#000;font-weight:bold;">All Services</a></li>
-          <li><a href="/urgent-delivery-dubai" style="color:#000;font-weight:bold;">Same-Day Courier Dubai</a></li>
-          <li><a href="/urgent-delivery-abu-dhabi" style="color:#000;font-weight:bold;">Same-Day Courier Abu Dhabi</a></li>
+          <li><a href="/urgent-delivery-dubai" style="color:#000;font-weight:bold;">Same-Day Executive Transit Dubai</a></li>
+          <li><a href="/urgent-delivery-abu-dhabi" style="color:#000;font-weight:bold;">Same-Day Executive Transit Abu Dhabi</a></li>
           <li><a href="/get-quote" style="color:#000;font-weight:bold;">Request Immediate Pickup</a></li>
         </ul>
       </nav>

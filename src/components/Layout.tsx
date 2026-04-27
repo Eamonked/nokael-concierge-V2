@@ -67,7 +67,7 @@ export const Navigation = () => {
                   location.pathname === "/services" ? "text-brand-neon" : "text-brand-muted"
                 )}
               >
-                Urgent Courier Routes
+                Urgent Transit Routes
               </Link>
               <Link
                 to="/about"
@@ -138,7 +138,7 @@ export const Navigation = () => {
                 onClick={() => setIsOpen(false)}
                 className="block text-2xl font-display font-medium tracking-tighter"
               >
-                Urgent Courier Routes
+                Urgent Transit Routes
               </Link>
               <Link
                 to="/about"
@@ -217,7 +217,7 @@ export const Footer = () => {
             <ul className="space-y-4 text-xs text-brand-muted">
               <li className="flex items-center gap-2 group/link">
                 <div className="w-1 h-1 rounded-full bg-brand-neon opacity-0 group-hover/link:opacity-100 transition-opacity" />
-                <Link to="/urgent-delivery-dubai" className="hover:text-brand-neon transition-colors">Same-Day Courier in Dubai</Link>
+                <Link to="/urgent-delivery-dubai" className="hover:text-brand-neon transition-colors">Same-Day Transit in Dubai</Link>
               </li>
               <li className="flex items-center gap-2 group/link">
                 <div className="w-1 h-1 rounded-full bg-brand-neon opacity-0 group-hover/link:opacity-100 transition-opacity" />

@@ -31,7 +31,7 @@ export const TermsAndConditions = () => (
     <section className="space-y-6">
       <h2 className="text-xl font-bold text-brand-text">1. Service Definition</h2>
       <p>
-        Nokael provides urgent, point-to-point inter-emirate courier services within the United Arab Emirates. We operate as a direct driver assignment network, meaning items are transported directly from pickup to delivery without intermediate sorting or warehousing.
+        Nokael provides urgent, point-to-point inter-emirate Logistics services within the United Arab Emirates. We operate as a direct driver assignment network, meaning items are transported directly from pickup to delivery without intermediate sorting or warehousing.
       </p>
     </section>
 

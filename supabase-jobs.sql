@@ -244,7 +244,7 @@ BEGIN
         'UPDATE public.jobs SET 
             status = $1, 
             %I = now(), 
-            %I = $2, 
+            %I = $2::confirm_method, 
             %I = $3, 
             %I = $4,
             updated_at = now()

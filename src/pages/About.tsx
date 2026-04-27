@@ -124,7 +124,7 @@ export default function About() {
                       <div className="w-8 h-8 rounded-lg bg-brand-input flex items-center justify-center text-brand-neon">
                         <CheckCircle2 className="w-4 h-4" />
                       </div>
-                      <span className="text-[11px] font-bold uppercase tracking-widest text-brand-text">UAE Licensed Courier Operator</span>
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-brand-text">UAE Licensed Logistics Operator</span>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="w-8 h-8 rounded-lg bg-brand-input flex items-center justify-center text-brand-neon">

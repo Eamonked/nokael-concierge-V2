@@ -48,13 +48,13 @@ const Hero = () => {
             </div>
             
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-medium leading-[0.85] tracking-tighter mb-6 text-brand-text">
-              Urgent Courier <br />
+              Urgent Logistics <br />
               <span className="text-brand-neon italic">Dubai → Abu Dhabi</span> <br />
               in 90–120 Minutes
             </h1>
             
             <p className="text-xl md:text-2xl text-brand-muted font-medium mb-12 max-w-xl leading-snug">
-              The courier UAE businesses call when it cannot be late. <br />
+              The Logistics UAE businesses call when it cannot be late. <br />
               Dedicated driver. <span className="text-brand-neon underline decoration-brand-neon/30 underline-offset-4 font-black">No hubs.</span> Immediate dispatch.
             </p>
             
@@ -88,7 +88,7 @@ const Hero = () => {
 
             <p className="text-[10px] text-brand-neon uppercase tracking-[0.2em] font-bold mb-12 flex items-center gap-2">
               <CheckCircle2 className="w-3 h-3" />
-              Fully Licensed UAE Courier Operator • Guaranteed Dispatch in 30 Mins
+              Fully Licensed UAE Logistics Operator • Guaranteed Dispatch in 30 Mins
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 border-t border-brand-border pt-12">
@@ -97,11 +97,11 @@ const Hero = () => {
                 <p className="text-lg font-display font-medium">2-5 Mins</p>
               </div>
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-2">Same-Day Courier</p>
+                <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-2">Same-Day Transit</p>
                 <p className="text-lg font-display font-medium">AED {PRICE_TIER_SAME_DAY}</p>
               </div>
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-2">Dedicated Courier</p>
+                <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-2">Dedicated Transit</p>
                 <p className="text-lg font-display font-medium">AED {PRICE_TIER_DEDICATED}</p>
               </div>
               <div>
