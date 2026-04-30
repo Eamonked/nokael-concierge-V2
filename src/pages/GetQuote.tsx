@@ -436,7 +436,7 @@ export default function GetQuote() {
             </div>
             {step === 4 && (
               <p className="mt-6 text-[9px] text-brand-muted uppercase tracking-[0.2em] text-center font-bold">
-                Same-Day AED {PRICE_TIER_SAME_DAY || 230} • Dedicated AED {PRICE_TIER_DEDICATED || 380}
+                Same-Day AED {PRICE_TIER_SAME_DAY || 280} • Dedicated AED {PRICE_TIER_DEDICATED || 380}
               </p>
             )}
           </form>
