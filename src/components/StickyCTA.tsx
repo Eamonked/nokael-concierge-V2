@@ -92,7 +92,7 @@ export const StickyCTA = () => {
               <div className="bg-brand-bg/80 backdrop-blur-xl border border-brand-border rounded-2xl p-1.5 flex items-center gap-2 shadow-2xl">
                  <a
                    href={`tel:${PHONE_NUMBER}`}
-                   onClick={trackPhoneClick}
+                   onClick={() => trackPhoneClick('sticky_mobile_bar')}
                    className="w-12 h-12 flex items-center justify-center bg-brand-input text-brand-text rounded-xl border border-brand-input-border active:scale-95 transition-transform"
                    aria-label="Call Dispatch"
                  >

@@ -102,7 +102,7 @@ export default function Track() {
                 <h3 className="text-xl font-display font-medium mb-2">Dispatch ID Not Found</h3>
                 <p className="text-brand-muted text-sm mb-8">We couldn't locate a live dispatch with ID <b>{trackingId}</b>. Please check the ID or contact dispatch.</p>
                 <a 
-                  href={`https://wa.me/${WHATSAPP_NUMBER}`} 
+                  href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hi Nokael, I'm having trouble tracking my dispatch ${trackingId}. Can you help?`)}`} 
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => trackWhatsAppClick('track_not_found')}
@@ -197,10 +197,13 @@ export default function Track() {
                   </div>
                   <div className="dispatch-card py-6 flex items-center justify-center gap-4">
                     <a 
-                      href={`https://wa.me/${WHATSAPP_NUMBER}`} 
+                      href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hi Nokael, I'm tracking dispatch ${activeJob.tracking_id} and need support.`)}`} 
                       target="_blank"
                       rel="noopener noreferrer"
-                      onClick={() => trackWhatsAppClick('track_driver_chat')}
+                      onClick={() => trackWhatsAppClick('track_driver_chat', {
+                        phone_number: activeJob.phone,
+                        first_name: activeJob.name
+                      })}
                       className="btn-primary flex-1 py-3 text-[10px]"
                     >
                       <MessageSquare className="w-4 h-4" />

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { User, Phone, Mail, MapPin, Truck, Clock, CheckCircle2, Upload, FileText, AlertCircle, ArrowRight, Loader2, Calendar, Globe, Briefcase } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { submitDriverApplication, uploadDriverDocument, type Driver } from '../lib/supabase';
+import { trackFormSubmission } from '../lib/analytics';
 
 const DOCUMENT_TYPES = [
   { id: 'emirates_id', label: 'Emirates ID (Front & Back)', icon: FileText, description: 'High resolution scan or photo' },
@@ -64,6 +65,7 @@ export default function DriverApplication() {
     setIsSubmitting(true);
     try {
       const driver = await submitDriverApplication(formData as Driver);
+      
       setDriverId(driver.id!);
       setStep(2);
     } catch (error) {
@@ -418,7 +420,18 @@ export default function DriverApplication() {
                   </button>
                   <button
                     disabled={!allUploaded}
-                    onClick={() => setStep(3)}
+                    onClick={() => {
+                      const message = encodeURIComponent(`Hi Nokael, I've just submitted my driver application (Name: ${formData.full_name}).`);
+                      navigate(`/thank-you?wa=${message}`, { 
+                        state: { 
+                          userData: {
+                            email: formData.email,
+                            phone_number: formData.phone,
+                            first_name: formData.full_name,
+                          } 
+                        } 
+                      });
+                    }}
                     className="btn-primary flex-1 py-6 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Complete Application

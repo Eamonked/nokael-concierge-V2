@@ -14,6 +14,22 @@
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export interface UserData {
+  email?: string;
+  phone_number?: string;
+  first_name?: string;
+  last_name?: string;
+  address?: {
+    first_name?: string;
+    last_name?: string;
+    street?: string;
+    city?: string;
+    region?: string;
+    postal_code?: string;
+    country?: string;
+  };
+}
+
 export interface UTMParams {
   utm_source?: string;
   utm_medium?: string;
@@ -117,7 +133,7 @@ function pushEvent(eventName: string, params: Record<string, any> = {}): void {
  * Fire when the GetQuote form is successfully submitted to Supabase.
  * This is your primary Google Ads conversion action.
  */
-export function trackFormSubmission(): void {
+export function trackFormSubmission(userData?: UserData): void {
   const rawId = import.meta.env.VITE_GADS_CONVERSION_ID;
   const conversionId = getGtagId(rawId);
   const conversionLabel = import.meta.env.VITE_GADS_CONVERSION_LABEL;
@@ -127,6 +143,7 @@ export function trackFormSubmission(): void {
       console.log(`[Analytics] Firing Google Ads Conversion: ${conversionId}/${conversionLabel}`);
       window.gtag('event', 'conversion', {
         send_to: `${conversionId}/${conversionLabel}`,
+        user_data: userData,
       });
     } else {
       console.warn('[Analytics] gtag.js not found. Conversion event queued in dataLayer only.');
@@ -137,13 +154,16 @@ export function trackFormSubmission(): void {
   pushEvent('generate_lead', {
     event_category: 'quote_form',
     event_label: 'form_submitted',
+    user_email: userData?.email,
+    user_phone: userData?.phone_number,
+    user_data: userData, // For GTM Enhanced Conversions
   });
 }
 
 /**
  * Fire when any WhatsApp CTA is clicked.
  */
-export function trackWhatsAppClick(source: string = 'unknown'): void {
+export function trackWhatsAppClick(source: string = 'unknown', userData?: UserData): void {
   const rawId = import.meta.env.VITE_GADS_CONVERSION_ID;
   const conversionId = getGtagId(rawId);
   const waLabel = import.meta.env.VITE_GADS_WA_CONVERSION_LABEL;
@@ -152,6 +172,7 @@ export function trackWhatsAppClick(source: string = 'unknown'): void {
     if (typeof window.gtag === 'function') {
       window.gtag('event', 'conversion', {
         send_to: `${conversionId}/${waLabel}`,
+        user_data: userData,
       });
     }
   }
@@ -192,9 +213,9 @@ export function trackPageView(path: string): void {
 /**
  * Fire when the phone number is clicked.
  */
-export function trackPhoneClick(): void {
+export function trackPhoneClick(source: string = 'header'): void {
   pushEvent('phone_call_click', {
     event_category: 'engagement',
-    event_label: 'phone_cta',
+    event_label: source,
   });
 }

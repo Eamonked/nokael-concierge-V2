@@ -94,9 +94,6 @@ export default function GetQuote() {
 
       await submitQuoteRequest(enrichedData);
       
-      // FIRE ANALYTICS CONVERSATION
-      trackFormSubmission();
-
       // Build the pre-filled WhatsApp message
       const message = encodeURIComponent(
         `Hi Nokael, I need a quote for a ${formData.item_type} delivery from ${formData.pickup_location}, ${pickupEmirate} to ${formData.delivery_location}, ${deliveryEmirate}. Urgency: ${formData.urgency}. My name is ${formData.name}.`
@@ -104,7 +101,14 @@ export default function GetQuote() {
 
       // Navigate to /thank-you — this is where the Google Ads conversion pixel fires.
       // The WhatsApp redirect happens from that page after a short delay.
-      navigate(`/thank-you?wa=${message}`);
+      navigate(`/thank-you?wa=${message}`, { 
+        state: { 
+          userData: {
+            phone_number: formData.phone,
+            first_name: formData.name
+          } 
+        } 
+      });
 
     } catch (err: any) {
       console.error('Error submitting quote:', err);
@@ -473,7 +477,10 @@ export default function GetQuote() {
               href={`https://wa.me/${WHATSAPP_NUMBER}`}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => trackWhatsAppClick('quote_sidebar')}
+              onClick={() => trackWhatsAppClick('quote_sidebar', {
+                phone_number: formData.phone,
+                first_name: formData.name
+              })}
               className="flex items-center gap-3 text-brand-neon hover:underline text-sm font-bold"
             >
               <MessageSquare className="w-4 h-4" />

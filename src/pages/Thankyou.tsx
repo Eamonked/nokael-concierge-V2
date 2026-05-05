@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { CheckCircle2, Loader2, MessageSquare } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import { trackFormSubmission, trackWhatsAppClick } from '../lib/analytics';
 import { WHATSAPP_NUMBER } from '../constants';
 
@@ -30,6 +30,7 @@ import { WHATSAPP_NUMBER } from '../constants';
  */
 export default function ThankYou() {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const [countdown, setCountdown] = React.useState(3);
   const hasFired = React.useRef(false);
 
@@ -40,9 +41,19 @@ export default function ThankYou() {
   React.useEffect(() => {
     if (!hasFired.current) {
       hasFired.current = true;
-      trackFormSubmission();
+      // Access the user data passed from the form via navigation state
+      const userData = location.state?.userData;
+      
+      trackFormSubmission(userData);
+
+      // Auto-redirect to WhatsApp after a delay
+      const timer = setTimeout(() => {
+        window.location.href = waUrl;
+      }, 2500);
+
+      return () => clearTimeout(timer);
     }
-  }, []);
+  }, [location.state, waUrl]);
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">

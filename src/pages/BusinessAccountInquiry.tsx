@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { submitBusinessInquiry, type BusinessInquiry } from '../lib/supabase';
 import { captureUTMs, getStoredUTMs } from '../lib/analytics';
 import { WHATSAPP_NUMBER, BUSINESS_ACCOUNT_WA_MESSAGE } from '../constants';
-import { trackWhatsAppClick } from '../lib/analytics';
+import { trackWhatsAppClick, trackFormSubmission } from '../lib/analytics';
 import { cn } from '../lib/utils';
 
 export default function BusinessAccountInquiry() {
@@ -36,7 +36,16 @@ export default function BusinessAccountInquiry() {
       } as BusinessInquiry);
       
       setIsSuccess(true);
-      setTimeout(() => navigate('/thank-you'), 2000);
+      const message = encodeURIComponent(BUSINESS_ACCOUNT_WA_MESSAGE);
+      setTimeout(() => navigate(`/thank-you?wa=${message}`, { 
+        state: { 
+          userData: {
+            email: formData.email,
+            phone_number: formData.phone_whatsapp,
+            first_name: formData.contact_person,
+          } 
+        } 
+      }), 2000);
     } catch (error) {
       console.error('Error submitting inquiry:', error);
       alert('There was an error submitting your inquiry. Please try again or contact us via WhatsApp.');
@@ -114,7 +123,11 @@ export default function BusinessAccountInquiry() {
                 href={waUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => trackWhatsAppClick('business_account_inquiry')}
+                onClick={() => trackWhatsAppClick('business_account_inquiry', {
+                  email: formData.email,
+                  phone_number: formData.phone_whatsapp,
+                  first_name: formData.contact_person
+                })}
                 className="inline-flex items-center gap-3 text-brand-neon text-xs font-bold uppercase tracking-[0.2em] group"
               >
                 <span>Direct Dispatch Support</span>

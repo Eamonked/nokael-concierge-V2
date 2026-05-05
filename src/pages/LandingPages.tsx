@@ -94,7 +94,7 @@ export const LandingTemplate = ({ title, subtitle, city, industry, heroImg, cont
                 href={`https://wa.me/${WHATSAPP_NUMBER}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => trackWhatsAppClick(`landing_hero_${city || industry || 'unknown'}`)}
+                onClick={() => trackWhatsAppClick(`landing_hero_${city || industry || 'general_uae'}`)}
                 className="btn-primary w-full sm:w-auto px-10 py-6 group scale-105 origin-left"
               >
                 <div className="flex items-center gap-3 text-left">
@@ -285,7 +285,7 @@ export const LandingTemplate = ({ title, subtitle, city, industry, heroImg, cont
                   href={`https://wa.me/${WHATSAPP_NUMBER}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => trackWhatsAppClick(`landing_card_${city || industry || 'unknown'}`)}
+                  onClick={() => trackWhatsAppClick(`landing_card_${city || industry || 'general_uae'}`)}
                   className="w-full py-5 bg-brand-bg text-brand-neon font-black rounded-2xl uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 hover:scale-[1.02] transition-all shadow-xl mb-6"
                 >
                   <MessageSquare className="w-5 h-5" />

@@ -26,7 +26,7 @@ const TopBar = () => {
           <span className="hidden md:inline">Dubai ↔ Abu Dhabi (90-120 Min Delivery)</span>
         </div>
         <div className="flex items-center gap-6">
-          <a href={`tel:${PHONE_NUMBER}`} onClick={trackPhoneClick} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <a href={`tel:${PHONE_NUMBER}`} onClick={() => trackPhoneClick('top_bar')} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <Phone className="w-3 h-3 fill-brand-bg" />
             <span>Call Now: {DISPLAY_PHONE}</span>
           </a>
@@ -174,7 +174,7 @@ export const Navigation = () => {
                 </a>
                 <a
                   href={`tel:${PHONE_NUMBER}`}
-                  onClick={trackPhoneClick}
+                  onClick={() => trackPhoneClick('mobile_nav')}
                   className="btn-secondary w-full"
                 >
                   <Phone className="w-4 h-4" />
@@ -254,7 +254,7 @@ export const Footer = () => {
               <li>
                 <a 
                   href={`tel:${PHONE_NUMBER}`} 
-                  onClick={trackPhoneClick}
+                  onClick={() => trackPhoneClick('footer')}
                   className="hover:text-brand-neon transition-colors"
                 >
                   {DISPLAY_PHONE}
