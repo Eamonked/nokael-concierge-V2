@@ -675,7 +675,25 @@ export interface DriverDocument {
 
 export const submitDriverApplication = async (data: Driver): Promise<Driver> => {
   const id = crypto.randomUUID();
-  const payload: Driver = {
+
+  // Build the DB payload using only columns that exist in the actual schema.
+  // DB column is 'inter_emirate_yes_no' (not 'inter_emirate'),
+  // and 'status'/'active' columns don't exist on the drivers table.
+  const dbPayload: Record<string, unknown> = {
+    id,
+    full_name: data.full_name,
+    phone: data.phone,
+    whatsapp: data.whatsapp,
+    email: data.email,
+    base_location: data.base_location,
+    vehicle_type: data.vehicle_type,
+    inter_emirate_yes_no: data.inter_emirate ?? true,
+    availability_hours: data.availability_hours ?? null,
+    onboarding_status: 'pending',
+  };
+
+  // The client-side Driver object keeps the original shape for UI use.
+  const clientPayload: Driver = {
     ...data,
     id,
     status: 'offline',
@@ -684,7 +702,7 @@ export const submitDriverApplication = async (data: Driver): Promise<Driver> => 
   };
 
   if (supabase) {
-    const { error } = await supabase.from('drivers').insert([payload]);
+    const { error } = await supabase.from('drivers').insert([dbPayload]);
     if (error) throw error;
   }
 
@@ -694,7 +712,7 @@ export const submitDriverApplication = async (data: Driver): Promise<Driver> => 
     console.error('[Nokael] Driver notification error:', err);
   }
 
-  return payload;
+  return clientPayload;
 };
 
 export const uploadDriverDocument = async (data: DriverDocument): Promise<void> => {

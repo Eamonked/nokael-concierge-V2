@@ -29,10 +29,11 @@ export function createUploadRouter() {
   const router = Router();
 
   // Rate limit: 10 uploads per minute per IP
+  // Note: requireApiKey is already applied globally in server.ts for /api routes,
+  // so we don't duplicate it here.
   router.post(
     "/upload-driver-doc",
     rateLimit(10, 60_000),
-    requireApiKey,
     upload.single("file"),
     async (req, res) => {
       if (!req.file) {
@@ -87,9 +88,18 @@ export function createUploadRouter() {
           drive_file_id: file.data.id,
           file_url: file.data.webViewLink,
         });
-      } catch (err) {
-        console.error("[upload] Google Drive error:", err);
-        return res.status(500).json({ error: "Upload failed" });
+      } catch (err: any) {
+        const errMessage = err?.errors?.[0]?.message || err?.message || 'Unknown error';
+        const errCode = err?.code || err?.status || 500;
+        console.error("[upload] Google Drive error:", {
+          code: errCode,
+          message: errMessage,
+          details: err?.errors || err?.response?.data || null,
+        });
+        return res.status(500).json({ 
+          error: "Upload failed", 
+          details: `Google Drive: ${errMessage}` 
+        });
       }
     }
   );
