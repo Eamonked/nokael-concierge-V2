@@ -40,7 +40,7 @@ export default function DriverApplication() {
     email: '',
     base_location: '',
     vehicle_type: 'Sedan',
-    inter_emirate_yes_no: true,
+    inter_emirate: true,
     availability_hours: '',
   });
 
@@ -329,9 +329,9 @@ export default function DriverApplication() {
                       <button
                         key={opt}
                         type="button"
-                        onClick={() => setFormData({ ...formData, inter_emirate_yes_no: opt === 'Yes' })}
+                        onClick={() => setFormData({ ...formData, inter_emirate: opt === 'Yes' })}
                         className={`px-6 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                          (formData.inter_emirate_yes_no && opt === 'Yes') || (!formData.inter_emirate_yes_no && opt === 'No')
+                          (formData.inter_emirate && opt === 'Yes') || (!formData.inter_emirate && opt === 'No')
                             ? "bg-brand-neon text-brand-bg shadow-[0_0_15px_rgba(57,255,20,0.2)]"
                             : "bg-brand-surface text-brand-muted border border-brand-border"
                         }`}

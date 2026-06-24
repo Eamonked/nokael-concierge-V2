@@ -14,15 +14,6 @@ export default defineConfig(({mode}) => {
       target: 'esnext',
       minify: 'esbuild',
       cssMinify: true,
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-            'vendor-motion': ['motion'],
-            'vendor-ui': ['lucide-react', 'recharts'],
-          }
-        }
-      }
     },
     resolve: {
       alias: {

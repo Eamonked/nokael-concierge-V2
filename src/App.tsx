@@ -142,7 +142,7 @@ export default function App() {
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/admin" element={<Dashboard />} />
-              <Route path="/confirm/:token/:action" element={<ConfirmationPage />} />
+              <Route path="/:token/:step" element={<ConfirmationPage />} />
               <Route path="/login" element={<Login />} />
               {/* 404 — must be last */}
               <Route path="*" element={<NotFound />} />

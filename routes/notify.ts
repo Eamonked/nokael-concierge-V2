@@ -58,8 +58,34 @@ export function createNotifyRouter() {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json() as any;
         console.error("[notify] Telegram API error:", errorData);
+        
+        if (response.status === 403 || errorData.error_code === 403) {
+          const isBotToBot = errorData.description && errorData.description.includes("can't send messages to the bot");
+          if (isBotToBot) {
+            console.warn(
+              `\n🚨 [TELEGRAM CONFIGURATION ERROR] 🚨\n` +
+              `Your TELEGRAM_CHAT_ID environment variable is misconfigured!\n` +
+              `It is currently set to the Bot's own ID or username. A Telegram Bot cannot send messages to itself.\n` +
+              `To resolve this, you must change TELEGRAM_CHAT_ID in your Settings / Environment Variables:\n` +
+              `1. It should be your PERSONAL Telegram Chat ID (a number like '123456789'), NOT the bot's ID/username.\n` +
+              `2. To find your personal Chat ID, search for "@userinfobot" on Telegram, send any message, and copy the "Id" value.\n` +
+              `3. Update your environment variables with this new ID and restart the app.\n`
+            );
+          } else {
+            console.warn(
+              `\n⚠️  [TELEGRAM API ERROR 403 RESOLUTION GUIDE] ⚠️\n` +
+              `The Telegram API returned a 403 Forbidden error: "${errorData.description}".\n` +
+              `This typically happens because of one of the following reasons:\n` +
+              `1. The user (chat ID: "${chatId}") has blocked or stopped the bot. To resolve this, the recipient must search for the bot on Telegram and click "Start" (or send "/start" to it).\n` +
+              `2. If sending to a Group or Channel, the bot has not been added as a member (or has been kicked out). To resolve, add the bot to the group/channel. For channels, the bot MUST also be promoted to an Administrator with posting permissions.\n` +
+              `3. The TELEGRAM_CHAT_ID or TELEGRAM_BOT_TOKEN environment variables are misconfigured.\n` +
+              `Please verify your environment credentials and Bot configuration to resolve this.\n`
+            );
+          }
+        }
+
         return res.status(502).json({
           error: "Notification delivery failed",
           details: errorData.description ?? "Unknown error",

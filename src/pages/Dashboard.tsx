@@ -23,6 +23,7 @@ import {
   Truck,
   FileText,
   ExternalLink,
+  Copy,
   Star,
   X,
   Mail,
@@ -70,7 +71,8 @@ import {
   type Job,
   type JobStatus,
   type ItemType,
-  type UrgencyType
+  type UrgencyType,
+  type JobWithDriver
 } from '../lib/supabase';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -98,14 +100,14 @@ const StatCard = ({ title, value, icon: Icon, trend, color }: any) => (
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = React.useState<'pipeline' | 'quotes' | 'drivers' | 'business'>('pipeline');
-  const [jobs, setJobs] = React.useState<Job[]>([]);
+  const [jobs, setJobs] = React.useState<JobWithDriver[]>([]);
   const [requests, setRequests] = React.useState<QuoteRequest[]>([]);
   const [drivers, setDrivers] = React.useState<Driver[]>([]);
   const [businessInquiries, setBusinessInquiries] = React.useState<BusinessInquiry[]>([]);
   
   const [selectedDriver, setSelectedDriver] = React.useState<(Driver & { documents: DriverDocument[] }) | null>(null);
   const [selectedBusiness, setSelectedBusiness] = React.useState<BusinessInquiry | null>(null);
-  const [selectedJob, setSelectedJob] = React.useState<Job | null>(null);
+  const [selectedJob, setSelectedJob] = React.useState<JobWithDriver | null>(null);
   const [showJobCreateModal, setShowJobCreateModal] = React.useState(false);
   const [jobPrefillData, setJobPrefillData] = React.useState<Partial<Job> | undefined>(undefined);
   const [jobViewMode, setJobViewMode] = React.useState<'kanban' | 'list'>('kanban');
@@ -135,16 +137,15 @@ export default function Dashboard() {
 
     // Subscribe to job changes
     const subscription = subscribeToJobs((payload) => {
-      if (payload.eventType === 'INSERT') {
-        setJobs(prev => [payload.new as Job, ...prev]);
-      } else if (payload.eventType === 'UPDATE') {
-        setJobs(prev => prev.map(job => job.id === payload.new.id ? payload.new as Job : job));
-        if (selectedJob?.id === payload.new.id) {
-          setSelectedJob(payload.new as Job);
+      getJobs().then(jobsData => {
+        setJobs(jobsData);
+        if (selectedJob?.id) {
+          const updatedSelected = jobsData.find(j => j.id === selectedJob.id);
+          if (updatedSelected) {
+            setSelectedJob(updatedSelected);
+          }
         }
-      } else if (payload.eventType === 'DELETE') {
-        setJobs(prev => prev.filter(job => job.id !== payload.old.id));
-      }
+      }).catch(console.error);
     });
 
     return () => {
@@ -503,16 +504,16 @@ export default function Dashboard() {
                               <p className="text-xs font-medium text-brand-text mb-1">{job.sender_name}</p>
                               <div className="flex gap-2 items-center">
                                 <Truck className="w-3 h-3 text-brand-muted" />
-                                <p className="text-[10px] text-brand-muted font-bold">{job.driver_name || 'Pilot Pending'}</p>
+                                <p className="text-[10px] text-brand-muted font-bold">{job.driver?.full_name || 'Pilot Pending'}</p>
                               </div>
                           </td>
                           <td className="px-10 py-8">
                               <div className="flex gap-1.5">
                                 {[
-                                  { key: 'client_pickup_confirmed_at', label: 'Handover' },
-                                  { key: 'driver_pickup_confirmed_at', label: 'Pickup' },
-                                  { key: 'driver_delivery_confirmed_at', label: 'Inbound' },
-                                  { key: 'client_delivery_confirmed_at', label: 'Final' }
+                                  { key: 'client_pickup_at', label: 'Handover' },
+                                  { key: 'driver_pickup_at', label: 'Pickup' },
+                                  { key: 'driver_delivery_at', label: 'Inbound' },
+                                  { key: 'client_delivery_at', label: 'Final' }
                                 ].map((step) => (
                                   <div 
                                       key={step.key}
@@ -996,7 +997,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="p-2 bg-brand-input rounded-lg"><Navigation className="w-4 h-4 text-brand-neon" /></div>
-                      <span className="text-sm">Inter-Emirate: {selectedDriver.inter_emirate_yes_no ? 'Yes' : 'No'}</span>
+                      <span className="text-sm">Inter-Emirate: {selectedDriver.inter_emirate ? 'Yes' : 'No'}</span>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="p-2 bg-brand-input rounded-lg"><Clock className="w-4 h-4 text-brand-neon" /></div>
@@ -1346,31 +1347,33 @@ const KanbanColumn = ({ title, status, jobs, onJobClick }: { title: string, stat
   );
 };
 
-const JobDetailModal = ({ job, onClose, onUpdate }: { job: Job, onClose: () => void, onUpdate: () => void }) => {
+const JobDetailModal = ({ job, onClose, onUpdate }: { job: JobWithDriver, onClose: () => void, onUpdate: () => void }) => {
+  const [copiedStep, setCopiedStep] = React.useState<string | null>(null);
   const dispatchWhatsApp = (type: 'sender' | 'driver' | 'recipient') => {
     let message = '';
     let phone = '';
+    const cocDomain = (import.meta.env.VITE_COC_URL || 'https://nokael.ae').replace(/\/$/, '');
     
     if (type === 'sender') {
       phone = job.sender_phone;
-      message = `Hi ${job.sender_name}, your Nokael pickup is confirmed.\nRoute: ${job.pickup_location} → ${job.delivery_location}\nItem: ${job.item_type} | Urgency: ${job.urgency}\n\nWhen handing over your package, tap to confirm:\nnokael.com/confirm/${job.token_client_pickup}/client-pickup\nNo internet? Give the driver your OTP: ${job.otp_sender}`;
+      message = `Hi ${job.sender_name}, your Nokael pickup is confirmed.\nRoute: ${job.pickup_location} → ${job.delivery_location}\nItem: ${job.item_type} | Urgency: ${job.urgency}\n\nWhen handing over your package, tap to confirm:\n${cocDomain}/${job.token_client_pickup}/client-pickup\nNo internet? Give the driver your OTP: ${job.otp_sender}`;
     } else if (type === 'driver') {
-      phone = job.driver_phone || '';
-      message = `New job assigned — Job #${job.job_ref}\nPickup: ${job.pickup_location}, ${job.pickup_emirate}\nDelivery: ${job.delivery_location}, ${job.delivery_emirate}\nItem: ${job.item_type} | Urgency: ${job.urgency}\nSender: ${job.sender_name} | Recipient: ${job.recipient_name}\n\n── PICKUP ──\nnokael.com/confirm/${job.token_driver_pickup}/driver-pickup\n\n── DELIVERY ──\nnokael.com/confirm/${job.token_driver_delivery}/driver-delivery`;
+      phone = job.driver?.phone || '';
+      message = `New job assigned — Job #${job.job_ref}\nPickup: ${job.pickup_location}, ${job.pickup_emirate}\nDelivery: ${job.delivery_location}, ${job.delivery_emirate}\nItem: ${job.item_type} | Urgency: ${job.urgency}\nSender: ${job.sender_name} | Recipient: ${job.recipient_name}\n\n── PICKUP ──\n${cocDomain}/${job.token_driver_pickup}/driver-pickup\n\n── DELIVERY ──\n${cocDomain}/${job.token_driver_delivery}/driver-delivery`;
     } else {
       phone = job.recipient_phone;
-      message = `Hi ${job.recipient_name}, a package is on its way to you.\nFrom: ${job.sender_name} | Route: ${job.pickup_location} → ${job.delivery_location}\nItem: ${job.item_type}\n\nWhen you receive it, tap to confirm:\nnokael.com/confirm/${job.token_client_delivery}/client-delivery\nNo internet? Give the driver your OTP: ${job.otp_recipient}`;
+      message = `Hi ${job.recipient_name}, a package is on its way to you.\nFrom: ${job.sender_name} | Route: ${job.pickup_location} → ${job.delivery_location}\nItem: ${job.item_type}\n\nWhen you receive it, tap to confirm:\n${cocDomain}/${job.token_client_delivery}/client-delivery\nNo internet? Give the driver your OTP: ${job.otp_recipient}`;
     }
     
     window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
     
     // Update local sent flag
     const updatePayload: any = {};
-    if (type === 'sender') updatePayload.whatsapp_sender_sent = true;
-    if (type === 'driver') updatePayload.whatsapp_driver_sent = true;
-    if (type === 'recipient') updatePayload.whatsapp_recipient_sent = true;
+    if (type === 'sender') updatePayload.sender_notified = true;
+    if (type === 'driver') updatePayload.driver_notified = true;
+    if (type === 'recipient') updatePayload.recipient_notified = true;
     
-    updateJob(job.id, updatePayload).then(onUpdate);
+    updateJob(job.id!, updatePayload).then(onUpdate);
   };
 
   return (
@@ -1431,10 +1434,10 @@ const JobDetailModal = ({ job, onClose, onUpdate }: { job: Job, onClose: () => v
                         <Truck className="w-6 h-6 text-brand-neon" />
                       </div>
                       <div>
-                        {job.driver_name ? (
+                        {job.driver?.full_name ? (
                           <>
-                            <p className="text-sm font-medium text-brand-text mb-1">{job.driver_name}</p>
-                            <p className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">Active: {job.driver_phone}</p>
+                            <p className="text-sm font-medium text-brand-text mb-1">{job.driver.full_name}</p>
+                            <p className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">Active: {job.driver.phone}</p>
                           </>
                         ) : (
                           <p className="text-sm font-medium text-brand-muted">No Driver Assigned Yet</p>
@@ -1449,9 +1452,9 @@ const JobDetailModal = ({ job, onClose, onUpdate }: { job: Job, onClose: () => v
                 <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Operational Comms</p>
                 <div className="grid grid-cols-3 gap-4">
                    {[
-                     { id: 'sender', label: 'Sender Dsp.', sent: job.whatsapp_sender_sent },
-                     { id: 'driver', label: 'Driver Dsp.', sent: job.whatsapp_driver_sent },
-                     { id: 'recipient', label: 'Client Dsp.', sent: job.whatsapp_recipient_sent }
+                     { id: 'sender', label: 'Sender Dsp.', sent: job.sender_notified },
+                     { id: 'driver', label: 'Driver Dsp.', sent: job.driver_notified },
+                     { id: 'recipient', label: 'Client Dsp.', sent: job.recipient_notified }
                    ].map((btn) => (
                      <button
                         key={btn.id}
@@ -1490,34 +1493,64 @@ const JobDetailModal = ({ job, onClose, onUpdate }: { job: Job, onClose: () => v
               <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-brand-border" />
               
               {[
-                { label: 'Sender Handover', status: job.client_pickup_confirmed_at, key: 'token_client_pickup', icon: Package },
-                { label: 'Driver Pickup Confirmed', status: job.driver_pickup_confirmed_at, key: 'token_driver_pickup', icon: Truck },
-                { label: 'In-Transit Validation', status: job.driver_delivery_confirmed_at, key: 'token_driver_delivery', icon: Navigation },
-                { label: 'Final Receipt & Signature', status: job.client_delivery_confirmed_at, key: 'token_client_delivery', icon: Shield }
-              ].map((step, i) => (
-                <div key={i} className="flex gap-8 relative z-10">
-                   <div className={cn(
-                     "w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-500",
-                     step.status ? "bg-brand-neon border-brand-neon text-brand-bg shadow-[0_0_15px_rgba(57,255,20,0.3)]" : "bg-brand-bg border-brand-border text-brand-muted"
-                   )}>
-                      {step.status ? <CheckCircle2 className="w-5 h-5" /> : <step.icon className="w-5 h-5" />}
-                   </div>
-                   <div className="flex-grow min-w-0">
-                      <div className="flex justify-between items-start mb-1">
-                         <p className={cn("text-sm font-bold uppercase tracking-widest", step.status ? "text-brand-text" : "text-brand-muted")}>{step.label}</p>
-                         {step.status && (
-                            <span className="text-[10px] font-mono text-brand-neon font-black">{format(new Date(step.status), 'HH:mm:ss')}</span>
-                         )}
-                      </div>
-                      <p className="text-[10px] text-brand-muted font-bold leading-relaxed">
-                        {step.status ? 
-                          `Authorized via ${job.client_pickup_method || 'Link'} Authentication` : 
-                          `Waiting for digital confirmation via token [${(job as any)[step.key]?.toString().substring(0, 8)}...]`
-                        }
-                      </p>
-                   </div>
-                </div>
-              ))}
+                { label: 'Sender Handover', status: job.client_pickup_at, key: 'token_client_pickup', icon: Package },
+                { label: 'Driver Pickup Confirmed', status: job.driver_pickup_at, key: 'token_driver_pickup', icon: Truck },
+                { label: 'In-Transit Validation', status: job.driver_delivery_at, key: 'token_driver_delivery', icon: Navigation },
+                { label: 'Final Receipt & Signature', status: job.client_delivery_at, key: 'token_client_delivery', icon: Shield }
+              ].map((step, i) => {
+                const cocDomain = (import.meta.env.VITE_COC_URL || 'https://nokael.ae').replace(/\/$/, '');
+                const stepSlug = step.key.replace('token_', '').replace('_', '-');
+                const tokenValue = (job as any)[step.key];
+                const stepUrl = tokenValue ? `${cocDomain}/${tokenValue}/${stepSlug}` : '';
+                return (
+                  <div key={i} className="flex gap-8 relative z-10">
+                     <div className={cn(
+                       "w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-500",
+                       step.status ? "bg-brand-neon border-brand-neon text-brand-bg shadow-[0_0_15px_rgba(57,255,20,0.3)]" : "bg-brand-bg border-brand-border text-brand-muted"
+                     )}>
+                        {step.status ? <CheckCircle2 className="w-5 h-5" /> : <step.icon className="w-5 h-5" />}
+                     </div>
+                     <div className="flex-grow min-w-0">
+                        <div className="flex justify-between items-start mb-1">
+                           <p className={cn("text-sm font-bold uppercase tracking-widest", step.status ? "text-brand-text" : "text-brand-muted")}>{step.label}</p>
+                           {step.status && (
+                              <span className="text-[10px] font-mono text-brand-neon font-black">{format(new Date(step.status), 'HH:mm:ss')}</span>
+                           )}
+                        </div>
+                        <p className="text-[10px] text-brand-muted font-bold leading-relaxed">
+                          {step.status ? 
+                            `Authorized via Link/OTP Authentication` : 
+                            `Waiting for digital confirmation via token [${tokenValue?.toString().substring(0, 8) || '...'}]`
+                          }
+                        </p>
+                        {tokenValue && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(stepUrl);
+                                setCopiedStep(step.key);
+                                setTimeout(() => setCopiedStep(null), 2000);
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-input hover:bg-brand-border rounded-lg border border-brand-border text-[8px] font-black text-brand-neon tracking-wider uppercase transition-all hover:scale-105"
+                            >
+                              <Copy className="w-3 h-3" />
+                              {copiedStep === step.key ? 'Copied' : 'Copy link'}
+                            </button>
+                            <a
+                              href={stepUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-input hover:bg-brand-border rounded-lg border border-brand-border text-[8px] font-black text-brand-muted hover:text-brand-text tracking-wider uppercase transition-all hover:scale-105"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              Open link
+                            </a>
+                          </div>
+                        )}
+                     </div>
+                  </div>
+                );
+              })}
            </div>
 
            {job.status === 'completed' && (
@@ -1554,9 +1587,9 @@ const JobCreateModal = ({ onClose, onSuccess, initialData }: { onClose: () => vo
     delivery_location: initialData?.delivery_location || '',
     item_type: initialData?.item_type || 'parcel' as ItemType,
     urgency: initialData?.urgency || 'immediate' as UrgencyType,
-    driver_name: initialData?.driver_name || '',
-    driver_phone: initialData?.driver_phone || '',
-    notes: initialData?.notes || '',
+    driver_name: (initialData as any)?.driver_name || '',
+    driver_phone: (initialData as any)?.driver_phone || '',
+    notes: (initialData as any)?.notes || initialData?.special_instructions || '',
     quote_id: initialData?.quote_id || null
   });
 
@@ -1573,14 +1606,28 @@ const JobCreateModal = ({ onClose, onSuccess, initialData }: { onClose: () => vo
         token_client_delivery: crypto.randomUUID()
       };
 
-      const payload = {
-        ...formData,
+      const otpVal = genOtp();
+      const payload: Partial<Job> = {
+        sender_name: formData.sender_name,
+        sender_phone: formData.sender_phone,
+        recipient_name: formData.recipient_name,
+        recipient_phone: formData.recipient_phone,
+        pickup_emirate: formData.pickup_emirate,
+        pickup_location: formData.pickup_location,
+        delivery_emirate: formData.delivery_emirate,
+        delivery_location: formData.delivery_location,
+        item_type: formData.item_type,
+        urgency: formData.urgency,
+        special_instructions: formData.notes,
+        operator_notes: formData.notes,
+        quote_id: formData.quote_id,
         ...tokens,
         otp_sender: genOtp(),
-        otp_driver: genOtp(),
+        otp_driver_pickup: otpVal,
+        otp_driver_delivery: otpVal,
         otp_recipient: genOtp(),
-        source: 'manual' as any,
-        status: 'pending' as any
+        source: 'manual',
+        status: 'pending'
       };
       
       const result = await createJob(payload);

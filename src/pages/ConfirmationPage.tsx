@@ -22,7 +22,8 @@ import {
 import { 
   supabase, 
   type Job, 
-  updateJob 
+  updateJob,
+  mapJobDbToClient
 } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
@@ -30,7 +31,8 @@ import { format } from 'date-fns';
 type ConfirmationAction = 'client-pickup' | 'driver-pickup' | 'driver-delivery' | 'client-delivery';
 
 export default function ConfirmationPage() {
-  const { token, action } = useParams<{ token: string, action: string }>();
+  const { token, step } = useParams<{ token: string, step: string }>();
+  const action = step;
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +58,7 @@ export default function ConfirmationPage() {
         return;
       }
       
-      setJob(data);
+      setJob(mapJobDbToClient(data));
     } catch (err: any) {
       console.error('Error fetching job:', err);
       setError('System connection error. Please try again or use WhatsApp fallback.');
