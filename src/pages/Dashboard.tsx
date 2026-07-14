@@ -80,21 +80,15 @@ import { format } from 'date-fns';
 import { generateJobPOC } from '../lib/pdf-export';
 import { sendTelegramNotification, formatJobAssignmentNotification } from '../lib/notifications';
 
-const StatCard = ({ title, value, icon: Icon, trend, color }: any) => (
-  <div className="dispatch-card group">
-    <div className="flex justify-between items-start mb-6">
-      <div className="w-10 h-10 bg-brand-neon/10 rounded-lg flex items-center justify-center text-brand-neon group-hover:bg-brand-neon group-hover:text-brand-bg transition-all duration-500">
-        <Icon className="w-5 h-5" />
-      </div>
-      {trend && (
-        <div className="flex items-center gap-1 text-brand-neon text-[10px] font-bold uppercase tracking-widest">
-          <TrendingUp className="w-3 h-3" />
-          <span>{trend}</span>
-        </div>
-      )}
+const StatCard: React.FC<{ title: string; value: number; icon: any }> = ({ title, value, icon: Icon }) => (
+  <div className="bg-brand-surface border border-brand-border rounded-2xl px-5 py-4 flex items-center gap-4">
+    <div className="w-9 h-9 shrink-0 bg-brand-neon/10 rounded-lg flex items-center justify-center text-brand-neon">
+      <Icon className="w-4 h-4" />
     </div>
-    <h3 className="text-brand-muted text-[10px] uppercase tracking-[0.3em] font-bold mb-2">{title}</h3>
-    <p className="text-4xl font-display font-medium tracking-tighter text-brand-text">{value}</p>
+    <div className="min-w-0">
+      <p className="text-2xl font-display font-medium tracking-tight text-brand-text leading-none mb-1">{value}</p>
+      <h3 className="text-brand-muted text-xs truncate">{title}</h3>
+    </div>
   </div>
 );
 
@@ -339,121 +333,189 @@ export default function Dashboard() {
     );
   }
 
+  const NAV_ITEMS: { id: typeof activeTab; label: string; icon: any; badge?: number }[] = [
+    { id: 'pipeline', label: 'Command Centre', icon: LayoutDashboard },
+    { id: 'quotes', label: 'Dispatch Log', icon: FileText, badge: stats.pending },
+    { id: 'drivers', label: 'Driver Network', icon: Truck, badge: stats.pendingDrivers },
+    { id: 'business', label: 'Business Accounts', icon: Shield, badge: stats.pendingBusiness },
+  ];
+
+  const TAB_META: Record<typeof activeTab, { title: string; subtitle: string }> = {
+    pipeline: { title: 'Command Centre', subtitle: 'Live job pipeline and dispatch' },
+    quotes: { title: 'Dispatch Log', subtitle: 'Quote requests and conversions' },
+    drivers: { title: 'Driver Network', subtitle: 'Onboarding and verification' },
+    business: { title: 'Business Accounts', subtitle: 'Corporate partnerships' },
+  };
+
+  const jobsActive = jobs.filter(j => j.status !== 'completed').length;
+  const jobsCompleted = jobs.filter(j => j.status === 'completed').length;
+
+  const CONTEXT_STATS: Record<typeof activeTab, { title: string; value: number; icon: any }[]> = {
+    pipeline: [
+      { title: 'Active Jobs', value: jobsActive, icon: Zap },
+      { title: 'Pending Dispatch', value: jobs.filter(j => j.status === 'pending').length, icon: Clock },
+      { title: 'Completed', value: jobsCompleted, icon: CheckCircle2 },
+    ],
+    quotes: [
+      { title: 'Total Quotes', value: stats.total, icon: LayoutDashboard },
+      { title: 'Pending', value: stats.pending, icon: Clock },
+      { title: 'Completed', value: stats.completed, icon: CheckCircle2 },
+    ],
+    drivers: [
+      { title: 'Total Drivers', value: stats.drivers, icon: Truck },
+      { title: 'Pending Review', value: stats.pendingDrivers, icon: Clock },
+      { title: 'Approved', value: approvedDrivers.length, icon: CheckCircle2 },
+    ],
+    business: [
+      { title: 'Total Accounts', value: stats.business, icon: Shield },
+      { title: 'Pending', value: stats.pendingBusiness, icon: Clock },
+      { title: 'Active', value: businessInquiries.filter(b => b.status === 'active').length, icon: CheckCircle2 },
+    ],
+  };
+
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text">
-      {/* Sidebar / Header */}
-      <div className="fixed top-0 left-0 right-0 h-20 bg-brand-bg/80 backdrop-blur-xl border-b border-brand-border z-50 flex items-center justify-between px-8">
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg overflow-hidden border border-brand-border">
-              <img src="/logo.svg" alt="Nokael Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            </div>
-            <h1 className="text-xl font-display font-medium tracking-tighter">Dispatch Command Center.</h1>
+    <div className="min-h-screen bg-brand-bg text-brand-text flex">
+      {/* Sidebar */}
+      <aside className="hidden md:flex flex-col w-56 shrink-0 border-r border-brand-border h-screen sticky top-0 px-4 py-6">
+        <div className="flex items-center gap-3 px-2 mb-8">
+          <div className="w-9 h-9 rounded-lg overflow-hidden border border-brand-border shrink-0">
+            <img src="/logo.svg" alt="Nokael Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
           </div>
-          
-          <nav className="hidden md:flex items-center gap-6">
-            <button 
-              onClick={() => setActiveTab('pipeline')}
-              className={`text-[10px] font-bold uppercase tracking-[0.3em] transition-colors ${activeTab === 'pipeline' ? 'text-brand-neon' : 'text-brand-muted hover:text-brand-text'}`}
-            >
-              Command Centre
-            </button>
-            <button 
-              onClick={() => setActiveTab('quotes')}
-              className={`text-[10px] font-bold uppercase tracking-[0.3em] transition-colors ${activeTab === 'quotes' ? 'text-brand-neon' : 'text-brand-muted hover:text-brand-text'}`}
-            >
-              Dispatch Log
-            </button>
-            <button 
-              onClick={() => setActiveTab('drivers')}
-              className={`text-[10px] font-bold uppercase tracking-[0.3em] transition-colors ${activeTab === 'drivers' ? 'text-brand-neon' : 'text-brand-muted hover:text-brand-text'}`}
-            >
-              Driver Network
-            </button>
-            <button 
-              onClick={() => setActiveTab('business')}
-              className={`text-[10px] font-bold uppercase tracking-[0.3em] transition-colors ${activeTab === 'business' ? 'text-brand-neon' : 'text-brand-muted hover:text-brand-text'}`}
-            >
-              Business Accounts
-            </button>
-          </nav>
+          <div className="min-w-0">
+            <h1 className="text-sm font-display font-medium leading-tight truncate">Nokael</h1>
+            <p className="text-[11px] text-brand-muted truncate">Dispatch Centre</p>
+          </div>
         </div>
-        <div className="flex items-center gap-8">
-          <div className="hidden md:flex items-center gap-6 text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted">
-            <span className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-brand-neon animate-pulse" />
-              System Live
-            </span>
-            <span>Uptime: 99.9%</span>
+
+        <nav className="flex-1 space-y-1">
+          {NAV_ITEMS.map(item => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                activeTab === item.id ? "bg-brand-neon/10 text-brand-neon" : "text-brand-muted hover:text-brand-text hover:bg-brand-surface"
+              )}
+            >
+              <item.icon className="w-4 h-4 shrink-0" />
+              <span className="flex-1 text-left truncate">{item.label}</span>
+              {!!item.badge && (
+                <span className={cn(
+                  "text-[10px] font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center",
+                  activeTab === item.id ? "bg-brand-neon text-brand-bg" : "bg-brand-input text-brand-muted"
+                )}>{item.badge}</span>
+              )}
+            </button>
+          ))}
+        </nav>
+
+        <div className="space-y-1 pt-4 border-t border-brand-border">
+          <div className="flex items-center gap-2 px-3 py-2 text-[11px] text-brand-muted">
+            <div className="w-1.5 h-1.5 rounded-full bg-brand-neon animate-pulse" />
+            Live
           </div>
-          <button 
+          <button
             onClick={handleLogout}
-            className="flex items-center gap-2 text-brand-muted hover:text-brand-text transition-colors text-[10px] font-bold uppercase tracking-[0.3em]"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-brand-muted hover:text-brand-text hover:bg-brand-surface transition-colors"
           >
             <LogOut className="w-4 h-4" />
-            <span>Logout</span>
+            Logout
           </button>
         </div>
-      </div>
+      </aside>
 
-      <div className="pt-32 pb-20 px-8 max-w-[1600px] mx-auto">
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* Top bar */}
+        <header className="sticky top-0 z-40 bg-brand-bg/90 backdrop-blur-xl border-b border-brand-border px-5 md:px-8 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="md:hidden w-8 h-8 rounded-lg overflow-hidden border border-brand-border shrink-0">
+              <img src="/logo.svg" alt="Nokael Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-lg font-display font-medium tracking-tight truncate">{TAB_META[activeTab].title}</h2>
+              <p className="text-xs text-brand-muted truncate">{TAB_META[activeTab].subtitle}</p>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="md:hidden p-2 text-brand-muted hover:text-brand-text transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </header>
+
+        {/* Mobile tab switcher */}
+        <nav className="md:hidden flex items-center gap-2 px-5 py-3 overflow-x-auto no-scrollbar border-b border-brand-border">
+          {NAV_ITEMS.map(item => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors",
+                activeTab === item.id ? "bg-brand-neon/10 text-brand-neon" : "text-brand-muted"
+              )}
+            >
+              <item.icon className="w-3.5 h-3.5" />
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+      <div className="flex-1 px-5 md:px-8 py-8 max-w-[1600px] w-full mx-auto">
         {error && (
-          <div className="mb-12 p-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500">
+          <div className="mb-6 p-5 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500">
             <div className="flex items-center gap-3 mb-2">
               <Shield className="w-5 h-5" />
-              <h3 className="text-sm font-bold uppercase tracking-widest">System Error</h3>
+              <h3 className="text-sm font-semibold">System Error</h3>
             </div>
-            <p className="text-xs leading-relaxed opacity-80 mb-4">{error}</p>
-            <button onClick={fetchData} className="text-[10px] font-bold uppercase tracking-widest underline">Retry Connection</button>
+            <p className="text-xs leading-relaxed opacity-80 mb-3">{error}</p>
+            <button onClick={fetchData} className="text-xs font-semibold underline">Retry Connection</button>
           </div>
         )}
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <StatCard title="Live Mission Ops" value={jobs.filter(j => j.status !== 'completed').length} icon={Zap} color="neon" />
-          <StatCard title="Quotation Pool" value={stats.total} icon={LayoutDashboard} trend="+12%" />
-          <StatCard title="Active Units" value={stats.drivers} icon={Truck} />
-          <StatCard title="Corporate Leads" value={stats.business} icon={Shield} />
+        {/* Contextual stats */}
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          {CONTEXT_STATS[activeTab].map(stat => (
+            <StatCard key={stat.title} title={stat.title} value={stat.value} icon={stat.icon} />
+          ))}
         </div>
 
         {activeTab === 'pipeline' ? (
-          <div className="space-y-8">
-            <div className="flex justify-between items-center bg-brand-surface/20 p-6 rounded-3xl border border-brand-border">
-              <div className="flex items-center gap-8">
-                <nav className="flex items-center gap-6">
-                  <button 
-                    onClick={() => setJobViewMode('kanban')}
-                    className={cn(
-                      "flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] transition-all py-2 border-b-2",
-                      jobViewMode === 'kanban' ? "text-brand-neon border-brand-neon" : "text-brand-muted border-transparent hover:text-brand-text"
-                    )}
-                  >
-                    <LayoutDashboard className="w-3.5 h-3.5" />
-                    Board View
-                  </button>
-                  <button 
-                    onClick={() => setJobViewMode('list')}
-                    className={cn(
-                      "flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] transition-all py-2 border-b-2",
-                      jobViewMode === 'list' ? "text-brand-neon border-brand-neon" : "text-brand-muted border-transparent hover:text-brand-text"
-                    )}
-                  >
-                    <Activity className="w-3.5 h-3.5" />
-                    Live Pipeline
-                  </button>
-                </nav>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center gap-4">
+              <div className="flex items-center gap-1 bg-brand-surface border border-brand-border rounded-xl p-1">
+                <button 
+                  onClick={() => setJobViewMode('kanban')}
+                  className={cn(
+                    "flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg transition-all",
+                    jobViewMode === 'kanban' ? "bg-brand-neon/10 text-brand-neon" : "text-brand-muted hover:text-brand-text"
+                  )}
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  Board
+                </button>
+                <button 
+                  onClick={() => setJobViewMode('list')}
+                  className={cn(
+                    "flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg transition-all",
+                    jobViewMode === 'list' ? "bg-brand-neon/10 text-brand-neon" : "text-brand-muted hover:text-brand-text"
+                  )}
+                >
+                  <Activity className="w-3.5 h-3.5" />
+                  List
+                </button>
               </div>
               <button 
                 onClick={() => setShowJobCreateModal(true)}
-                className="flex items-center gap-3 bg-brand-neon text-brand-bg px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(57,255,20,0.2)]"
+                className="flex items-center gap-2 bg-brand-neon text-brand-bg px-4 py-2 rounded-xl text-xs font-semibold hover:opacity-90 active:scale-95 transition-all"
               >
                 <Plus className="w-4 h-4" />
-                Manual Mission Dispatch
+                New Job
               </button>
             </div>
 
             {jobViewMode === 'kanban' ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-[calc(100vh-350px)] min-h-[600px]">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 h-[calc(100vh-320px)] min-h-[560px]">
                 <KanbanColumn 
                   title="Pending Dispatch" 
                   status="pending" 
@@ -478,11 +540,11 @@ export default function Dashboard() {
                 <div className="overflow-x-auto no-scrollbar">
                   <table className="w-full text-left">
                     <thead>
-                      <tr className="bg-brand-input/50 text-[9px] font-black uppercase tracking-[0.3em] text-brand-muted">
-                        <th className="px-10 py-5">Job Reference</th>
-                        <th className="px-10 py-5">Route & Timeline</th>
-                        <th className="px-10 py-5">Stakeholders</th>
-                        <th className="px-10 py-5">Chain of Custody</th>
+                      <tr className="bg-brand-input/50 text-[11px] font-semibold uppercase tracking-wide text-brand-muted">
+                        <th className="px-6 py-3">Job</th>
+                        <th className="px-6 py-3">Route</th>
+                        <th className="px-6 py-3">People</th>
+                        <th className="px-6 py-3">COC Progress</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-brand-border">
@@ -492,29 +554,29 @@ export default function Dashboard() {
                           className="hover:bg-brand-surface/30 transition-colors group cursor-pointer"
                           onClick={() => setSelectedJob(job)}
                         >
-                          <td className="px-10 py-8">
-                              <div className="text-sm font-mono font-black text-brand-neon mb-1">#{job.job_ref?.toString().padStart(4, '0')}</div>
+                          <td className="px-6 py-4">
+                              <div className="text-sm font-mono font-semibold text-brand-neon mb-1">#{job.job_ref?.toString().padStart(4, '0')}</div>
                               <span className={cn(
-                                "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded",
+                                "text-xs font-medium px-2 py-0.5 rounded",
                                 job.status === 'completed' ? "bg-brand-neon/10 text-brand-neon" : "bg-yellow-500/10 text-yellow-500"
                               )}>{job.status?.replace('_', ' ')}</span>
                           </td>
-                          <td className="px-10 py-8">
+                          <td className="px-6 py-4">
                               <div className="flex items-center gap-3 text-sm font-medium mb-2">
                                 <span>{job.pickup_location}</span>
                                 <ArrowRight className="w-3 h-3 text-brand-neon" />
                                 <span>{job.delivery_location}</span>
                               </div>
-                              <div className="text-[10px] font-bold uppercase tracking-widest text-brand-muted">{job.pickup_emirate} Corridor</div>
+                              <div className="text-xs font-medium text-brand-muted">{job.pickup_emirate} Corridor</div>
                           </td>
-                          <td className="px-10 py-8">
+                          <td className="px-6 py-4">
                               <p className="text-xs font-medium text-brand-text mb-1">{job.sender_name}</p>
                               <div className="flex gap-2 items-center">
                                 <Truck className="w-3 h-3 text-brand-muted" />
-                                <p className="text-[10px] text-brand-muted font-bold">{job.driver?.full_name || 'Pilot Pending'}</p>
+                                <p className="text-xs text-brand-muted font-medium">{job.driver?.full_name || 'Pilot Pending'}</p>
                               </div>
                           </td>
-                          <td className="px-10 py-8">
+                          <td className="px-6 py-4">
                               <div className="flex gap-1.5">
                                 {[
                                   { key: 'client_pickup_at', label: 'Handover' },
@@ -544,87 +606,62 @@ export default function Dashboard() {
           </div>
         ) : activeTab === 'quotes' ? (
           <>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-              {/* Chart Section */}
-              <div className="lg:col-span-2 dispatch-card p-10">
-                <div className="flex justify-between items-center mb-12">
-                  <div>
-                    <h2 className="text-xl font-display font-medium tracking-tighter mb-1">Growth Analytics.</h2>
-                    <p className="text-[10px] text-brand-muted uppercase tracking-[0.3em] font-bold font-mono">Real-time corridor volume</p>
-                  </div>
-                </div>
-                <div className="h-[350px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData}>
-                      <defs>
-                        <linearGradient id="colorJobs" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#39FF14" stopOpacity={0.2}/>
-                          <stop offset="95%" stopColor="#39FF14" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-                      <XAxis dataKey="name" stroke="#4A4E54" fontSize={10} tickLine={false} axisLine={false} />
-                      <YAxis stroke="#4A4E54" fontSize={10} tickLine={false} axisLine={false} />
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: 'var(--color-brand-bg)', border: '1px solid var(--color-brand-border)', borderRadius: '16px' }}
-                        itemStyle={{ color: '#39FF14', fontSize: '10px', fontWeight: 800 }}
-                      />
-                      <Area type="monotone" dataKey="jobs" stroke="#39FF14" fillOpacity={1} fill="url(#colorJobs)" strokeWidth={2} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Quick Actions / Recent Activity */}
-              <div className="dispatch-card p-10">
-                <h2 className="text-xl font-display font-medium tracking-tighter mb-10">System Status.</h2>
-                <div className="space-y-4">
-                  {[
-                    { label: 'Dispatch Server', status: 'Online' },
-                    { label: 'WhatsApp API', status: 'Connected' },
-                    { label: 'Driver Network', status: `Active (${stats.drivers})` },
-                    { label: 'Google Drive', status: 'Linked' },
-                  ].map((item, i) => (
-                    <div key={i} className="flex justify-between items-center p-5 bg-brand-input border border-brand-input-border rounded-2xl">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-muted">{item.label}</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-brand-neon" />
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-neon">{item.status}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Jobs Table */}
-            <div className="dispatch-card overflow-hidden p-0">
-              <div className="p-10 border-b border-brand-border flex flex-col md:flex-row justify-between items-center gap-6">
+            {/* Growth chart — collapsed by default to reduce clutter, real data would replace the placeholder series */}
+            <details className="dispatch-card p-6 mb-6 group">
+              <summary className="flex justify-between items-center cursor-pointer list-none">
                 <div>
-                  <h2 className="text-xl font-display font-medium tracking-tighter mb-1">Live Dispatch Log.</h2>
-                  <p className="text-[10px] text-brand-muted uppercase tracking-[0.3em] font-bold">Real-time job monitoring</p>
+                  <h2 className="text-base font-display font-medium tracking-tight">Weekly volume</h2>
+                  <p className="text-xs text-brand-muted">Corridor throughput trend</p>
                 </div>
-                <div className="flex items-center gap-4 w-full md:w-auto">
-                  <div className="relative flex-1 md:w-72">
-                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                <ChevronRight className="w-4 h-4 text-brand-muted transition-transform group-open:rotate-90" />
+              </summary>
+              <div className="h-[220px] w-full mt-6">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="colorJobs" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#39FF14" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#39FF14" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                    <XAxis dataKey="name" stroke="#4A4E54" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#4A4E54" fontSize={10} tickLine={false} axisLine={false} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'var(--color-brand-bg)', border: '1px solid var(--color-brand-border)', borderRadius: '16px' }}
+                      itemStyle={{ color: '#39FF14', fontSize: '10px', fontWeight: 600 }}
+                    />
+                    <Area type="monotone" dataKey="jobs" stroke="#39FF14" fillOpacity={1} fill="url(#colorJobs)" strokeWidth={2} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </details>
+
+            {/* Quotes table */}
+            <div className="dispatch-card overflow-hidden p-0">
+              <div className="p-5 border-b border-brand-border flex flex-col md:flex-row justify-between items-center gap-4">
+                <h2 className="text-base font-display font-medium tracking-tight self-start md:self-auto">Quote requests</h2>
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <div className="relative flex-1 md:w-64">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
                     <input 
                       type="text" 
-                      placeholder="Search dispatch..."
-                      className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3 pl-12 pr-4 text-xs focus:border-brand-neon/50 outline-none transition-all"
+                      placeholder="Search quotes..."
+                      className="w-full bg-brand-input border border-brand-input-border rounded-xl py-2.5 pl-10 pr-4 text-xs focus:border-brand-neon/50 outline-none transition-all"
                       value={searchTerm}
                       onChange={e => setSearchTerm(e.target.value)}
                     />
                   </div>
                   <select 
-                    className="bg-brand-input border border-brand-input-border rounded-xl px-5 py-3 text-[10px] font-bold uppercase tracking-widest outline-none focus:border-brand-neon/50"
+                    className="bg-brand-input border border-brand-input-border rounded-xl px-4 py-2.5 text-xs font-medium outline-none focus:border-brand-neon/50"
                     value={filterStatus}
                     onChange={e => setFilterStatus(e.target.value)}
                   >
-                    <option value="all">All Status</option>
+                    <option value="all">All status</option>
                     <option value="pending">Pending</option>
                     <option value="assigned">Assigned</option>
-                    <option value="picked_up">Picked Up</option>
-                    <option value="in_transit">In Transit</option>
+                    <option value="picked_up">Picked up</option>
+                    <option value="in_transit">In transit</option>
                     <option value="delivered">Delivered</option>
                     <option value="contacted">Contacted</option>
                     <option value="completed">Completed</option>
@@ -635,44 +672,44 @@ export default function Dashboard() {
               <div className="overflow-x-auto no-scrollbar">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="bg-brand-input text-[9px] uppercase tracking-[0.3em] font-bold text-brand-muted">
-                      <th className="px-10 py-5">Client Profile</th>
-                      <th className="px-10 py-5">Dispatch Route</th>
-                      <th className="px-10 py-5">Item / Urgency</th>
-                      <th className="px-10 py-5">Driver Assignment</th>
-                      <th className="px-10 py-5">System Status</th>
-                      <th className="px-10 py-5 text-right">Operations</th>
+                    <tr className="bg-brand-input text-[11px] uppercase tracking-wide font-medium text-brand-muted">
+                      <th className="px-6 py-3">Client</th>
+                      <th className="px-6 py-3">Route</th>
+                      <th className="px-6 py-3">Item / Urgency</th>
+                      <th className="px-6 py-3">Driver</th>
+                      <th className="px-6 py-3">Status</th>
+                      <th className="px-6 py-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-brand-border">
                     {filteredRequests.map((req) => (
                       <tr key={req.id} className="hover:bg-brand-input transition-colors group">
-                        <td className="px-10 py-8">
+                        <td className="px-6 py-4">
                           <div className="font-medium text-brand-text mb-1.5 text-sm">{req.name}</div>
                           <div className="flex flex-col gap-1">
-                            <div className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">{req.phone}</div>
+                            <div className="text-xs text-brand-muted font-medium">{req.phone}</div>
                             {req.corporate_code && (
                               <div className="flex items-center gap-1.5">
                                 <Shield className="w-3 h-3 text-brand-neon" />
-                                <span className="text-[9px] text-brand-neon font-black uppercase tracking-widest font-mono">Corp: {req.corporate_code}</span>
+                                <span className="text-[11px] text-brand-neon font-medium font-mono">Corp: {req.corporate_code}</span>
                               </div>
                             )}
                             {req.tracking_id && (
-                              <div className="text-[9px] text-brand-muted font-bold uppercase tracking-widest font-mono">ID: {req.tracking_id}</div>
+                              <div className="text-[11px] text-brand-muted font-medium font-mono">ID: {req.tracking_id}</div>
                             )}
                           </div>
                         </td>
-                        <td className="px-10 py-8">
+                        <td className="px-6 py-4">
                           <div className="flex items-center gap-3 text-sm font-medium mb-2">
                             <span>{req.pickup_location}</span>
                             <ArrowRight className="w-3 h-3 text-brand-neon" />
                             <span>{req.delivery_location}</span>
                           </div>
-                          <div className="text-[10px] uppercase tracking-[0.2em] text-brand-muted font-bold">{req.emirate} Corridor</div>
+                          <div className="text-xs uppercase tracking-wide text-brand-muted font-medium">{req.emirate} Corridor</div>
                         </td>
-                        <td className="px-10 py-8">
-                          <div className="text-[10px] font-bold uppercase tracking-[0.2em] mb-2 text-brand-text">{req.item_type}</div>
-                          <div className={`text-[10px] font-black uppercase tracking-[0.3em] flex items-center gap-2 ${
+                        <td className="px-6 py-4">
+                          <div className="text-xs font-medium uppercase tracking-wide mb-2 text-brand-text">{req.item_type}</div>
+                          <div className={`text-xs font-semibold uppercase tracking-wide flex items-center gap-2 ${
                             req.urgency === 'immediate' ? 'text-red-500' : req.urgency === 'today' ? 'text-yellow-500' : 'text-blue-500'
                           }`}>
                             <div className={`w-1.5 h-1.5 rounded-full ${
@@ -681,11 +718,11 @@ export default function Dashboard() {
                             {req.urgency}
                           </div>
                         </td>
-                        <td className="px-10 py-8">
+                        <td className="px-6 py-4">
                           <select
                             value={req.assigned_driver_id || 'unassigned'}
                             onChange={(e) => handleAssignDriver(req.id!, e.target.value)}
-                            className="bg-brand-surface border border-brand-border rounded-lg px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-text focus:border-brand-neon/50 outline-none w-full max-w-[180px]"
+                            className="bg-brand-surface border border-brand-border rounded-lg px-4 py-2 text-xs font-medium text-brand-text focus:border-brand-neon/50 outline-none w-full max-w-[180px]"
                           >
                             <option value="unassigned">Unassigned</option>
                             {approvedDrivers.map(d => (
@@ -693,11 +730,11 @@ export default function Dashboard() {
                             ))}
                           </select>
                         </td>
-                        <td className="px-10 py-8">
+                        <td className="px-6 py-4">
                           <select 
                             value={req.status}
                             onChange={(e) => handleStatusUpdate(req.id!, e.target.value as any)}
-                            className={`text-[9px] font-bold uppercase tracking-[0.2em] px-4 py-2 rounded-lg border outline-none transition-all ${
+                            className={`text-[11px] font-medium uppercase tracking-wide px-4 py-2 rounded-lg border outline-none transition-all ${
                               req.status === 'completed' || req.status === 'delivered' ? 'bg-brand-neon/5 border-brand-neon/20 text-brand-neon' :
                               req.status === 'in_transit' || req.status === 'picked_up' ? 'bg-blue-500/5 border-blue-500/20 text-blue-500' :
                               req.status === 'assigned' ? 'bg-purple-500/5 border-purple-500/20 text-purple-500' :
@@ -712,7 +749,7 @@ export default function Dashboard() {
                             <option value="completed">Completed</option>
                           </select>
                         </td>
-                        <td className="px-10 py-8 text-right">
+                        <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
                             <button 
                               onClick={() => handleConvertToJob(req)}
@@ -746,63 +783,57 @@ export default function Dashboard() {
           </>
         ) : activeTab === 'business' ? (
           <div className="dispatch-card overflow-hidden p-0">
-            <div className="p-10 border-b border-brand-border flex flex-col md:flex-row justify-between items-center gap-6">
-              <div>
-                <h2 className="text-xl font-display font-medium tracking-tighter mb-1">Business Accounts.</h2>
-                <p className="text-[10px] text-brand-muted uppercase tracking-[0.3em] font-bold">Manage corporate partnerships</p>
-              </div>
-              <div className="flex items-center gap-4 w-full md:w-auto">
-                <div className="relative flex-1 md:w-72">
-                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
-                  <input 
-                    type="text" 
-                    placeholder="Search accounts..."
-                    className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3 pl-12 pr-4 text-xs focus:border-brand-neon/50 outline-none transition-all"
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                  />
-                </div>
+            <div className="p-5 border-b border-brand-border flex justify-end">
+              <div className="relative w-full md:w-72">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                <input 
+                  type="text" 
+                  placeholder="Search accounts..."
+                  className="w-full bg-brand-input border border-brand-input-border rounded-xl py-2.5 pl-10 pr-4 text-xs focus:border-brand-neon/50 outline-none transition-all"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
               </div>
             </div>
 
             <div className="overflow-x-auto no-scrollbar">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="bg-brand-input text-[9px] uppercase tracking-[0.3em] font-bold text-brand-muted">
-                    <th className="px-10 py-5">Company / Contact</th>
-                    <th className="px-10 py-5">Frequency / Route</th>
-                    <th className="px-10 py-5">Billing</th>
-                    <th className="px-10 py-5">Account Status</th>
-                    <th className="px-10 py-5 text-right">Operations</th>
+                  <tr className="bg-brand-input text-[11px] uppercase tracking-wide font-medium text-brand-muted">
+                    <th className="px-6 py-3">Company</th>
+                    <th className="px-6 py-3">Volume</th>
+                    <th className="px-6 py-3">Billing</th>
+                    <th className="px-6 py-3">Status</th>
+                    <th className="px-6 py-3 text-right">Operations</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-brand-border">
                   {filteredBusiness.map((biz) => (
                     <tr key={biz.id} className="hover:bg-brand-input transition-colors group">
-                      <td className="px-10 py-8">
+                      <td className="px-6 py-4">
                         <div className="font-medium text-brand-text mb-1.5 text-sm">{biz.company_name}</div>
                         <div className="flex flex-col gap-1">
-                          <div className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">{biz.contact_person} • {biz.phone_whatsapp}</div>
-                          <div className="text-[9px] text-brand-neon font-black uppercase tracking-widest font-mono">ID: {biz.corporate_code}</div>
+                          <div className="text-xs text-brand-muted font-medium">{biz.contact_person} • {biz.phone_whatsapp}</div>
+                          <div className="text-[11px] text-brand-neon font-medium font-mono">ID: {biz.corporate_code}</div>
                         </div>
                       </td>
-                      <td className="px-10 py-8">
+                      <td className="px-6 py-4">
                         <div className="text-sm font-medium mb-1.5">{biz.estimated_monthly_volume} jobs/mo</div>
-                        <div className="text-[10px] uppercase tracking-[0.2em] text-brand-muted font-bold truncate max-w-[200px]">{biz.typical_routes}</div>
+                        <div className="text-xs uppercase tracking-wide text-brand-muted font-medium truncate max-w-[200px]">{biz.typical_routes}</div>
                       </td>
-                      <td className="px-10 py-8">
+                      <td className="px-6 py-4">
                         <div className={cn(
-                          "px-3 py-1 inline-block rounded text-[9px] font-black uppercase tracking-widest",
+                          "px-3 py-1 inline-block rounded text-[11px] font-medium",
                           biz.invoicing_required ? "bg-brand-neon/10 text-brand-neon border border-brand-neon/20" : "bg-brand-muted/10 text-brand-muted"
                         )}>
                           {biz.invoicing_required ? 'Monthly Invoicing' : 'Standard Pay'}
                         </div>
                       </td>
-                      <td className="px-10 py-8">
+                      <td className="px-6 py-4">
                         <select 
                           value={biz.status}
                           onChange={(e) => handleBusinessUpdate(biz.id!, { status: e.target.value as any })}
-                          className={`text-[9px] font-bold uppercase tracking-[0.2em] px-4 py-2 rounded-lg border outline-none transition-all ${
+                          className={`text-[11px] font-medium uppercase tracking-wide px-4 py-2 rounded-lg border outline-none transition-all ${
                             biz.status === 'active' ? 'bg-brand-neon/5 border-brand-neon/20 text-brand-neon' :
                             biz.status === 'archived' ? 'bg-red-500/5 border-red-500/20 text-red-500' :
                             'bg-yellow-500/5 border-yellow-500/20 text-yellow-500'
@@ -813,10 +844,10 @@ export default function Dashboard() {
                           <option value="archived">Archived</option>
                         </select>
                       </td>
-                      <td className="px-10 py-8 text-right">
+                      <td className="px-6 py-4 text-right">
                         <button 
                           onClick={() => setSelectedBusiness(biz)}
-                          className="px-6 py-2.5 bg-brand-surface border border-brand-border text-brand-text text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-brand-neon hover:text-brand-bg transition-all"
+                          className="px-6 py-2.5 bg-brand-surface border border-brand-border text-brand-text text-xs font-medium rounded-lg hover:bg-brand-neon hover:text-brand-bg transition-all"
                         >
                           View Details
                         </button>
@@ -829,83 +860,77 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="dispatch-card overflow-hidden p-0">
-            <div className="p-10 border-b border-brand-border flex flex-col md:flex-row justify-between items-center gap-6">
-              <div>
-                <h2 className="text-xl font-display font-medium tracking-tighter mb-1">Driver Network.</h2>
-                <p className="text-[10px] text-brand-muted uppercase tracking-[0.3em] font-bold">Manage onboarding and verification</p>
+            <div className="p-5 border-b border-brand-border flex flex-col md:flex-row justify-end items-center gap-3">
+              <div className="relative w-full md:w-64">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                <input 
+                  type="text" 
+                  placeholder="Search drivers..."
+                  className="w-full bg-brand-input border border-brand-input-border rounded-xl py-2.5 pl-10 pr-4 text-xs focus:border-brand-neon/50 outline-none transition-all"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
               </div>
-              <div className="flex items-center gap-4 w-full md:w-auto">
-                <div className="relative flex-1 md:w-72">
-                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
-                  <input 
-                    type="text" 
-                    placeholder="Search drivers..."
-                    className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3 pl-12 pr-4 text-xs focus:border-brand-neon/50 outline-none transition-all"
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <select 
-                  className="bg-brand-input border border-brand-input-border rounded-xl px-5 py-3 text-[10px] font-bold uppercase tracking-widest outline-none focus:border-brand-neon/50"
-                  value={filterStatus}
-                  onChange={e => setFilterStatus(e.target.value)}
-                >
-                  <option value="all">All Status</option>
-                  <option value="pending">Pending</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
-                </select>
-                <select 
-                  className="bg-brand-input border border-brand-input-border rounded-xl px-5 py-3 text-[10px] font-bold uppercase tracking-widest outline-none focus:border-brand-neon/50"
-                  value={filterVehicle}
-                  onChange={e => setFilterVehicle(e.target.value)}
-                >
-                  <option value="all">Vehicle Type</option>
-                  <option value="Sedan">Sedan</option>
-                  <option value="Executive SUV">Executive SUV</option>
-                  <option value="Panel Van">Panel Van</option>
-                  <option value="Motorcycle (License R)">Motorcycle</option>
-                  <option value="3-Ton Pickup">3-Ton Pickup</option>
-                </select>
-              </div>
+              <select 
+                className="bg-brand-input border border-brand-input-border rounded-xl px-4 py-2.5 text-xs font-medium outline-none focus:border-brand-neon/50 w-full md:w-auto"
+                value={filterStatus}
+                onChange={e => setFilterStatus(e.target.value)}
+              >
+                <option value="all">All status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+              <select 
+                className="bg-brand-input border border-brand-input-border rounded-xl px-4 py-2.5 text-xs font-medium outline-none focus:border-brand-neon/50 w-full md:w-auto"
+                value={filterVehicle}
+                onChange={e => setFilterVehicle(e.target.value)}
+              >
+                <option value="all">All vehicles</option>
+                <option value="Sedan">Sedan</option>
+                <option value="Executive SUV">Executive SUV</option>
+                <option value="Panel Van">Panel Van</option>
+                <option value="Motorcycle (License R)">Motorcycle</option>
+                <option value="3-Ton Pickup">3-Ton Pickup</option>
+              </select>
             </div>
 
             <div className="overflow-x-auto no-scrollbar">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="bg-brand-input text-[9px] uppercase tracking-[0.3em] font-bold text-brand-muted">
-                    <th className="px-10 py-5">Driver Profile</th>
-                    <th className="px-10 py-5">Vehicle / Location</th>
-                    <th className="px-10 py-5">Tier / Score</th>
-                    <th className="px-10 py-5">Onboarding</th>
-                    <th className="px-10 py-5 text-right">Operations</th>
+                  <tr className="bg-brand-input text-[11px] uppercase tracking-wide font-medium text-brand-muted">
+                    <th className="px-6 py-3">Driver</th>
+                    <th className="px-6 py-3">Vehicle</th>
+                    <th className="px-6 py-3">Tier / Score</th>
+                    <th className="px-6 py-3">Onboarding</th>
+                    <th className="px-6 py-3 text-right">Operations</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-brand-border">
                   {filteredDrivers.map((driver) => (
                     <tr key={driver.id} className="hover:bg-brand-input transition-colors group">
-                      <td className="px-10 py-8">
+                      <td className="px-6 py-4">
                         <div className="font-medium text-brand-text mb-1.5 text-sm">{driver.full_name}</div>
-                        <div className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">{driver.phone}</div>
+                        <div className="text-xs text-brand-muted font-medium">{driver.phone}</div>
                       </td>
-                      <td className="px-10 py-8">
+                      <td className="px-6 py-4">
                         <div className="text-sm font-medium mb-1.5">{driver.vehicle_type}</div>
-                        <div className="text-[10px] uppercase tracking-[0.2em] text-brand-muted font-bold">{driver.base_location}</div>
+                        <div className="text-xs uppercase tracking-wide text-brand-muted font-medium">{driver.base_location}</div>
                       </td>
-                      <td className="px-10 py-8">
+                      <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
-                          <div className="px-3 py-1 bg-brand-neon/10 border border-brand-neon/20 rounded text-brand-neon text-[10px] font-bold">Tier {driver.tier}</div>
+                          <div className="px-3 py-1 bg-brand-neon/10 border border-brand-neon/20 rounded text-brand-neon text-xs font-medium">Tier {driver.tier}</div>
                           <div className="flex items-center gap-1.5 text-brand-text">
                             <Star className="w-3 h-3 text-brand-neon fill-brand-neon" />
-                            <span className="text-xs font-bold">{driver.reliability_score || 0}</span>
+                            <span className="text-xs font-medium">{driver.reliability_score || 0}</span>
                           </div>
                         </div>
                       </td>
-                      <td className="px-10 py-8">
+                      <td className="px-6 py-4">
                         <select 
                           value={driver.onboarding_status}
                           onChange={(e) => handleDriverStatusUpdate(driver.id!, { onboarding_status: e.target.value as any })}
-                          className={`text-[9px] font-bold uppercase tracking-[0.2em] px-4 py-2 rounded-lg border outline-none transition-all ${
+                          className={`text-[11px] font-medium uppercase tracking-wide px-4 py-2 rounded-lg border outline-none transition-all ${
                             driver.onboarding_status === 'approved' ? 'bg-brand-neon/5 border-brand-neon/20 text-brand-neon' :
                             driver.onboarding_status === 'rejected' ? 'bg-red-500/5 border-red-500/20 text-red-500' :
                             'bg-yellow-500/5 border-yellow-500/20 text-yellow-500'
@@ -916,10 +941,10 @@ export default function Dashboard() {
                           <option value="rejected">Rejected</option>
                         </select>
                       </td>
-                      <td className="px-10 py-8 text-right">
+                      <td className="px-6 py-4 text-right">
                         <button 
                           onClick={() => handleViewDriver(driver.id!)}
-                          className="px-6 py-2.5 bg-brand-surface border border-brand-border text-brand-text text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-brand-neon hover:text-brand-bg transition-all"
+                          className="px-6 py-2.5 bg-brand-surface border border-brand-border text-brand-text text-xs font-medium rounded-lg hover:bg-brand-neon hover:text-brand-bg transition-all"
                         >
                           Review Profile
                         </button>
@@ -931,6 +956,7 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+      </div>
       </div>
 
       {/* Driver Profile Modal */}
@@ -955,9 +981,9 @@ export default function Dashboard() {
                 <div>
                   <h2 className="text-2xl font-display font-medium tracking-tighter mb-1">{selectedDriver.full_name}</h2>
                   <div className="flex items-center gap-3">
-                    <p className="text-[10px] text-brand-muted uppercase tracking-[0.3em] font-bold">Driver ID: {selectedDriver.id?.substring(0, 8)}</p>
+                    <p className="text-xs text-brand-muted uppercase tracking-wide font-medium">Driver ID: {selectedDriver.id?.substring(0, 8)}</p>
                     <div className={cn(
-                      "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border",
+                      "px-2 py-0.5 rounded text-xs font-medium border",
                       selectedDriver.onboarding_status === 'approved' ? "bg-brand-neon/10 text-brand-neon border-brand-neon/20" :
                       selectedDriver.onboarding_status === 'rejected' ? "bg-red-500/10 text-red-500 border-red-500/20" :
                       "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
@@ -976,9 +1002,9 @@ export default function Dashboard() {
             </div>
 
             <div className="flex-grow overflow-y-auto p-8 no-scrollbar">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
                 <div className="space-y-6">
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted border-b border-brand-border pb-2">Contact Details</h3>
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted border-b border-brand-border pb-2">Contact Details</h3>
                   <div className="space-y-4">
                     <div className="flex items-center gap-4">
                       <div className="p-2 bg-brand-input rounded-lg"><Phone className="w-4 h-4 text-brand-neon" /></div>
@@ -996,7 +1022,7 @@ export default function Dashboard() {
                 </div>
 
                 <div className="space-y-6">
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted border-b border-brand-border pb-2">Vehicle & Logistics</h3>
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted border-b border-brand-border pb-2">Vehicle & Logistics</h3>
                   <div className="space-y-4">
                     <div className="flex items-center gap-4">
                       <div className="p-2 bg-brand-input rounded-lg"><Truck className="w-4 h-4 text-brand-neon" /></div>
@@ -1014,14 +1040,14 @@ export default function Dashboard() {
                 </div>
 
                 <div className="space-y-6">
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted border-b border-brand-border pb-2">Internal Management</h3>
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted border-b border-brand-border pb-2">Internal Management</h3>
                   <div className="space-y-4">
                     <div className="flex flex-col gap-2">
-                      <label className="text-[9px] font-bold uppercase tracking-widest text-brand-muted">Tiering Strategy</label>
+                      <label className="text-[11px] font-medium text-brand-muted">Tiering Strategy</label>
                       <select 
                         value={selectedDriver.tier || 'D'}
                         onChange={(e) => handleDriverStatusUpdate(selectedDriver.id!, { tier: e.target.value as any })}
-                        className="w-full bg-brand-input border border-brand-input-border rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest outline-none focus:border-brand-neon/50 transition-all font-mono"
+                        className="w-full bg-brand-input border border-brand-input-border rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-brand-neon/50 transition-all font-mono"
                       >
                         <option value="A">Elite Rank (A)</option>
                         <option value="B">Priority Rank (B)</option>
@@ -1030,7 +1056,7 @@ export default function Dashboard() {
                       </select>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <label className="text-[9px] font-bold uppercase tracking-widest text-brand-muted">Reliability Score (1-10)</label>
+                      <label className="text-[11px] font-medium text-brand-muted">Reliability Score (1-10)</label>
                       <div className="flex items-center gap-3">
                         <input 
                           type="number"
@@ -1041,7 +1067,7 @@ export default function Dashboard() {
                             const val = parseInt(e.target.value);
                             handleDriverStatusUpdate(selectedDriver.id!, { reliability_score: isNaN(val) ? 0 : val });
                           }}
-                          className="w-16 bg-brand-input border border-brand-input-border rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest outline-none focus:border-brand-neon transition-all font-mono"
+                          className="w-16 bg-brand-input border border-brand-input-border rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-brand-neon transition-all font-mono"
                         />
                         <div className="flex-1 bg-brand-input h-2 rounded-full overflow-hidden border border-brand-border">
                           <div 
@@ -1055,8 +1081,8 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="mb-12">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted border-b border-brand-border pb-4 mb-6">Uploaded Documents (Google Drive)</h3>
+              <div className="mb-8">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted border-b border-brand-border pb-4 mb-6">Uploaded Documents (Google Drive)</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {selectedDriver.documents?.map((doc) => (
                     <div key={doc.id} className="p-6 bg-brand-input border border-brand-input-border rounded-2xl flex items-center justify-between group hover:border-brand-neon/30 transition-all">
@@ -1065,8 +1091,8 @@ export default function Dashboard() {
                           <FileText className="w-5 h-5" />
                         </div>
                         <div>
-                          <div className="text-[10px] font-bold uppercase tracking-widest text-brand-text mb-1">{doc.document_type.replace('_', ' ')}</div>
-                          <div className="text-[9px] text-brand-muted uppercase tracking-widest">Status: {doc.verification_status}</div>
+                          <div className="text-xs font-medium text-brand-text mb-1">{doc.document_type.replace('_', ' ')}</div>
+                          <div className="text-[11px] text-brand-muted ">Status: {doc.verification_status}</div>
                         </div>
                       </div>
                       <a 
@@ -1080,16 +1106,16 @@ export default function Dashboard() {
                     </div>
                   ))}
                   {(!selectedDriver.documents || selectedDriver.documents.length === 0) && (
-                    <div className="col-span-2 p-12 bg-brand-input rounded-3xl border border-dashed border-brand-border text-center opacity-50">
+                    <div className="col-span-2 p-8 bg-brand-input rounded-3xl border border-dashed border-brand-border text-center opacity-50">
                       <FileText className="w-10 h-10 text-brand-muted mx-auto mb-4" />
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted">No documents found</p>
+                      <p className="text-xs font-medium text-brand-muted">No documents found</p>
                     </div>
                   )}
                 </div>
               </div>
 
               <div>
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted mb-6">Internal Audit Notes</h3>
+                <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted mb-6">Internal Audit Notes</h3>
                 <textarea 
                   className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-6 text-sm outline-none focus:border-brand-neon/50 transition-all min-h-[150px] font-mono text-[11px]"
                   placeholder="Record verification results or history..."
@@ -1106,7 +1132,7 @@ export default function Dashboard() {
                   e.stopPropagation();
                   await handleDriverStatusUpdate(selectedDriver.id!, { onboarding_status: 'approved' });
                 }}
-                className="flex-1 py-5 bg-brand-neon text-brand-bg text-[10px] font-bold uppercase tracking-[0.3em] rounded-2xl hover:bg-white disabled:opacity-50 transition-all flex items-center justify-center gap-3 group shadow-lg shadow-brand-neon/10"
+                className="flex-1 py-5 bg-brand-neon text-brand-bg text-xs font-medium uppercase tracking-wide rounded-2xl hover:bg-white disabled:opacity-50 transition-all flex items-center justify-center gap-3 group shadow-lg shadow-brand-neon/10"
               >
                 {isUpdating === selectedDriver.id ? (
                   <Loader2 className="w-4 h-4 animate-spin text-brand-bg" />
@@ -1121,7 +1147,7 @@ export default function Dashboard() {
                   e.stopPropagation();
                   await handleDriverStatusUpdate(selectedDriver.id!, { onboarding_status: 'rejected' });
                 }}
-                className="flex-1 py-5 bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-bold uppercase tracking-[0.3em] rounded-2xl hover:bg-red-500 hover:text-white disabled:opacity-50 transition-all flex items-center justify-center gap-3 group"
+                className="flex-1 py-5 bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-medium uppercase tracking-wide rounded-2xl hover:bg-red-500 hover:text-white disabled:opacity-50 transition-all flex items-center justify-center gap-3 group"
               >
                 {isUpdating === selectedDriver.id ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -1152,7 +1178,7 @@ export default function Dashboard() {
             <div className="p-8 border-b border-brand-border flex justify-between items-center">
               <div>
                 <h2 className="text-2xl font-display font-medium tracking-tighter mb-1">{selectedBusiness.company_name}</h2>
-                <p className="text-[10px] text-brand-muted uppercase tracking-[0.3em] font-bold">Business Entity</p>
+                <p className="text-xs text-brand-muted uppercase tracking-wide font-medium">Business Entity</p>
               </div>
               <button 
                 onClick={() => setSelectedBusiness(null)}
@@ -1163,9 +1189,9 @@ export default function Dashboard() {
             </div>
 
             <div className="flex-grow overflow-y-auto p-8 no-scrollbar">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
                 <div className="space-y-6">
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted">Point of Contact</h3>
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted">Point of Contact</h3>
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 text-sm">
                       <User className="w-4 h-4 text-brand-neon" />
@@ -1183,7 +1209,7 @@ export default function Dashboard() {
                 </div>
 
                 <div className="space-y-6">
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted">Operational Scope</h3>
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted">Operational Scope</h3>
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 text-sm">
                       <Navigation className="w-4 h-4 text-brand-neon" />
@@ -1201,14 +1227,14 @@ export default function Dashboard() {
                 </div>
 
                 <div className="space-y-6">
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted">Contract Admin</h3>
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted">Contract Admin</h3>
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-brand-muted">Status</label>
+                      <label className="text-xs font-medium text-brand-muted">Status</label>
                       <select 
                         value={selectedBusiness.status}
                         onChange={(e) => handleBusinessUpdate(selectedBusiness.id!, { status: e.target.value as any })}
-                        className="bg-brand-input border border-brand-input-border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest outline-none"
+                        className="bg-brand-input border border-brand-input-border rounded-lg px-3 py-1.5 text-xs font-medium outline-none"
                       >
                         <option value="pending">Pending</option>
                         <option value="active">Active</option>
@@ -1220,7 +1246,7 @@ export default function Dashboard() {
                         "w-3 h-3 rounded-full",
                         selectedBusiness.invoicing_required ? "bg-brand-neon" : "bg-brand-muted"
                       )} />
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-brand-text">
+                      <span className="text-xs font-medium text-brand-text">
                         {selectedBusiness.invoicing_required ? 'Monthly Invoicing' : 'Standard Payment'}
                       </span>
                     </div>
@@ -1229,7 +1255,7 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted mb-6">CRM & Follow-up Notes</h3>
+                <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted mb-6">CRM & Follow-up Notes</h3>
                 <textarea 
                   className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-6 text-sm outline-none focus:border-brand-neon/50 transition-all min-h-[150px]"
                   placeholder="Logs, pre-agreed rates, contract details..."
@@ -1244,14 +1270,14 @@ export default function Dashboard() {
                 href={`https://wa.me/${selectedBusiness.phone_whatsapp.replace(/\D/g, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 py-4 bg-brand-neon text-brand-bg text-[10px] font-bold uppercase tracking-[0.3em] rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-3"
+                className="flex-1 py-4 bg-brand-neon text-brand-bg text-xs font-medium uppercase tracking-wide rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-3"
               >
                 <MessageSquare className="w-4 h-4" />
                 Contact Decision Maker
               </a>
               <button 
                 onClick={() => setSelectedBusiness(null)}
-                className="px-8 py-4 bg-brand-input border border-brand-input-border text-brand-text text-[10px] font-bold uppercase tracking-[0.3em] rounded-xl hover:bg-brand-surface transition-all"
+                className="px-8 py-4 bg-brand-input border border-brand-input-border text-brand-text text-xs font-medium uppercase tracking-wide rounded-xl hover:bg-brand-surface transition-all"
               >
                 Close
               </button>
@@ -1299,9 +1325,9 @@ const KanbanColumn = ({ title, status, jobs, onJobClick }: { title: string, stat
             status === 'client_pickup' || status === 'driver_pickup' ? "bg-blue-500" :
             status === 'driver_delivery' ? "bg-purple-500" : "bg-brand-neon"
           )} />
-          <h3 className="text-sm font-bold uppercase tracking-widest text-brand-text">{title}</h3>
+          <h3 className="text-sm font-medium text-brand-text">{title}</h3>
         </div>
-        <span className="text-[10px] font-mono font-black text-brand-muted bg-brand-bg px-2 py-0.5 rounded border border-brand-border">{jobs.length}</span>
+        <span className="text-xs font-mono font-semibold text-brand-muted bg-brand-bg px-2 py-0.5 rounded border border-brand-border">{jobs.length}</span>
       </div>
       <div className="p-4 flex-grow overflow-y-auto no-scrollbar space-y-4">
         {jobs.map((job) => (
@@ -1312,8 +1338,8 @@ const KanbanColumn = ({ title, status, jobs, onJobClick }: { title: string, stat
             className="dispatch-card p-5 cursor-pointer hover:border-brand-neon/50 transition-all group"
           >
             <div className="flex justify-between items-start mb-4">
-              <span className="text-[9px] font-black font-mono text-brand-neon bg-brand-neon/10 px-2 py-0.5 rounded">#{job.job_ref?.toString().padStart(4, '0')}</span>
-              <span className="text-[9px] font-bold uppercase tracking-widest text-brand-muted">{format(new Date(job.created_at || new Date()), 'HH:mm')}</span>
+              <span className="text-[11px] font-semibold font-mono text-brand-neon bg-brand-neon/10 px-2 py-0.5 rounded">#{job.job_ref?.toString().padStart(4, '0')}</span>
+              <span className="text-[11px] font-medium text-brand-muted">{format(new Date(job.created_at || new Date()), 'HH:mm')}</span>
             </div>
             <div className="space-y-3 mb-4">
               <div className="flex items-center gap-2">
@@ -1331,10 +1357,10 @@ const KanbanColumn = ({ title, status, jobs, onJobClick }: { title: string, stat
                 <div className="w-6 h-6 rounded-full bg-brand-input flex items-center justify-center border border-brand-border">
                   <User className="w-3 h-3 text-brand-muted" />
                 </div>
-                <span className="text-[10px] text-brand-muted font-bold truncate max-w-[80px]">{job.sender_name}</span>
+                <span className="text-xs text-brand-muted font-medium truncate max-w-[80px]">{job.sender_name}</span>
               </div>
               <div className={cn(
-                "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest",
+                "px-2 py-0.5 rounded text-xs font-medium",
                 job.urgency === 'immediate' ? "bg-red-500/10 text-red-500 border border-red-500/20" :
                 job.urgency === 'today' ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20" :
                 "bg-blue-500/10 text-blue-500 border border-blue-500/20"
@@ -1346,7 +1372,7 @@ const KanbanColumn = ({ title, status, jobs, onJobClick }: { title: string, stat
         ))}
         {jobs.length === 0 && (
           <div className="h-32 flex items-center justify-center border-2 border-dashed border-brand-border rounded-2xl opacity-30">
-            <span className="text-[10px] font-bold uppercase tracking-widest">Clear</span>
+            <span className="text-xs font-medium">Clear</span>
           </div>
         )}
       </div>
@@ -1398,17 +1424,17 @@ const JobDetailModal = ({ job, onClose, onUpdate }: { job: JobWithDriver, onClos
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         className="relative w-full max-w-5xl bg-brand-bg border border-brand-border rounded-[40px] shadow-3xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]"
       >
-        <div className="md:w-1/2 p-12 border-r border-brand-border overflow-y-auto no-scrollbar">
-          <div className="flex justify-between items-start mb-10">
+        <div className="md:w-1/2 p-8 border-r border-brand-border overflow-y-auto no-scrollbar">
+          <div className="flex justify-between items-start mb-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-xs font-mono font-black text-brand-neon bg-brand-neon/10 px-3 py-1 rounded">#{job.job_ref?.toString().padStart(4, '0')}</span>
-                <span className="text-xs font-bold uppercase tracking-[0.2em] text-brand-muted">{format(new Date(job.created_at || new Date()), 'PPP')}</span>
+                <span className="text-xs font-mono font-semibold text-brand-neon bg-brand-neon/10 px-3 py-1 rounded">#{job.job_ref?.toString().padStart(4, '0')}</span>
+                <span className="text-xs font-medium uppercase tracking-wide text-brand-muted">{format(new Date(job.created_at || new Date()), 'PPP')}</span>
               </div>
               <h2 className="text-3xl font-display font-medium tracking-tighter">Job Manifest.</h2>
             </div>
             <div className={cn(
-              "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border",
+              "px-4 py-1.5 rounded-full text-xs font-medium border",
               job.status === 'completed' ? "bg-brand-neon/10 text-brand-neon border-brand-neon/20" : "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
             )}>
               {job.status?.replace('_', ' ')}
@@ -1418,14 +1444,14 @@ const JobDetailModal = ({ job, onClose, onUpdate }: { job: JobWithDriver, onClos
           <div className="space-y-10">
              <div className="grid grid-cols-2 gap-8">
                <div className="space-y-4">
-                 <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Consignor (Sender)</p>
+                 <p className="text-xs font-medium text-brand-muted">Consignor (Sender)</p>
                  <div className="p-5 bg-brand-input rounded-2xl border border-brand-border">
                    <p className="text-sm font-medium mb-1">{job.sender_name}</p>
                    <p className="text-[11px] font-mono text-brand-muted">{job.sender_phone}</p>
                  </div>
                </div>
                <div className="space-y-4">
-                 <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Consignee (Recipient)</p>
+                 <p className="text-xs font-medium text-brand-muted">Consignee (Recipient)</p>
                  <div className="p-5 bg-brand-input rounded-2xl border border-brand-border">
                    <p className="text-sm font-medium mb-1">{job.recipient_name}</p>
                    <p className="text-[11px] font-mono text-brand-muted">{job.recipient_phone}</p>
@@ -1434,7 +1460,7 @@ const JobDetailModal = ({ job, onClose, onUpdate }: { job: JobWithDriver, onClos
              </div>
 
              <div className="space-y-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Pilot Assignment</p>
+                <p className="text-xs font-medium text-brand-muted">Pilot Assignment</p>
                 <div className="p-6 bg-brand-surface border border-brand-neon/20 rounded-3xl flex justify-between items-center group">
                    <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-2xl bg-brand-neon/10 flex items-center justify-center border border-brand-neon/20 group-hover:scale-110 transition-transform">
@@ -1444,19 +1470,19 @@ const JobDetailModal = ({ job, onClose, onUpdate }: { job: JobWithDriver, onClos
                         {job.driver?.full_name ? (
                           <>
                             <p className="text-sm font-medium text-brand-text mb-1">{job.driver.full_name}</p>
-                            <p className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">Active: {job.driver.phone}</p>
+                            <p className="text-xs text-brand-muted font-medium">Active: {job.driver.phone}</p>
                           </>
                         ) : (
                           <p className="text-sm font-medium text-brand-muted">No Driver Assigned Yet</p>
                         )}
                       </div>
                    </div>
-                   <button className="btn-secondary px-6 py-2 h-auto text-[10px] uppercase">Reassign</button>
+                   <button className="btn-secondary px-6 py-2 h-auto text-xs uppercase">Reassign</button>
                 </div>
              </div>
 
              <div className="space-y-4 pt-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Operational Comms</p>
+                <p className="text-xs font-medium text-brand-muted">Operational Comms</p>
                 <div className="grid grid-cols-3 gap-4">
                    {[
                      { id: 'sender', label: 'Sender Dsp.', sent: job.sender_notified },
@@ -1473,8 +1499,8 @@ const JobDetailModal = ({ job, onClose, onUpdate }: { job: JobWithDriver, onClos
                      >
                         <MessageSquare className={cn("w-6 h-6", btn.sent ? "text-brand-muted" : "text-brand-neon")} />
                         <div className="text-center">
-                          <span className="block text-[8px] font-black uppercase tracking-[0.2em] mb-1">{btn.label}</span>
-                          <span className={cn("text-[7px] font-bold uppercase tracking-widest", btn.sent ? "text-brand-muted" : "text-brand-neon")}>
+                          <span className="block text-xs font-semibold uppercase tracking-wide mb-1">{btn.label}</span>
+                          <span className={cn("text-xs font-medium", btn.sent ? "text-brand-muted" : "text-brand-neon")}>
                             {btn.sent ? 'Dispatched' : 'Ready'}
                           </span>
                         </div>
@@ -1485,8 +1511,8 @@ const JobDetailModal = ({ job, onClose, onUpdate }: { job: JobWithDriver, onClos
           </div>
         </div>
 
-        <div className="md:w-1/2 p-12 bg-brand-surface/30 flex flex-col">
-           <div className="flex justify-between items-center mb-12">
+        <div className="md:w-1/2 p-8 bg-brand-surface/30 flex flex-col">
+           <div className="flex justify-between items-center mb-8">
               <h3 className="text-xl font-display font-medium tracking-tighter">Chain of Custody (COC).</h3>
               <button 
                 onClick={onClose}
@@ -1496,7 +1522,7 @@ const JobDetailModal = ({ job, onClose, onUpdate }: { job: JobWithDriver, onClos
               </button>
            </div>
 
-           <div className="flex-grow space-y-12 relative">
+           <div className="flex-grow space-y-8 relative">
               <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-brand-border" />
               
               {[
@@ -1519,12 +1545,12 @@ const JobDetailModal = ({ job, onClose, onUpdate }: { job: JobWithDriver, onClos
                      </div>
                      <div className="flex-grow min-w-0">
                         <div className="flex justify-between items-start mb-1">
-                           <p className={cn("text-sm font-bold uppercase tracking-widest", step.status ? "text-brand-text" : "text-brand-muted")}>{step.label}</p>
+                           <p className={cn("text-sm font-medium", step.status ? "text-brand-text" : "text-brand-muted")}>{step.label}</p>
                            {step.status && (
-                              <span className="text-[10px] font-mono text-brand-neon font-black">{format(new Date(step.status), 'HH:mm:ss')}</span>
+                              <span className="text-xs font-mono text-brand-neon font-semibold">{format(new Date(step.status), 'HH:mm:ss')}</span>
                            )}
                         </div>
-                        <p className="text-[10px] text-brand-muted font-bold leading-relaxed">
+                        <p className="text-xs text-brand-muted font-medium leading-relaxed">
                           {step.status ? 
                             `Authorized via Link/OTP Authentication` : 
                             `Waiting for digital confirmation via token [${tokenValue?.toString().substring(0, 8) || '...'}]`
@@ -1538,7 +1564,7 @@ const JobDetailModal = ({ job, onClose, onUpdate }: { job: JobWithDriver, onClos
                                 setCopiedStep(step.key);
                                 setTimeout(() => setCopiedStep(null), 2000);
                               }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-input hover:bg-brand-border rounded-lg border border-brand-border text-[8px] font-black text-brand-neon tracking-wider uppercase transition-all hover:scale-105"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-input hover:bg-brand-border rounded-lg border border-brand-border text-xs font-semibold text-brand-neon tracking-wider uppercase transition-all hover:scale-105"
                             >
                               <Copy className="w-3 h-3" />
                               {copiedStep === step.key ? 'Copied' : 'Copy link'}
@@ -1547,7 +1573,7 @@ const JobDetailModal = ({ job, onClose, onUpdate }: { job: JobWithDriver, onClos
                               href={stepUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-input hover:bg-brand-border rounded-lg border border-brand-border text-[8px] font-black text-brand-muted hover:text-brand-text tracking-wider uppercase transition-all hover:scale-105"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-input hover:bg-brand-border rounded-lg border border-brand-border text-xs font-semibold text-brand-muted hover:text-brand-text tracking-wider uppercase transition-all hover:scale-105"
                             >
                               <ExternalLink className="w-3 h-3" />
                               Open link
@@ -1677,20 +1703,20 @@ const JobCreateModal = ({ onClose, onSuccess, initialData }: { onClose: () => vo
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         className="relative w-full max-w-4xl bg-brand-bg border border-brand-border rounded-[40px] shadow-3xl overflow-hidden max-h-[90vh] flex flex-col"
       >
-        <div className="p-10 border-b border-brand-border flex justify-between items-center bg-brand-surface/20">
+        <div className="p-6 border-b border-brand-border flex justify-between items-center bg-brand-surface/20">
            <div>
               <h2 className="text-2xl font-display font-medium tracking-tighter mb-1">Manual Job Intake.</h2>
-              <p className="text-[10px] text-brand-muted uppercase tracking-[0.3em] font-bold font-mono">Operator manual dispatch override</p>
+              <p className="text-xs text-brand-muted uppercase tracking-wide font-medium font-mono">Operator manual dispatch override</p>
            </div>
            <button onClick={onClose} className="p-2 bg-brand-input rounded-full text-brand-muted hover:text-brand-text transition-colors">
               <X className="w-6 h-6" />
            </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-10 overflow-y-auto no-scrollbar space-y-12">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto no-scrollbar space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                <div className="space-y-6">
-                 <h3 className="text-[10px] font-black uppercase tracking-widest text-brand-neon flex items-center gap-2">
+                 <h3 className="text-xs font-medium text-brand-neon flex items-center gap-2">
                    <User className="w-3 h-3" />
                    Sender Information
                  </h3>
@@ -1700,7 +1726,7 @@ const JobCreateModal = ({ onClose, onSuccess, initialData }: { onClose: () => vo
                  </div>
                </div>
                <div className="space-y-6">
-                 <h3 className="text-[10px] font-black uppercase tracking-widest text-brand-neon flex items-center gap-2">
+                 <h3 className="text-xs font-medium text-brand-neon flex items-center gap-2">
                    <User className="w-3 h-3" />
                    Recipient Information
                  </h3>
@@ -1711,9 +1737,9 @@ const JobCreateModal = ({ onClose, onSuccess, initialData }: { onClose: () => vo
                </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                <div className="space-y-6">
-                 <h3 className="text-[10px] font-black uppercase tracking-widest text-brand-neon flex items-center gap-2">
+                 <h3 className="text-xs font-medium text-brand-neon flex items-center gap-2">
                    <MapPin className="w-3 h-3" />
                    Pickup Logistics
                  </h3>
@@ -1725,7 +1751,7 @@ const JobCreateModal = ({ onClose, onSuccess, initialData }: { onClose: () => vo
                  </div>
                </div>
                <div className="space-y-6">
-                 <h3 className="text-[10px] font-black uppercase tracking-widest text-brand-neon flex items-center gap-2">
+                 <h3 className="text-xs font-medium text-brand-neon flex items-center gap-2">
                    <Navigation className="w-3 h-3" />
                    Delivery Logistics
                  </h3>
@@ -1738,9 +1764,9 @@ const JobCreateModal = ({ onClose, onSuccess, initialData }: { onClose: () => vo
                </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                <div className="space-y-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Item Category</p>
+                  <p className="text-xs font-medium text-brand-muted">Item Category</p>
                   <select value={formData.item_type} onChange={e => setFormData({...formData, item_type: e.target.value as any})} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none">
                     <option value="parcel">Standard Parcel</option>
                     <option value="document">Legal Document</option>
@@ -1749,7 +1775,7 @@ const JobCreateModal = ({ onClose, onSuccess, initialData }: { onClose: () => vo
                   </select>
                </div>
                <div className="space-y-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Urgency Status</p>
+                  <p className="text-xs font-medium text-brand-muted">Urgency Status</p>
                   <select value={formData.urgency} onChange={e => setFormData({...formData, urgency: e.target.value as any})} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none">
                     <option value="immediate">Immediate Dispatch</option>
                     <option value="today">Same Day UAE</option>
@@ -1757,12 +1783,12 @@ const JobCreateModal = ({ onClose, onSuccess, initialData }: { onClose: () => vo
                   </select>
                </div>
                <div className="space-y-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Driver Assignment</p>
+                  <p className="text-xs font-medium text-brand-muted">Driver Assignment</p>
                   <input value={formData.driver_name} onChange={e => setFormData({...formData, driver_name: e.target.value})} type="text" placeholder="Pilot Name" className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none" />
                </div>
             </div>
 
-            <button disabled={loading} type="submit" className="btn-primary w-full py-6 flex items-center justify-center gap-4 text-sm font-black transition-all">
+            <button disabled={loading} type="submit" className="btn-primary w-full py-6 flex items-center justify-center gap-4 text-sm font-semibold transition-all">
                {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Zap className="w-6 h-6" />}
                Commit Dispatch to Pipeline
             </button>
