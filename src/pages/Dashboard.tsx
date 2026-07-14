@@ -127,7 +127,14 @@ export default function Dashboard() {
       return;
     }
     
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error && (error.message?.includes('Refresh Token Not Found') || error.message?.includes('Invalid Refresh Token'))) {
+        console.warn('Invalid or expired session detected, clearing auth storage.');
+        supabase.auth.signOut().finally(() => {
+          navigate('/login');
+        });
+        return;
+      }
       if (!session) {
         navigate('/login');
       } else {
@@ -1359,7 +1366,7 @@ const JobDetailModal = ({ job, onClose, onUpdate }: { job: JobWithDriver, onClos
       message = `Hi ${job.sender_name}, your Nokael pickup is confirmed.\nRoute: ${job.pickup_location} → ${job.delivery_location}\nItem: ${job.item_type} | Urgency: ${job.urgency}\n\nWhen handing over your package, tap to confirm:\n${cocDomain}/${job.token_client_pickup}/client-pickup\nNo internet? Give the driver your OTP: ${job.otp_sender}`;
     } else if (type === 'driver') {
       phone = job.driver?.phone || '';
-      message = `New job assigned — Job #${job.job_ref}\nPickup: ${job.pickup_location}, ${job.pickup_emirate}\nDelivery: ${job.delivery_location}, ${job.delivery_emirate}\nItem: ${job.item_type} | Urgency: ${job.urgency}\nSender: ${job.sender_name} | Recipient: ${job.recipient_name}\n\n── PICKUP ──\n${cocDomain}/${job.token_driver_pickup}/driver-pickup\n\n── DELIVERY ──\n${cocDomain}/${job.token_driver_delivery}/driver-delivery`;
+      message = `New job assigned — Job #${job.job_ref}\nPickup: ${job.pickup_location}, ${job.pickup_emirate}\nDelivery: ${job.delivery_location}, ${job.delivery_emirate}\nItem: ${job.item_type} | Urgency: ${job.urgency}\nSender: ${job.sender_name} | Recipient: ${job.recipient_name}\n\nYour job hub (pickup + delivery, one link):\n${cocDomain}/${job.token_driver_pickup}/driver-hub`;
     } else {
       phone = job.recipient_phone;
       message = `Hi ${job.recipient_name}, a package is on its way to you.\nFrom: ${job.sender_name} | Route: ${job.pickup_location} → ${job.delivery_location}\nItem: ${job.item_type}\n\nWhen you receive it, tap to confirm:\n${cocDomain}/${job.token_client_delivery}/client-delivery\nNo internet? Give the driver your OTP: ${job.otp_recipient}`;

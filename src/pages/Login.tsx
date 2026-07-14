@@ -14,7 +14,12 @@ export default function Login() {
   // Redirect if already authenticated
   React.useEffect(() => {
     if (!supabase) return;
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error && (error.message?.includes('Refresh Token Not Found') || error.message?.includes('Invalid Refresh Token'))) {
+        console.warn('Invalid or expired session detected, clearing auth storage.');
+        supabase.auth.signOut();
+        return;
+      }
       if (session) navigate('/dashboard');
     });
   }, [navigate]);
