@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Package, Zap, User, Phone, CheckCircle2, ArrowRight, ArrowLeft, MessageSquare, Loader2, Navigation, Truck, Clock, Shield } from 'lucide-react';
+import { MapPin, Package, Zap, User, Phone, CheckCircle2, ArrowRight, ArrowLeft, MessageSquare, Loader2, Navigation, Truck, Clock, Shield, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { submitQuoteRequest, type QuoteRequest } from '../lib/supabase';
 import { captureUTMs, getStoredUTMs } from '../lib/analytics';
@@ -25,8 +25,13 @@ const urgencyLevels = [
   { id: 'scheduled', label: 'Scheduled', color: 'bg-white/20', desc: 'Pre-book for specific time' },
 ];
 
+// Steps are ordered by commitment level: route/item/urgency (low friction, no personal
+// info required) come first to build momentum before we ask for contact details.
+const STEP_LABELS = ['Route', 'Item', 'Urgency', 'Contact'];
+
 export default function GetQuote() {
   const navigate = useNavigate();
+  const formTopRef = React.useRef<HTMLDivElement>(null);
   const [step, setStep] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -51,6 +56,12 @@ export default function GetQuote() {
     captureUTMs();
   }, []);
 
+  // Scroll the form back into view whenever the step changes, so a mobile visitor
+  // who scrolled while filling a long step isn't left staring at the wrong content.
+  React.useEffect(() => {
+    formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [step]);
+
   const updateForm = (data: Partial<QuoteRequest>) => {
     setFormData(prev => ({ ...prev, ...data }));
   };
@@ -67,6 +78,10 @@ export default function GetQuote() {
 
   const nextStep = () => setStep(s => Math.min(s + 1, 4));
   const prevStep = () => setStep(s => Math.max(s - 1, 1));
+
+  // Live estimate shown throughout steps 2-4 so the price is never a surprise at the end.
+  // Spare parts run on the dedicated-fleet tier; everything else is the same-day tier.
+  const estimatedPrice = formData.item_type === 'spare_part' ? PRICE_TIER_DEDICATED : PRICE_TIER_SAME_DAY;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +108,7 @@ export default function GetQuote() {
       };
 
       await submitQuoteRequest(enrichedData);
-      
+
       // Build the pre-filled WhatsApp message
       const message = encodeURIComponent(
         `Hi Nokael, I need a quote for a ${formData.item_type} delivery from ${formData.pickup_location}, ${pickupEmirate} to ${formData.delivery_location}, ${deliveryEmirate}. Urgency: ${formData.urgency}. My name is ${formData.name}.`
@@ -101,13 +116,13 @@ export default function GetQuote() {
 
       // Navigate to /thank-you — this is where the Google Ads conversion pixel fires.
       // The WhatsApp redirect happens from that page after a short delay.
-      navigate(`/thank-you?wa=${message}`, { 
-        state: { 
+      navigate(`/thank-you?wa=${message}`, {
+        state: {
           userData: {
             phone_number: formData.phone,
             first_name: formData.name
-          } 
-        } 
+          }
+        }
       });
 
     } catch (err: any) {
@@ -121,7 +136,7 @@ export default function GetQuote() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
       <div className="asymmetric-grid items-start">
-        <div>
+        <div ref={formTopRef}>
           <div className="mb-12">
             <h1 className="text-4xl md:text-6xl font-display font-medium tracking-tighter mb-6">Request a Quote</h1>
             <p className="text-brand-muted text-sm max-w-md leading-relaxed">
@@ -137,27 +152,197 @@ export default function GetQuote() {
               </div>
             )}
 
-            <div className="flex items-center justify-between mb-10 pb-6 border-b border-brand-border">
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted">
-                Step {step} / 4
-              </p>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4].map(i => (
-                  <div
-                    key={i}
-                    className={cn(
-                      "w-6 h-1 rounded-full transition-all",
-                      i <= step ? "bg-brand-neon" : "bg-brand-input-border"
-                    )}
-                  />
+            {/* Stepper — labeled so the visitor knows what's still ahead, not just "3/4" */}
+            <div className="mb-10 pb-6 border-b border-brand-border">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted">
+                  Step {step} / 4 — {STEP_LABELS[step - 1]}
+                </p>
+                {step > 1 && (
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-brand-neon">
+                    Est. from AED {estimatedPrice}
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-1.5">
+                {STEP_LABELS.map((label, i) => (
+                  <div key={label} className="flex-1">
+                    <div
+                      className={cn(
+                        "h-1 rounded-full transition-all mb-1.5",
+                        i + 1 <= step ? "bg-brand-neon" : "bg-brand-input-border"
+                      )}
+                    />
+                    <p className={cn(
+                      "text-[8px] uppercase tracking-widest font-bold hidden sm:block",
+                      i + 1 <= step ? "text-brand-muted" : "text-brand-muted/40"
+                    )}>
+                      {label}
+                    </p>
+                  </div>
                 ))}
               </div>
             </div>
 
+            {/* Running summary of prior answers — reduces "what did I even pick" anxiety
+                once the visitor is a few steps in. */}
+            {step > 1 && (
+              <div className="flex flex-wrap gap-2 mb-8">
+                <span className="px-3 py-1.5 rounded-full bg-brand-input border border-brand-input-border text-[10px] font-bold uppercase tracking-widest text-brand-text">
+                  {pickupEmirate} → {deliveryEmirate}
+                </span>
+                {step > 2 && (
+                  <span className="px-3 py-1.5 rounded-full bg-brand-input border border-brand-input-border text-[10px] font-bold uppercase tracking-widest text-brand-text">
+                    {itemTypes.find(t => t.id === formData.item_type)?.label}
+                  </span>
+                )}
+                {step > 3 && (
+                  <span className="px-3 py-1.5 rounded-full bg-brand-input border border-brand-input-border text-[10px] font-bold uppercase tracking-widest text-brand-text">
+                    {urgencyLevels.find(u => u.id === formData.urgency)?.label}
+                  </span>
+                )}
+              </div>
+            )}
+
             <AnimatePresence mode="wait">
+              {/* STEP 1 — Route. First because it's zero personal-info commitment. */}
               {step === 1 && (
                 <motion.div
                   key="step1"
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  className="space-y-6"
+                >
+                  {/* Pickup */}
+                  <div className="p-5 rounded-2xl border border-brand-input-border bg-brand-input/40 space-y-4">
+                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-neon">📍 Pickup</p>
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2">Emirate</label>
+                      <select
+                        className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors appearance-none text-sm"
+                        value={pickupEmirate}
+                        onChange={e => updatePickupEmirate(e.target.value)}
+                      >
+                        {emirates.map(e => <option key={e} value={e}>{e}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2">Specific Location</label>
+                      <input
+                        required
+                        type="text"
+                        placeholder="e.g. JLT Cluster A, Tower 1"
+                        className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
+                        value={formData.pickup_location}
+                        onChange={e => updateForm({ pickup_location: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Delivery */}
+                  <div className="p-5 rounded-2xl border border-brand-input-border bg-brand-input/40 space-y-4">
+                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-blue">🏁 Delivery</p>
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2">Emirate</label>
+                      <select
+                        className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors appearance-none text-sm"
+                        value={deliveryEmirate}
+                        onChange={e => updateDeliveryEmirate(e.target.value)}
+                      >
+                        {emirates.map(e => <option key={e} value={e}>{e}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2">Specific Location</label>
+                      <input
+                        required
+                        type="text"
+                        placeholder="e.g. Al Reem Island, Gate Tower"
+                        className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
+                        value={formData.delivery_location}
+                        onChange={e => updateForm({ delivery_location: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* STEP 2 — Item type. Single tap, keeps momentum going. */}
+              {step === 2 && (
+                <motion.div
+                  key="step2"
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  className="grid grid-cols-2 gap-4"
+                >
+                  {itemTypes.map(type => (
+                    <button
+                      key={type.id}
+                      type="button"
+                      onClick={() => updateForm({ item_type: type.id as any })}
+                      className={cn(
+                        "p-6 rounded-xl border transition-all text-left",
+                        formData.item_type === type.id
+                          ? "bg-brand-neon/5 border-brand-neon/30"
+                          : "bg-white/[0.02] border-white/[0.05] hover:border-white/[0.1]"
+                      )}
+                    >
+                      <type.icon className={cn("w-6 h-6 mb-4", formData.item_type === type.id ? "text-brand-neon" : "text-brand-muted")} />
+                      <p className={cn("text-sm font-bold mb-1", formData.item_type === type.id ? "text-brand-text" : "text-brand-muted")}>
+                        {type.label}
+                      </p>
+                      <p className="text-[10px] text-brand-muted uppercase tracking-wider">{type.desc}</p>
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+
+              {/* STEP 3 — Urgency. Price now updates live based on this + item type. */}
+              {step === 3 && (
+                <motion.div
+                  key="step3"
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  className="space-y-4"
+                >
+                  {urgencyLevels.map(level => (
+                    <button
+                      key={level.id}
+                      type="button"
+                      onClick={() => updateForm({ urgency: level.id as any })}
+                      className={cn(
+                        "w-full p-6 rounded-xl border transition-all text-left flex items-center justify-between group",
+                        formData.urgency === level.id
+                          ? "bg-brand-neon/5 border-brand-neon/30"
+                          : "bg-white/[0.02] border-white/[0.05] hover:border-white/[0.1]"
+                      )}
+                    >
+                      <div className="flex items-center gap-5">
+                        <div className={cn("w-2 h-2 rounded-full", level.color)} />
+                        <div>
+                          <h4 className={cn("font-bold text-sm mb-1", formData.urgency === level.id ? "text-brand-text" : "text-brand-muted")}>
+                            {level.label}
+                          </h4>
+                          <p className="text-[10px] text-brand-muted uppercase tracking-wider">{level.desc}</p>
+                        </div>
+                      </div>
+                      {formData.urgency === level.id && <CheckCircle2 className="w-4 h-4 text-brand-neon" />}
+                    </button>
+                  ))}
+                  <p className="text-[10px] text-brand-muted uppercase tracking-widest text-center pt-2">
+                    Estimated from AED {estimatedPrice} for this selection
+                  </p>
+                </motion.div>
+              )}
+
+              {/* STEP 4 — Contact info. Last, as the "unlock my quote" step, after the
+                  visitor has already invested three steps and knows their price range. */}
+              {step === 4 && (
+                <motion.div
+                  key="step4"
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
@@ -206,16 +391,22 @@ export default function GetQuote() {
                       <div className="space-y-4">
                         <div>
                           <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">Company Name (Optional)</label>
-                          <input
-                            type="text"
-                            placeholder="Your Company"
-                            className="w-full bg-brand-input border border-brand-input-border rounded-xl py-4 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
-                            value={formData.company_name}
-                            onChange={e => updateForm({ company_name: e.target.value })}
-                          />
+                          <div className="relative">
+                            <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                            <input
+                              type="text"
+                              placeholder="Your Company"
+                              className="w-full bg-brand-input border border-brand-input-border rounded-xl py-4 pl-12 pr-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
+                              value={formData.company_name}
+                              onChange={e => updateForm({ company_name: e.target.value })}
+                            />
+                          </div>
                         </div>
                         <div>
-                          <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">Corporate ID / Ref Code (If Account Holder)</label>
+                          <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-1">Corporate Ref Code</label>
+                          <p className="text-[9px] text-brand-muted/70 uppercase tracking-wider mb-3">
+                            Only if you already have a Nokael business account — leave blank otherwise.
+                          </p>
                           <div className="relative">
                             <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-neon" />
                             <input
@@ -281,135 +472,6 @@ export default function GetQuote() {
                   </div>
                 </motion.div>
               )}
-
-              {step === 2 && (
-                <motion.div
-                  key="step2"
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  className="space-y-8"
-                >
-                  <div className="space-y-6">
-                    {/* Pickup */}
-                    <div className="p-5 rounded-2xl border border-brand-input-border bg-brand-input/40 space-y-4">
-                      <p className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-neon">📍 Pickup</p>
-                      <div>
-                        <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2">Emirate</label>
-                        <select
-                          className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors appearance-none text-sm"
-                          value={pickupEmirate}
-                          onChange={e => updatePickupEmirate(e.target.value)}
-                        >
-                          {emirates.map(e => <option key={e} value={e}>{e}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2">Specific Location</label>
-                        <input
-                          required
-                          type="text"
-                          placeholder="e.g. JLT Cluster A, Tower 1"
-                          className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
-                          value={formData.pickup_location}
-                          onChange={e => updateForm({ pickup_location: e.target.value })}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Delivery */}
-                    <div className="p-5 rounded-2xl border border-brand-input-border bg-brand-input/40 space-y-4">
-                      <p className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-blue">🏁 Delivery</p>
-                      <div>
-                        <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2">Emirate</label>
-                        <select
-                          className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors appearance-none text-sm"
-                          value={deliveryEmirate}
-                          onChange={e => updateDeliveryEmirate(e.target.value)}
-                        >
-                          {emirates.map(e => <option key={e} value={e}>{e}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2">Specific Location</label>
-                        <input
-                          required
-                          type="text"
-                          placeholder="e.g. Al Reem Island, Gate Tower"
-                          className="w-full bg-brand-input border border-brand-input-border rounded-xl py-3.5 px-4 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-colors text-sm"
-                          value={formData.delivery_location}
-                          onChange={e => updateForm({ delivery_location: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {step === 3 && (
-                <motion.div
-                  key="step3"
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  className="grid grid-cols-2 gap-4"
-                >
-                  {itemTypes.map(type => (
-                    <button
-                      key={type.id}
-                      type="button"
-                      onClick={() => updateForm({ item_type: type.id as any })}
-                      className={cn(
-                        "p-6 rounded-xl border transition-all text-left",
-                        formData.item_type === type.id
-                          ? "bg-brand-neon/5 border-brand-neon/30"
-                          : "bg-white/[0.02] border-white/[0.05] hover:border-white/[0.1]"
-                      )}
-                    >
-                      <type.icon className={cn("w-6 h-6 mb-4", formData.item_type === type.id ? "text-brand-neon" : "text-brand-muted")} />
-                      <p className={cn("text-sm font-bold mb-1", formData.item_type === type.id ? "text-white" : "text-brand-muted")}>
-                        {type.label}
-                      </p>
-                      <p className="text-[10px] text-brand-muted uppercase tracking-wider">{type.desc}</p>
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-
-              {step === 4 && (
-                <motion.div
-                  key="step4"
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  className="space-y-4"
-                >
-                  {urgencyLevels.map(level => (
-                    <button
-                      key={level.id}
-                      type="button"
-                      onClick={() => updateForm({ urgency: level.id as any })}
-                      className={cn(
-                        "w-full p-6 rounded-xl border transition-all text-left flex items-center justify-between group",
-                        formData.urgency === level.id
-                          ? "bg-brand-neon/5 border-brand-neon/30"
-                          : "bg-white/[0.02] border-white/[0.05] hover:border-white/[0.1]"
-                      )}
-                    >
-                      <div className="flex items-center gap-5">
-                        <div className={cn("w-2 h-2 rounded-full", level.color)} />
-                        <div>
-                          <h4 className={cn("font-bold text-sm mb-1", formData.urgency === level.id ? "text-white" : "text-brand-muted")}>
-                            {level.label}
-                          </h4>
-                          <p className="text-[10px] text-brand-muted uppercase tracking-wider">{level.desc}</p>
-                        </div>
-                      </div>
-                      {formData.urgency === level.id && <CheckCircle2 className="w-4 h-4 text-brand-neon" />}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
             </AnimatePresence>
 
             <div className="mt-12 flex items-center gap-4">
@@ -440,7 +502,7 @@ export default function GetQuote() {
             </div>
             {step === 4 && (
               <p className="mt-6 text-[9px] text-brand-muted uppercase tracking-[0.2em] text-center font-bold">
-                Same-Day AED {PRICE_TIER_SAME_DAY || 280} • Dedicated AED {PRICE_TIER_DEDICATED || 380}
+                Same-Day AED {PRICE_TIER_SAME_DAY || 280} • Dedicated AED {PRICE_TIER_DEDICATED || 380} • Response in ~5 mins
               </p>
             )}
           </form>

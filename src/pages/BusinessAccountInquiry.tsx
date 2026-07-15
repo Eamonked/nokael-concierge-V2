@@ -95,6 +95,9 @@ export default function BusinessAccountInquiry() {
               <p className="text-xl text-brand-muted leading-relaxed max-w-xl font-medium">
                 Consolidate your urgent dispatch. Dedicated drivers for law firms, medical suppliers, and high-frequency corporate teams.
               </p>
+              <p className="text-xs text-brand-muted uppercase tracking-widest font-bold mt-4">
++                Custom account pricing based on monthly volume — no fixed rate card.
++              </p>
             </motion.div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-12">
