@@ -110,6 +110,7 @@ export default function Dashboard() {
   const [loading, setLoading] = React.useState(true);
   const [isUpdating, setIsUpdating] = React.useState<string | null>(null);
   const [pinDraft, setPinDraft] = React.useState('');
+  const [copiedDriverLink, setCopiedDriverLink] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filterStatus, setFilterStatus] = React.useState<string>('all');
@@ -1164,13 +1165,13 @@ export default function Dashboard() {
                               type="button"
                               onClick={() => {
                                 navigator.clipboard.writeText(statusUrl);
-                                setCopiedStep('driver-status');
-                                setTimeout(() => setCopiedStep(null), 2000);
+                                setCopiedDriverLink(true);
+                                setTimeout(() => setCopiedDriverLink(false), 2000);
                               }}
                               className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-input hover:bg-brand-border rounded-lg border border-brand-border text-xs font-semibold text-brand-neon tracking-wider uppercase transition-all hover:scale-105"
                             >
                               <Copy className="w-3 h-3" />
-                              {copiedStep === 'driver-status' ? 'Copied' : 'Copy status link'}
+                              {copiedDriverLink ? 'Copied' : 'Copy status link'}
                             </button>
                             <a
                               href={statusUrl}
