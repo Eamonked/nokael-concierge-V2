@@ -1400,6 +1400,7 @@ export default function Dashboard() {
         {selectedJob && (
            <JobDetailModal 
             job={selectedJob} 
+            drivers={approvedDrivers}
             onClose={() => setSelectedJob(null)}
             onUpdate={fetchData}
            />
@@ -1407,6 +1408,7 @@ export default function Dashboard() {
         {showJobCreateModal && (
           <JobCreateModal 
             initialData={jobPrefillData}
+            drivers={approvedDrivers}
             onClose={() => {
               setShowJobCreateModal(false);
               setJobPrefillData(undefined);
@@ -1489,8 +1491,10 @@ const KanbanColumn = ({ title, status, jobs, onJobClick }: { title: string, stat
   );
 };
 
-const JobDetailModal = ({ job, onClose, onUpdate }: { job: JobWithDriver, onClose: () => void, onUpdate: () => void }) => {
+const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDriver, drivers: Driver[], onClose: () => void, onUpdate: () => void }) => {
   const [copiedStep, setCopiedStep] = React.useState<string | null>(null);
+  const [reassigning, setReassigning] = React.useState(false);
+  const [assigningDriver, setAssigningDriver] = React.useState(false);
   const dispatchWhatsApp = (type: 'sender' | 'driver' | 'recipient') => {
     let message = '';
     let phone = '';
@@ -1586,8 +1590,45 @@ const JobDetailModal = ({ job, onClose, onUpdate }: { job: JobWithDriver, onClos
                         )}
                       </div>
                    </div>
-                   <button className="btn-secondary px-6 py-2 h-auto text-xs uppercase">Reassign</button>
+                   <button
+                     type="button"
+                     onClick={() => setReassigning(v => !v)}
+                     className="btn-secondary px-6 py-2 h-auto text-xs uppercase"
+                   >
+                     {job.driver?.full_name ? 'Reassign' : 'Assign'}
+                   </button>
                 </div>
+                {reassigning && (
+                  <div className="flex items-center gap-2">
+                    <select
+                      defaultValue={job.driver_id || 'unassigned'}
+                      disabled={assigningDriver}
+                      onChange={async (e) => {
+                        const val = e.target.value;
+                        setAssigningDriver(true);
+                        try {
+                          await assignDriverToJob(job.id!, val === 'unassigned' ? null : val);
+                          setReassigning(false);
+                          onUpdate();
+                        } catch (err: any) {
+                          alert(`Failed to assign driver: ${err.message || err}`);
+                        } finally {
+                          setAssigningDriver(false);
+                        }
+                      }}
+                      className="flex-1 bg-brand-input border border-brand-input-border rounded-lg px-4 py-2.5 text-xs font-medium text-brand-text focus:border-brand-neon/50 outline-none"
+                    >
+                      <option value="unassigned">Unassigned</option>
+                      {drivers.map(d => {
+                        const statusIcon = d.status === 'available' ? '🟢' : d.status === 'on_job' ? '🟠' : '⚪';
+                        return (
+                          <option key={d.id} value={d.id}>{statusIcon} {d.full_name} (Tier {d.tier || 'D'} · {d.vehicle_type})</option>
+                        );
+                      })}
+                    </select>
+                    {assigningDriver && <Loader2 className="w-4 h-4 animate-spin text-brand-muted" />}
+                  </div>
+                )}
              </div>
 
              <div className="space-y-4 pt-4">
@@ -1716,7 +1757,7 @@ const JobDetailModal = ({ job, onClose, onUpdate }: { job: JobWithDriver, onClos
   );
 };
 
-const JobCreateModal = ({ onClose, onSuccess, initialData }: { onClose: () => void, onSuccess: () => void, initialData?: Partial<Job> }) => {
+const JobCreateModal = ({ onClose, onSuccess, initialData, drivers }: { onClose: () => void, onSuccess: () => void, initialData?: Partial<Job>, drivers: Driver[] }) => {
   const [loading, setLoading] = React.useState(false);
   const [formData, setFormData] = React.useState({
     sender_name: initialData?.sender_name || '',
@@ -1729,8 +1770,7 @@ const JobCreateModal = ({ onClose, onSuccess, initialData }: { onClose: () => vo
     delivery_location: initialData?.delivery_location || '',
     item_type: initialData?.item_type || 'parcel' as ItemType,
     urgency: initialData?.urgency || 'immediate' as UrgencyType,
-    driver_name: (initialData as any)?.driver_name || '',
-    driver_phone: (initialData as any)?.driver_phone || '',
+    driver_id: initialData?.driver_id || '',
     notes: (initialData as any)?.notes || initialData?.special_instructions || '',
     quote_id: initialData?.quote_id || null
   });
@@ -1760,6 +1800,7 @@ const JobCreateModal = ({ onClose, onSuccess, initialData }: { onClose: () => vo
         delivery_location: formData.delivery_location,
         item_type: formData.item_type,
         urgency: formData.urgency,
+        driver_id: formData.driver_id || null,
         special_instructions: formData.notes,
         operator_notes: formData.notes,
         quote_id: formData.quote_id,
@@ -1893,7 +1934,19 @@ const JobCreateModal = ({ onClose, onSuccess, initialData }: { onClose: () => vo
                </div>
                <div className="space-y-4">
                   <p className="text-xs font-medium text-brand-muted">Driver Assignment</p>
-                  <input value={formData.driver_name} onChange={e => setFormData({...formData, driver_name: e.target.value})} type="text" placeholder="Pilot Name" className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none" />
+                  <select
+                    value={formData.driver_id}
+                    onChange={e => setFormData({...formData, driver_id: e.target.value})}
+                    className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none"
+                  >
+                    <option value="">Unassigned — assign later</option>
+                    {drivers.map(d => {
+                      const statusIcon = d.status === 'available' ? '🟢' : d.status === 'on_job' ? '🟠' : '⚪';
+                      return (
+                        <option key={d.id} value={d.id}>{statusIcon} {d.full_name} (Tier {d.tier || 'D'} · {d.vehicle_type})</option>
+                      );
+                    })}
+                  </select>
                </div>
             </div>
 
