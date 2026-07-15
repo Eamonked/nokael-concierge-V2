@@ -57,6 +57,7 @@ import {
   assignDriverToJob,
   type QuoteRequest,
   getDrivers,
+  setDriverPin,
   getDriverWithDocuments,
   updateDriverStatus,
   type Driver,
@@ -108,6 +109,7 @@ export default function Dashboard() {
 
   const [loading, setLoading] = React.useState(true);
   const [isUpdating, setIsUpdating] = React.useState<string | null>(null);
+  const [pinDraft, setPinDraft] = React.useState('');
   const [error, setError] = React.useState<string | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filterStatus, setFilterStatus] = React.useState<string>('all');
@@ -302,7 +304,15 @@ export default function Dashboard() {
            (b.corporate_code || '').toLowerCase().includes(searchLower);
   });
 
-  const approvedDrivers = drivers.filter(d => d.onboarding_status === 'approved');
+  const statusSortWeight: Record<string, number> = { available: 0, on_job: 1, offline: 2 };
+  const approvedDrivers = drivers
+    .filter(d => d.onboarding_status === 'approved')
+    .slice()
+    .sort((a, b) => {
+      const statusDiff = (statusSortWeight[a.status || 'offline'] ?? 2) - (statusSortWeight[b.status || 'offline'] ?? 2);
+      if (statusDiff !== 0) return statusDiff;
+      return (a.tier || 'D').localeCompare(b.tier || 'D');
+    });
 
   const stats = {
     total: requests.length,
@@ -725,9 +735,12 @@ export default function Dashboard() {
                             className="bg-brand-surface border border-brand-border rounded-lg px-4 py-2 text-xs font-medium text-brand-text focus:border-brand-neon/50 outline-none w-full max-w-[180px]"
                           >
                             <option value="unassigned">Unassigned</option>
-                            {approvedDrivers.map(d => (
-                              <option key={d.id} value={d.id}>{d.full_name} ({d.vehicle_type})</option>
-                            ))}
+                            {approvedDrivers.map(d => {
+                              const statusIcon = d.status === 'available' ? '🟢' : d.status === 'on_job' ? '🟠' : '⚪';
+                              return (
+                                <option key={d.id} value={d.id}>{statusIcon} {d.full_name} (Tier {d.tier || 'D'} · {d.vehicle_type})</option>
+                              );
+                            })}
                           </select>
                         </td>
                         <td className="px-6 py-4">
@@ -902,6 +915,7 @@ export default function Dashboard() {
                     <th className="px-6 py-3">Driver</th>
                     <th className="px-6 py-3">Vehicle</th>
                     <th className="px-6 py-3">Tier / Score</th>
+                    <th className="px-6 py-3">Availability</th>
                     <th className="px-6 py-3">Onboarding</th>
                     <th className="px-6 py-3 text-right">Operations</th>
                   </tr>
@@ -925,6 +939,22 @@ export default function Dashboard() {
                             <span className="text-xs font-medium">{driver.reliability_score || 0}</span>
                           </div>
                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {(() => {
+                          const statusMap: Record<string, { label: string; dot: string; text: string }> = {
+                            available: { label: 'Available', dot: 'bg-emerald-400', text: 'text-emerald-400' },
+                            on_job: { label: 'On Job', dot: 'bg-amber-400', text: 'text-amber-400' },
+                            offline: { label: 'Offline', dot: 'bg-brand-muted', text: 'text-brand-muted' },
+                          };
+                          const cfg = statusMap[driver.status || 'offline'] || statusMap.offline;
+                          return (
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
+                              <span className={`text-[11px] font-medium uppercase tracking-wide ${cfg.text}`}>{cfg.label}</span>
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="px-6 py-4">
                         <select 
@@ -1075,6 +1105,55 @@ export default function Dashboard() {
                             style={{ width: `${(isNaN(selectedDriver.reliability_score!) ? 0 : (selectedDriver.reliability_score || 0)) * 10}%` }}
                           />
                         </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[11px] font-medium text-brand-muted">Dispatch Pool Status</label>
+                      {(() => {
+                        const statusMap: Record<string, { label: string; dot: string; text: string }> = {
+                          available: { label: 'Available now', dot: 'bg-emerald-400', text: 'text-emerald-400' },
+                          on_job: { label: 'On a job', dot: 'bg-amber-400', text: 'text-amber-400' },
+                          offline: { label: 'Offline', dot: 'bg-brand-muted', text: 'text-brand-muted' },
+                        };
+                        const cfg = statusMap[selectedDriver.status || 'offline'] || statusMap.offline;
+                        return (
+                          <div className="flex items-center gap-2 px-3 py-2 bg-brand-input border border-brand-input-border rounded-lg w-fit">
+                            <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
+                            <span className={`text-xs font-medium ${cfg.text}`}>{cfg.label}</span>
+                          </div>
+                        );
+                      })()}
+                      <p className="text-[10px] text-brand-muted">Set by the driver in their app, or automatically when a job is assigned or completed.</p>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[11px] font-medium text-brand-muted">Driver App PIN</label>
+                      <p className="text-[10px] text-brand-muted mb-1">Set a 4-6 digit PIN so this driver can log into the status app and toggle their own availability. Share it with them over WhatsApp along with their status link.</p>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          placeholder="e.g. 4821"
+                          value={pinDraft}
+                          onChange={(e) => setPinDraft(e.target.value.replace(/\D/g, ''))}
+                          className="w-28 bg-brand-input border border-brand-input-border rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-brand-neon transition-all font-mono"
+                        />
+                        <button
+                          type="button"
+                          disabled={!/^[0-9]{4,6}$/.test(pinDraft) || isUpdating === selectedDriver.id}
+                          onClick={async () => {
+                            try {
+                              await setDriverPin(selectedDriver.id!, pinDraft);
+                              setPinDraft('');
+                              alert(`PIN set. Send ${selectedDriver.full_name} their status link + this PIN over WhatsApp.`);
+                            } catch (err: any) {
+                              alert(`Failed to set PIN: ${err.message || err}`);
+                            }
+                          }}
+                          className="px-4 py-2 bg-brand-neon/10 border border-brand-neon/20 text-brand-neon rounded-lg text-[11px] font-medium uppercase tracking-wide hover:bg-brand-neon/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Set PIN
+                        </button>
                       </div>
                     </div>
                   </div>
