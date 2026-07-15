@@ -204,24 +204,6 @@ export default function Dashboard() {
     setShowJobCreateModal(true);
   };
 
-  const handleAssignDriver = async (jobId: string, driverId: string) => {
-    try {
-      const actualDriverId = driverId === 'unassigned' ? null : driverId;
-      await assignDriverToJob(jobId, actualDriverId);
-      
-      // Update local state
-      const assignedDriver = drivers.find(d => d.id === actualDriverId);
-      setRequests(prev => prev.map(r => r.id === jobId ? { 
-        ...r, 
-        assigned_driver_id: actualDriverId || undefined,
-        assigned_driver: assignedDriver,
-        status: actualDriverId ? 'assigned' : 'pending'
-      } : r));
-    } catch (error) {
-      console.error('Error assigning driver:', error);
-    }
-  };
-
   const handleDriverStatusUpdate = async (id: string, updates: Partial<Driver>) => {
     setIsUpdating(id);
     try {
@@ -687,7 +669,6 @@ export default function Dashboard() {
                       <th className="px-6 py-3">Client</th>
                       <th className="px-6 py-3">Route</th>
                       <th className="px-6 py-3">Item / Urgency</th>
-                      <th className="px-6 py-3">Driver</th>
                       <th className="px-6 py-3">Status</th>
                       <th className="px-6 py-3 text-right">Actions</th>
                     </tr>
@@ -728,21 +709,6 @@ export default function Dashboard() {
                             }`} />
                             {req.urgency}
                           </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <select
-                            value={req.assigned_driver_id || 'unassigned'}
-                            onChange={(e) => handleAssignDriver(req.id!, e.target.value)}
-                            className="bg-brand-surface border border-brand-border rounded-lg px-4 py-2 text-xs font-medium text-brand-text focus:border-brand-neon/50 outline-none w-full max-w-[180px]"
-                          >
-                            <option value="unassigned">Unassigned</option>
-                            {approvedDrivers.map(d => {
-                              const statusIcon = d.status === 'available' ? '🟢' : d.status === 'on_job' ? '🟠' : '⚪';
-                              return (
-                                <option key={d.id} value={d.id}>{statusIcon} {d.full_name} (Tier {d.tier || 'D'} · {d.vehicle_type})</option>
-                              );
-                            })}
-                          </select>
                         </td>
                         <td className="px-6 py-4">
                           <select 
