@@ -1155,6 +1155,35 @@ export default function Dashboard() {
                           Set PIN
                         </button>
                       </div>
+                      {(() => {
+                        const cocDomain = (import.meta.env.VITE_COC_URL || 'https://nokael.ae').replace(/\/$/, '');
+                        const statusUrl = `${cocDomain}/driver/${selectedDriver.id}/status`;
+                        return (
+                          <div className="flex items-center gap-2 mt-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(statusUrl);
+                                setCopiedStep('driver-status');
+                                setTimeout(() => setCopiedStep(null), 2000);
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-input hover:bg-brand-border rounded-lg border border-brand-border text-xs font-semibold text-brand-neon tracking-wider uppercase transition-all hover:scale-105"
+                            >
+                              <Copy className="w-3 h-3" />
+                              {copiedStep === 'driver-status' ? 'Copied' : 'Copy status link'}
+                            </button>
+                            <a
+                              href={statusUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-input hover:bg-brand-border rounded-lg border border-brand-border text-xs font-semibold text-brand-muted hover:text-brand-text tracking-wider uppercase transition-all hover:scale-105"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              Open link
+                            </a>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
