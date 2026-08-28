@@ -1824,6 +1824,17 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
   };
 
   const currentStageIndex = STAGE_ORDER.indexOf(job.status as any);
+  
+  // Calculate highest reached stage index even if job is cancelled
+  let effectiveStageIndex = currentStageIndex;
+  if (job.status === 'cancelled') {
+    if (job.client_delivery_at || job.client_delivery_confirmed_at) effectiveStageIndex = 4;
+    else if (job.driver_delivery_at || job.driver_delivery_confirmed_at || job.driver_arrived_delivery_at) effectiveStageIndex = 3;
+    else if (job.driver_pickup_at || job.driver_pickup_confirmed_at) effectiveStageIndex = 2;
+    else if (job.client_pickup_at || job.client_pickup_confirmed_at || job.sender_ready_at || job.driver_arrived_pickup_at) effectiveStageIndex = 1;
+    else effectiveStageIndex = 0;
+  }
+
   const canAdvance = currentStageIndex >= 0 && currentStageIndex < STAGE_ORDER.length - 1 && job.status !== 'cancelled';
 
   return (
@@ -1923,8 +1934,8 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
         <div className="px-6 py-3.5 bg-brand-surface/40 border-b border-brand-border overflow-x-auto no-scrollbar">
           <div className="flex items-center justify-between min-w-[620px] gap-2">
             {STAGE_ORDER.map((stageKey, idx) => {
-              const isPast = currentStageIndex > idx;
-              const isCurrent = currentStageIndex === idx && job.status !== 'cancelled';
+              const isPast = job.status === 'cancelled' ? effectiveStageIndex >= idx : currentStageIndex > idx;
+              const isCurrent = job.status !== 'cancelled' && currentStageIndex === idx;
               const config = STAGE_CONFIG[stageKey];
               const Icon = config.icon;
 

@@ -157,12 +157,113 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
     title: "Request Dedicated Executive Transit Quote | Nokael UAE Dispatch",
     description: "Get an immediate quote for time-critical document or parcel logistics between Dubai, Abu Dhabi, and all emirates. 5-minute driver assignment.",
     h1: "Request an Immediate Quote.",
-    content: "Our dispatch system provides instant routing and driver assignment for urgent logistics across the UAE. Fill out the route and item details for a dedicated  dispatch.",
+    content: "Our dispatch system provides instant routing and driver assignment for urgent logistics across the UAE. Fill out the route and item details for a dedicated dispatch.",
     price: "280",
     sla: "2-5 minute assignment",
     breadcrumb: [
       { name: "Home", url: "/" },
       { name: "Request Quote", url: "/get-quote" },
+    ],
+  },
+
+  "/track": {
+    title: "Track Live Delivery & Chain of Custody | Nokael",
+    description: "Track your active shipment, pilot location, and digital chain of custody (COC) verification in real-time across the UAE.",
+    h1: "Live Shipment Tracking & Chain of Custody",
+    content: "Real-time GPS telemetry and tamper-proof chain of custody verification for urgent business shipments between Dubai and Abu Dhabi.",
+    breadcrumb: [
+      { name: "Home", url: "/" },
+      { name: "Track", url: "/track" },
+    ],
+  },
+
+  "/business-account": {
+    title: "Corporate Logistics Account | Nokael B2B Transit",
+    description: "Open a corporate logistics account for priority vehicle dispatch, monthly consolidated billing, and dedicated corridor rates.",
+    h1: "Corporate Logistics Account",
+    content: "Priority vehicle assignment and simplified monthly invoicing for high-frequency B2B corridors across the UAE.",
+    breadcrumb: [
+      { name: "Home", url: "/" },
+      { name: "Business Account", url: "/business-account" },
+    ],
+  },
+
+  "/apply-driver": {
+    title: "Join Nokael Driver Network | UAE Logistics",
+    description: "Apply to join Nokael's vetted pilot network for executive point-to-point deliveries across Dubai, Abu Dhabi, and all emirates.",
+    h1: "Join the Nokael Pilot Network",
+    content: "We partner with professional, licensed drivers across the UAE for dedicated courier missions.",
+    breadcrumb: [
+      { name: "Home", url: "/" },
+      { name: "Driver Application", url: "/apply-driver" },
+    ],
+  },
+
+  "/about": {
+    title: "About Nokael | Dedicated Executive Transit Dubai to Abu Dhabi",
+    description: "Learn about Nokael's direct point-to-point courier network with zero sorting hubs, live driver telemetry, and tamper-proof chain of custody.",
+    h1: "About Nokael Dedicated Transit",
+    content: "Direct point-to-point corporate courier transit eliminating warehouse delays across the UAE.",
+    breadcrumb: [
+      { name: "Home", url: "/" },
+      { name: "About", url: "/about" },
+    ],
+  },
+
+  "/thank-you": {
+    title: "Quote Request Received | Nokael Logistics",
+    description: "Your delivery request has been received. Our dispatch controllers will assign the nearest available pilot shortly.",
+    h1: "Request Confirmed",
+    content: "Your mission request is logged in the Nokael dispatch queue.",
+    breadcrumb: [
+      { name: "Home", url: "/" },
+      { name: "Thank You", url: "/thank-you" },
+    ],
+  },
+
+  "/dashboard": {
+    title: "Nokael | Command Centre & Live Dispatch",
+    description: "Real-time dispatch command centre for active missions, pilot assignment, and chain of custody management.",
+    h1: "Command Centre",
+    content: "Operational dashboard for managing active runs, quote requests, and driver fleet status.",
+    breadcrumb: [{ name: "Dashboard", url: "/dashboard" }],
+  },
+
+  "/admin": {
+    title: "Nokael | Command Centre & Live Dispatch",
+    description: "Real-time dispatch command centre for active missions, pilot assignment, and chain of custody management.",
+    h1: "Command Centre",
+    content: "Operational dashboard for managing active runs, quote requests, and driver fleet status.",
+    breadcrumb: [{ name: "Dashboard", url: "/admin" }],
+  },
+
+  "/login": {
+    title: "Nokael | Dispatch Operations Login",
+    description: "Secure login portal for Nokael dispatch controllers and fleet operators.",
+    h1: "Operations Login",
+    content: "Secure access to Nokael Command Centre.",
+    breadcrumb: [{ name: "Login", url: "/login" }],
+  },
+
+  "/terms": {
+    title: "Terms & Conditions | Nokael Logistics",
+    description: "Terms and conditions of service for Nokael dedicated executive transit.",
+    h1: "Terms & Conditions",
+    content: "Service agreement and operational terms.",
+    breadcrumb: [
+      { name: "Home", url: "/" },
+      { name: "Terms", url: "/terms" },
+    ],
+  },
+
+  "/privacy": {
+    title: "Privacy Policy | Nokael Logistics",
+    description: "Privacy policy and data protection terms for Nokael clients and partners.",
+    h1: "Privacy Policy",
+    content: "Information privacy and security standards.",
+    breadcrumb: [
+      { name: "Home", url: "/" },
+      { name: "Privacy", url: "/privacy" },
     ],
   },
 
@@ -176,10 +277,10 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
 };
 
 export const DEFAULT_METADATA: PageMetadata = {
-  title: "Nokael | Urgent UAE B2B Delivery",
+  title: "Nokael | Dedicated Executive Transit Dubai to Abu Dhabi",
   description:
-    "Urgent Dedicated Executive Transit services across the UAE. Direct driver assignment, no hubs, and fast corporate delivery between Dubai and Abu Dhabi.",
-  h1: "Urgent UAE B2B Delivery",
+    "Urgent same-day business courier between Dubai and Abu Dhabi. Direct driver assignment, no sorting hubs, and fast corporate delivery.",
+  h1: "Dedicated Executive Transit Dubai to Abu Dhabi",
   content:
     "Nokael provides fast and reliable urgent B2B delivery services across the UAE. We specialize in time-critical corporate logistics needs between major cities like Dubai and Abu Dhabi.",
   faqs: [],

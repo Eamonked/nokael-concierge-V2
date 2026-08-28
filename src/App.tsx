@@ -102,9 +102,13 @@ function TitleManager() {
     
     if (metadata?.title) {
       document.title = metadata.title;
-      console.log(`[SEO] Title updated to: ${metadata.title} for path: ${urlPath}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[SEO] Title updated to: ${metadata.title} for path: ${urlPath}`);
+      }
     } else {
-      console.warn(`[SEO] No title found for path: ${urlPath}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[SEO] No title found for path: ${urlPath}`);
+      }
     }
   }, [pathname]);
 

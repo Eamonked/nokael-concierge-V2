@@ -649,13 +649,13 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
   // 1. Direct search by UUID on jobs table
   if (isUUID) {
     try {
-      const { data: jobById } = await supabase
+      const { data: jobById, error: idError } = await supabase
         .from('jobs')
         .select('*')
-        .or(`id.eq.${cleaned},token_client_pickup.eq.${cleaned},token_driver_pickup.eq.${cleaned},token_driver_delivery.eq.${cleaned},token_client_delivery.eq.${cleaned},tracking_token.eq.${cleaned}`)
+        .eq('id', cleaned)
         .limit(1);
 
-      if (jobById && jobById.length > 0) {
+      if (!idError && jobById && jobById.length > 0) {
         const populated = await populateJobsDrivers(jobById);
         const job = populated[0];
         return {
@@ -665,7 +665,23 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
         };
       }
     } catch (e) {
-      console.warn('[Nokael] Notice searching jobs by UUID:', e);
+      console.warn('[Nokael] Notice searching jobs by UUID id:', e);
+    }
+
+    // Try token RPC fallback for secure UUID token lookup
+    try {
+      const { data: rpcJob, error: rpcError } = await (supabase as any).rpc('get_job_by_token', { token_val: cleaned });
+      if (!rpcError && rpcJob) {
+        const populated = await populateJobsDrivers([rpcJob]);
+        const job = populated[0];
+        return {
+          type: 'job',
+          job,
+          trackingId: job.job_ref || cleaned,
+        };
+      }
+    } catch {
+      // Ignore RPC fallback if not present
     }
   }
 

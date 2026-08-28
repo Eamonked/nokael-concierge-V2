@@ -26,7 +26,9 @@ import {
   Package, 
   FileText, 
   Wrench, 
-  Radio
+  Radio,
+  AlertTriangle,
+  XCircle
 } from 'lucide-react';
 import { WHATSAPP_NUMBER } from '../constants';
 import { trackWhatsAppClick } from '../lib/analytics';
@@ -528,138 +530,205 @@ export default function Track() {
 
                 {/* 5-Step Exact Database Lifecycle Milestones */}
                 <div className="space-y-6 mb-8">
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-brand-muted">
-                    Chain of Custody Milestones
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-brand-muted">
+                      Chain of Custody Milestones
+                    </h3>
+                    {activeJob.status === 'cancelled' && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-500/10 text-red-400 text-[10px] font-bold border border-red-500/30">
+                        <AlertTriangle className="w-3 h-3 text-red-400" />
+                        Execution Interrupted
+                      </span>
+                    )}
+                  </div>
 
                   <div className="relative pl-6 sm:pl-8 border-l-2 border-brand-input-border space-y-8 ml-2 sm:ml-4">
-                    
-                    {/* Step 1: Dispatch Created */}
                     {(() => {
-                      const ts = formatTimestamp(activeJob.created_at);
-                      const isReached = statusConfig.stepIndex >= 0;
-                      const isCurrent = statusConfig.stepIndex === 0;
-                      return (
-                        <div className="relative">
-                          <div className={cn(
-                            "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
-                            isCurrent ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" : isReached ? "bg-brand-neon" : "bg-brand-input-border"
-                          )} />
-                          <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <p className="text-xs font-bold uppercase tracking-wider text-brand-text">
-                              1. Corridor Manifest Booked
-                            </p>
-                            {ts && <span className="text-[11px] text-brand-muted font-mono">{ts.time} · {ts.date}</span>}
-                          </div>
-                          <p className="text-xs text-brand-muted mt-0.5">
-                            Logged into dispatch queue. Origin: <b>{activeJob.pickup_emirate}</b>
-                          </p>
-                        </div>
-                      );
-                    })()}
-
-                    {/* Step 2: Driver Assigned / Sender Handover */}
-                    {(() => {
-                      const ts = formatTimestamp(
+                      const ts1 = formatTimestamp(activeJob.created_at);
+                      const ts2 = formatTimestamp(
                         activeJob.client_pickup_at || 
                         activeJob.client_pickup_confirmed_at || 
                         activeJob.driver_arrived_pickup_at || 
                         activeJob.sender_ready_at
                       );
-                      const isReached = statusConfig.stepIndex >= 1;
-                      const isCurrent = statusConfig.stepIndex === 1;
-                      return (
-                        <div className="relative">
-                          <div className={cn(
-                            "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
-                            isCurrent ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" : isReached ? "bg-brand-neon" : "bg-brand-input-border"
-                          )} />
-                          <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <p className="text-xs font-bold uppercase tracking-wider text-brand-text">
-                              2. Pilot Arrival & Sender Handover
-                            </p>
-                            {ts && <span className="text-[11px] text-brand-muted font-mono">{ts.time} · {ts.date}</span>}
+                      const ts3 = formatTimestamp(activeJob.driver_pickup_at || activeJob.driver_pickup_confirmed_at);
+                      const ts4 = formatTimestamp(activeJob.driver_delivery_at || activeJob.driver_arrived_delivery_at || activeJob.driver_delivery_confirmed_at);
+                      const ts5 = formatTimestamp(activeJob.client_delivery_at || activeJob.client_delivery_confirmed_at);
+                      const tsCancel = formatTimestamp(activeJob.cancelled_at || (activeJob.status === 'cancelled' ? activeJob.updated_at : null));
+
+                      const isCancelled = activeJob.status === 'cancelled';
+
+                      const step1Done = true;
+                      const step2Done = Boolean(ts2) || ['client_pickup', 'driver_pickup', 'driver_delivery', 'completed'].includes(activeJob.status) || Boolean(ts3) || Boolean(ts4) || Boolean(ts5);
+                      const step3Done = Boolean(ts3) || ['driver_pickup', 'driver_delivery', 'completed'].includes(activeJob.status) || Boolean(ts4) || Boolean(ts5);
+                      const step4Done = Boolean(ts4) || ['driver_delivery', 'completed'].includes(activeJob.status) || Boolean(ts5);
+                      const step5Done = Boolean(ts5) || activeJob.status === 'completed';
+
+                      // Find where failure occurred (last completed milestone index)
+                      let lastCompletedStep = 1;
+                      if (step4Done) lastCompletedStep = 4;
+                      else if (step3Done) lastCompletedStep = 3;
+                      else if (step2Done) lastCompletedStep = 2;
+                      else lastCompletedStep = 1;
+
+                      const renderCancellationNode = () => (
+                        <div className="relative p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-300">
+                          <div className="absolute -left-[31px] sm:-left-[39px] top-4 w-4 h-4 rounded-full border-4 border-brand-bg bg-red-500 shadow-[0_0_14px_rgba(239,68,68,0.9)] flex items-center justify-center" />
+                          <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
+                            <div className="flex items-center gap-2">
+                              <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                              <p className="text-xs font-black uppercase tracking-wider text-red-400">
+                                Mission Interrupted / Dispatch Cancelled
+                              </p>
+                            </div>
+                            {tsCancel && (
+                              <span className="text-[11px] text-red-400/80 font-mono font-bold">
+                                {tsCancel.time} · {tsCancel.date}
+                              </span>
+                            )}
                           </div>
-                          <p className="text-xs text-brand-muted mt-0.5">
-                            {hasDriver 
-                              ? `Assigned Pilot (${activeJob.driver?.full_name || 'Pilot'}) arriving at pickup point.`
-                              : 'Awaiting pilot dispatch arrival confirmation.'}
+                          <p className="text-xs text-red-300/90 leading-relaxed font-medium">
+                            {activeJob.cancellation_reason ? (
+                              <span><b>Reason:</b> {activeJob.cancellation_reason}</span>
+                            ) : (
+                              'Dispatch operations terminated before final handover completion.'
+                            )}
                           </p>
                         </div>
                       );
-                    })()}
 
-                    {/* Step 3: Picked Up & In Transit */}
-                    {(() => {
-                      const ts = formatTimestamp(activeJob.driver_pickup_at || activeJob.driver_pickup_confirmed_at);
-                      const isReached = statusConfig.stepIndex >= 2;
-                      const isCurrent = statusConfig.stepIndex === 2;
                       return (
-                        <div className="relative">
-                          <div className={cn(
-                            "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
-                            isCurrent ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" : isReached ? "bg-brand-neon" : "bg-brand-input-border"
-                          )} />
-                          <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <p className="text-xs font-bold uppercase tracking-wider text-brand-text">
-                              3. Picked Up & In Dedicated Transit
+                        <>
+                          {/* Step 1: Corridor Manifest Booked */}
+                          <div className="relative">
+                            <div className={cn(
+                              "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all flex items-center justify-center",
+                              !isCancelled && statusConfig.stepIndex === 0 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" : "bg-brand-neon shadow-[0_0_8px_rgba(57,255,20,0.4)]"
+                            )} />
+                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                              <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
+                                <span>1. Corridor Manifest Booked</span>
+                                <Check className="w-3 h-3 text-brand-neon" />
+                              </p>
+                              {ts1 && <span className="text-[11px] text-brand-muted font-mono">{ts1.time} · {ts1.date}</span>}
+                            </div>
+                            <p className="text-xs text-brand-muted mt-0.5">
+                              Logged into dispatch queue. Origin: <b>{activeJob.pickup_emirate}</b>
                             </p>
-                            {ts && <span className="text-[11px] text-brand-muted font-mono">{ts.time} · {ts.date}</span>}
                           </div>
-                          <p className="text-xs text-brand-muted mt-0.5">
-                            Parcel secured. Direct non-stop transit between <b>{activeJob.pickup_emirate}</b> and <b>{activeJob.delivery_emirate}</b>.
-                          </p>
-                        </div>
+
+                          {/* If cancelled right after Step 1 */}
+                          {isCancelled && lastCompletedStep === 1 && renderCancellationNode()}
+
+                          {/* Step 2: Pilot Arrival & Sender Handover */}
+                          <div className={cn("relative", isCancelled && !step2Done && "opacity-40")}>
+                            <div className={cn(
+                              "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
+                              step2Done ? "bg-brand-neon shadow-[0_0_8px_rgba(57,255,20,0.4)]" :
+                              !isCancelled && statusConfig.stepIndex === 1 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
+                              "bg-brand-input-border"
+                            )} />
+                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                              <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
+                                <span>2. Pilot Arrival & Sender Handover</span>
+                                {step2Done && <Check className="w-3 h-3 text-brand-neon" />}
+                                {isCancelled && !step2Done && (
+                                  <span className="text-[9px] px-1.5 py-0.2 bg-red-500/10 text-red-400 border border-red-500/20 rounded font-mono">Aborted</span>
+                                )}
+                              </p>
+                              {ts2 && <span className="text-[11px] text-brand-muted font-mono">{ts2.time} · {ts2.date}</span>}
+                            </div>
+                            <p className="text-xs text-brand-muted mt-0.5">
+                              {hasDriver 
+                                ? `Assigned Pilot (${activeJob.driver?.full_name || 'Pilot'}) arriving at pickup point.`
+                                : 'Awaiting pilot dispatch arrival confirmation.'}
+                            </p>
+                          </div>
+
+                          {/* If cancelled right after Step 2 */}
+                          {isCancelled && lastCompletedStep === 2 && renderCancellationNode()}
+
+                          {/* Step 3: Picked Up & In Dedicated Transit */}
+                          <div className={cn("relative", isCancelled && !step3Done && "opacity-40")}>
+                            <div className={cn(
+                              "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
+                              step3Done ? "bg-brand-neon shadow-[0_0_8px_rgba(57,255,20,0.4)]" :
+                              !isCancelled && statusConfig.stepIndex === 2 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
+                              "bg-brand-input-border"
+                            )} />
+                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                              <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
+                                <span>3. Picked Up & In Dedicated Transit</span>
+                                {step3Done && <Check className="w-3 h-3 text-brand-neon" />}
+                                {isCancelled && !step3Done && (
+                                  <span className="text-[9px] px-1.5 py-0.2 bg-red-500/10 text-red-400 border border-red-500/20 rounded font-mono">Aborted</span>
+                                )}
+                              </p>
+                              {ts3 && <span className="text-[11px] text-brand-muted font-mono">{ts3.time} · {ts3.date}</span>}
+                            </div>
+                            <p className="text-xs text-brand-muted mt-0.5">
+                              Parcel secured. Direct non-stop transit between <b>{activeJob.pickup_emirate}</b> and <b>{activeJob.delivery_emirate}</b>.
+                            </p>
+                          </div>
+
+                          {/* If cancelled right after Step 3 */}
+                          {isCancelled && lastCompletedStep === 3 && renderCancellationNode()}
+
+                          {/* Step 4: Destination Arrival */}
+                          <div className={cn("relative", isCancelled && !step4Done && "opacity-40")}>
+                            <div className={cn(
+                              "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
+                              step4Done ? "bg-brand-neon shadow-[0_0_8px_rgba(57,255,20,0.4)]" :
+                              !isCancelled && statusConfig.stepIndex === 3 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
+                              "bg-brand-input-border"
+                            )} />
+                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                              <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
+                                <span>4. Destination Arrival</span>
+                                {step4Done && <Check className="w-3 h-3 text-brand-neon" />}
+                                {isCancelled && !step4Done && (
+                                  <span className="text-[9px] px-1.5 py-0.2 bg-red-500/10 text-red-400 border border-red-500/20 rounded font-mono">Aborted</span>
+                                )}
+                              </p>
+                              {ts4 && <span className="text-[11px] text-brand-muted font-mono">{ts4.time} · {ts4.date}</span>}
+                            </div>
+                            <p className="text-xs text-brand-muted mt-0.5">
+                              Pilot at {activeJob.delivery_location}, {activeJob.delivery_emirate}. Initiating recipient verification.
+                            </p>
+                          </div>
+
+                          {/* If cancelled right after Step 4 */}
+                          {isCancelled && lastCompletedStep === 4 && renderCancellationNode()}
+
+                          {/* Step 5: Final Delivery Handover */}
+                          <div className={cn("relative", isCancelled && !step5Done && "opacity-40")}>
+                            <div className={cn(
+                              "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
+                              step5Done ? "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]" :
+                              !isCancelled && statusConfig.stepIndex === 4 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
+                              "bg-brand-input-border"
+                            )} />
+                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                              <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
+                                <span>5. Delivered & Handover Confirmed</span>
+                                {step5Done && <Check className="w-3 h-3 text-emerald-400" />}
+                                {isCancelled && !step5Done && (
+                                  <span className="text-[9px] px-1.5 py-0.2 bg-red-500/10 text-red-400 border border-red-500/20 rounded font-mono">Unfulfilled</span>
+                                )}
+                              </p>
+                              {ts5 && <span className="text-[11px] text-emerald-400 font-mono font-bold">{ts5.time} · {ts5.date}</span>}
+                            </div>
+                            <p className="text-xs text-brand-muted mt-0.5">
+                              {step5Done 
+                                ? 'Final receipt validated. Complete Chain of Custody digitally signed.' 
+                                : isCancelled 
+                                ? 'Delivery handover was not completed due to cancellation.' 
+                                : 'Final receipt validated. Complete Chain of Custody digitally signed.'}
+                            </p>
+                          </div>
+                        </>
                       );
                     })()}
-
-                    {/* Step 4: Arrived at Destination */}
-                    {(() => {
-                      const ts = formatTimestamp(activeJob.driver_delivery_at || activeJob.driver_arrived_delivery_at);
-                      const isReached = statusConfig.stepIndex >= 3;
-                      const isCurrent = statusConfig.stepIndex === 3;
-                      return (
-                        <div className="relative">
-                          <div className={cn(
-                            "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
-                            isCurrent ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" : isReached ? "bg-brand-neon" : "bg-brand-input-border"
-                          )} />
-                          <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <p className="text-xs font-bold uppercase tracking-wider text-brand-text">
-                              4. Destination Arrival
-                            </p>
-                            {ts && <span className="text-[11px] text-brand-muted font-mono">{ts.time} · {ts.date}</span>}
-                          </div>
-                          <p className="text-xs text-brand-muted mt-0.5">
-                            Pilot at {activeJob.delivery_location}, {activeJob.delivery_emirate}. Initiating recipient verification.
-                          </p>
-                        </div>
-                      );
-                    })()}
-
-                    {/* Step 5: Final Delivery Completed */}
-                    {(() => {
-                      const ts = formatTimestamp(activeJob.client_delivery_at || activeJob.client_delivery_confirmed_at);
-                      const isReached = statusConfig.stepIndex === 4;
-                      return (
-                        <div className="relative">
-                          <div className={cn(
-                            "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
-                            isReached ? "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]" : "bg-brand-input-border"
-                          )} />
-                          <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <p className="text-xs font-bold uppercase tracking-wider text-brand-text">
-                              5. Delivered & Handover Confirmed
-                            </p>
-                            {ts && <span className="text-[11px] text-emerald-400 font-mono font-bold">{ts.time} · {ts.date}</span>}
-                          </div>
-                          <p className="text-xs text-brand-muted mt-0.5">
-                            Final receipt validated. Complete Chain of Custody digitally signed.
-                          </p>
-                        </div>
-                      );
-                    })()}
-
                   </div>
                 </div>
 
