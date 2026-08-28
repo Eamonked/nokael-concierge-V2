@@ -28,8 +28,10 @@ import {
   Wrench, 
   Radio,
   AlertTriangle,
-  XCircle
+  XCircle,
+  Download
 } from 'lucide-react';
+import { generateJobPOC } from '../lib/pdf-export';
 import { WHATSAPP_NUMBER } from '../constants';
 import { trackWhatsAppClick } from '../lib/analytics';
 import { 
@@ -806,66 +808,194 @@ export default function Track() {
                   </div>
                 </div>
 
-                {/* Pilot & Handover Info */}
-                <div className="dispatch-card border border-brand-border bg-brand-surface/60 space-y-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-muted">
-                    Assigned Pilot & Custody
-                  </p>
+                {/* Pilot & Custody Lifecycle Box */}
+                {(() => {
+                  const isCancelled = activeJob.status === 'cancelled';
+                  const isCompleted = activeJob.status === 'completed';
+                  const isInTransit = activeJob.status === 'driver_pickup';
+                  const isAtPickup = activeJob.status === 'client_pickup';
+                  const isAtDelivery = activeJob.status === 'driver_delivery';
 
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-brand-input border border-brand-input-border flex items-center justify-center text-brand-neon">
-                      {hasDriver ? <Truck className="w-6 h-6" /> : <Zap className="w-6 h-6" />}
-                    </div>
-                    <div>
-                      <p className="text-base font-display font-medium text-brand-text">
-                        {activeJob.driver?.full_name || 'Nokael Central Operations'}
-                      </p>
-                      <p className="text-[11px] text-brand-muted">
-                        {activeJob.driver?.vehicle_type ? `${activeJob.driver.vehicle_type} · Dedicated Fleet` : '24/7 Monitoring Desk'}
-                      </p>
-                      {activeJob.driver?.rating && (
-                        <div className="flex items-center gap-1 mt-1 text-[11px] text-amber-400 font-bold">
-                          <span>★</span>
-                          <span>{activeJob.driver.rating.toFixed(1)} Rating</span>
+                  // Dynamic Badge
+                  let badge = { text: 'Awaiting Allocation', bg: 'bg-brand-input', textCol: 'text-brand-muted', border: 'border-brand-input-border' };
+                  if (isCancelled) {
+                    badge = { text: 'Mission Cancelled', bg: 'bg-red-500/10', textCol: 'text-red-400', border: 'border-red-500/30' };
+                  } else if (isCompleted) {
+                    badge = { text: 'Custody Verified', bg: 'bg-emerald-500/10', textCol: 'text-emerald-400', border: 'border-emerald-500/30' };
+                  } else if (isInTransit) {
+                    badge = { text: 'In Corridor Transit', bg: 'bg-brand-neon/10', textCol: 'text-brand-neon', border: 'border-brand-neon/30' };
+                  } else if (isAtDelivery) {
+                    badge = { text: 'At Destination', bg: 'bg-purple-500/10', textCol: 'text-purple-400', border: 'border-purple-500/30' };
+                  } else if (isAtPickup) {
+                    badge = { text: 'At Sender Location', bg: 'bg-blue-500/10', textCol: 'text-blue-400', border: 'border-blue-500/30' };
+                  } else if (hasDriver) {
+                    badge = { text: 'Pilot Mobilized', bg: 'bg-yellow-500/10', textCol: 'text-yellow-400', border: 'border-yellow-500/30' };
+                  }
+
+                  // Dynamic Pilot/Desk Information
+                  let title = activeJob.driver?.full_name || 'Nokael Central Operations';
+                  let subtitle = '24/7 Monitoring Desk · Allocating Nearest Pilot';
+                  let iconElement = <Zap className="w-6 h-6 animate-pulse" />;
+                  let iconBg = 'bg-brand-input border-brand-input-border text-brand-neon';
+
+                  if (isCancelled) {
+                    title = activeJob.driver?.full_name ? `${activeJob.driver.full_name} (Disengaged)` : 'Nokael Operations Control';
+                    subtitle = activeJob.cancellation_reason ? `Terminated: ${activeJob.cancellation_reason}` : 'Mission Cancelled · Operations Terminated';
+                    iconElement = <XCircle className="w-6 h-6" />;
+                    iconBg = 'bg-red-500/10 border-red-500/30 text-red-400';
+                  } else if (isCompleted) {
+                    title = activeJob.driver?.full_name || 'Nokael Executive Pilot';
+                    subtitle = activeJob.driver?.vehicle_type ? `${activeJob.driver.vehicle_type} · Dedicated Delivery Verified` : 'Dedicated Fleet · Delivered Successfully';
+                    iconElement = <ShieldCheck className="w-6 h-6" />;
+                    iconBg = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
+                  } else if (isInTransit) {
+                    title = activeJob.driver?.full_name || 'Assigned Dedicated Pilot';
+                    subtitle = activeJob.driver?.vehicle_type ? `${activeJob.driver.vehicle_type} · Non-Stop Highway Transit` : 'Dedicated Corridor Pilot · Active Transit';
+                    iconElement = <Truck className="w-6 h-6" />;
+                    iconBg = 'bg-brand-neon/10 border-brand-neon/40 text-brand-neon shadow-[0_0_15px_rgba(57,255,20,0.2)]';
+                  } else if (isAtDelivery) {
+                    title = activeJob.driver?.full_name || 'Assigned Dedicated Pilot';
+                    subtitle = `Pilot Arrived at ${activeJob.delivery_emirate} · Initiating Handover`;
+                    iconElement = <MapPin className="w-6 h-6" />;
+                    iconBg = 'bg-purple-500/10 border-purple-500/30 text-purple-400';
+                  } else if (isAtPickup) {
+                    title = activeJob.driver?.full_name || 'Assigned Dedicated Pilot';
+                    subtitle = `Pilot at Pickup Location (${activeJob.pickup_emirate}) · Securing Package`;
+                    iconElement = <User className="w-6 h-6" />;
+                    iconBg = 'bg-blue-500/10 border-blue-500/30 text-blue-400';
+                  } else if (hasDriver) {
+                    title = activeJob.driver?.full_name || 'Assigned Pilot';
+                    subtitle = activeJob.driver?.vehicle_type ? `${activeJob.driver.vehicle_type} · En Route to Pickup` : 'Dedicated Pilot · En Route to Pickup';
+                    iconElement = <Truck className="w-6 h-6" />;
+                    iconBg = 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400';
+                  }
+
+                  // Contextual WhatsApp link
+                  let contextualWaMsg = `Hi Nokael Dispatch, I am tracking manifest ${currentTrackingId}${activeJob ? ` (${activeJob.pickup_emirate} ➔ ${activeJob.delivery_emirate})` : ''} and would like a live status update.`;
+                  if (isCancelled) {
+                    contextualWaMsg = `Hi Nokael Dispatch, I am inquiring regarding the cancelled manifest ${activeJob.job_ref || currentTrackingId} (${activeJob.pickup_emirate} to ${activeJob.delivery_emirate}). Reason cited: "${activeJob.cancellation_reason || 'Manual Cancellation'}". Please advise on parcel recovery or re-dispatch status.`;
+                  } else if (isCompleted) {
+                    contextualWaMsg = `Hi Nokael Dispatch, I am following up regarding completed manifest ${activeJob.job_ref || currentTrackingId} (${activeJob.pickup_emirate} to ${activeJob.delivery_emirate}).`;
+                  } else if (isInTransit) {
+                    contextualWaMsg = `Hi Nokael Dispatch, I am tracking live in-transit consignment ${activeJob.job_ref || currentTrackingId} between ${activeJob.pickup_emirate} and ${activeJob.delivery_emirate}.`;
+                  }
+
+                  const itemMeta = getItemMeta(activeJob.item_type);
+                  const ItemIcon = itemMeta.icon;
+
+                  return (
+                    <div className={cn(
+                      "dispatch-card border bg-brand-surface/60 space-y-4 transition-all",
+                      isCancelled ? "border-red-500/30 bg-red-950/10" : isCompleted ? "border-emerald-500/30 bg-emerald-950/10" : "border-brand-border"
+                    )}>
+                      {/* Header with Dynamic Badge */}
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-muted">
+                          Assigned Pilot & Custody
+                        </p>
+                        <span className={cn("px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border", badge.bg, badge.textCol, badge.border)}>
+                          {badge.text}
+                        </span>
+                      </div>
+
+                      {/* Pilot Profile / Operations Info */}
+                      <div className="flex items-center gap-4">
+                        <div className={cn("w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0 transition-colors", iconBg)}>
+                          {iconElement}
                         </div>
-                      )}
-                    </div>
-                  </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-base font-display font-medium text-brand-text truncate">
+                            {title}
+                          </p>
+                          <p className="text-[11px] text-brand-muted truncate">
+                            {subtitle}
+                          </p>
+                          {activeJob.driver?.rating && !isCancelled && (
+                            <div className="flex items-center gap-1 mt-1 text-[11px] text-amber-400 font-bold">
+                              <span>★</span>
+                              <span>{activeJob.driver.rating.toFixed(1)} Rating · Dedicated Pilot</span>
+                            </div>
+                          )}
+                          {isCancelled && activeJob.cancelled_at && (
+                            <p className="text-[10px] text-red-400/80 font-mono mt-0.5">
+                              Terminated on {format(new Date(activeJob.cancelled_at), 'dd MMM yyyy, hh:mm a')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
 
-                  {/* Item Description */}
-                  {(() => {
-                    const itemMeta = getItemMeta(activeJob.item_type);
-                    const ItemIcon = itemMeta.icon;
-                    return (
+                      {/* Item Specification & Dynamic Custody Status */}
                       <div className="pt-3 border-t border-brand-border/60 flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
                           <ItemIcon className={cn("w-4 h-4", itemMeta.color)} />
                           <span className="font-medium text-brand-text">{itemMeta.label}</span>
                         </div>
-                        <span className="text-[10px] text-brand-muted uppercase tracking-wider font-bold">
-                          Insured Transit
-                        </span>
+                        <div>
+                          {isCancelled ? (
+                            <span className="text-[10px] text-red-400 uppercase tracking-wider font-bold">
+                              Custody Halted
+                            </span>
+                          ) : isCompleted ? (
+                            <span className="text-[10px] text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                              Handover Signed
+                            </span>
+                          ) : isInTransit ? (
+                            <span className="text-[10px] text-brand-neon uppercase tracking-wider font-bold flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-brand-neon animate-pulse" />
+                              Active Custody
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-brand-muted uppercase tracking-wider font-bold">
+                              Insured Transit
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    );
-                  })()}
 
-                  {/* Actions / Support */}
-                  <div className="pt-2">
-                    <a
-                      href={`https://wa.me/${WHATSAPP_NUMBER}?text=${waSupportText}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => trackWhatsAppClick('track_support_click', {
-                        phone_number: activeJob.sender_phone,
-                        first_name: activeJob.sender_name
-                      })}
-                      className="btn-primary w-full py-3 text-xs uppercase tracking-wider font-bold"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                      <span>Chat with Live Dispatch Desk</span>
-                    </a>
-                  </div>
-                </div>
+                      {/* Action Buttons based on status */}
+                      <div className="pt-2 space-y-2">
+                        {isCompleted && (
+                          <button
+                            type="button"
+                            onClick={() => generateJobPOC(activeJob)}
+                            className="btn-primary w-full py-3 text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-2"
+                          >
+                            <Download className="w-4 h-4" />
+                            <span>Download Chain of Custody (PDF)</span>
+                          </button>
+                        )}
+
+                        <a
+                          href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(contextualWaMsg)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => trackWhatsAppClick('track_support_click', {
+                            phone_number: activeJob.sender_phone,
+                            first_name: activeJob.sender_name
+                          })}
+                          className={cn(
+                            "w-full py-3 text-xs uppercase tracking-wider font-bold rounded-xl flex items-center justify-center gap-2 transition-all",
+                            isCancelled 
+                              ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30"
+                              : isCompleted
+                              ? "bg-brand-input hover:bg-brand-border/60 text-brand-text border border-brand-input-border"
+                              : "btn-primary"
+                          )}
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                          <span>
+                            {isCancelled 
+                              ? 'Inquire Regarding Cancellation' 
+                              : isCompleted 
+                              ? 'Contact Dispatch Desk' 
+                              : 'Chat with Live Dispatch Desk'}
+                          </span>
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })()}
 
               </div>
             </motion.div>

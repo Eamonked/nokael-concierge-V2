@@ -12,8 +12,8 @@ import { securityHeaders, rateLimit, requireApiKey } from "./middleware/security
 import { createUploadRouter } from "./routes/upload.js";
 import { createNotifyRouter } from "./routes/notify.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const _filename = typeof __filename !== "undefined" ? __filename : fileURLToPath(import.meta.url);
+const _dirname = typeof __dirname !== "undefined" ? __dirname : path.dirname(_filename);
 
 const SITE_URL = process.env.SITE_URL || "https://www.nokael.com" || "https://nokael.com";
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
@@ -55,7 +55,7 @@ async function startServer() {
     app.get("*", async (req, res, next) => {
       try {
         let template = fs.readFileSync(
-          path.resolve(__dirname, "index.html"),
+          path.resolve(_dirname, "index.html"),
           "utf-8"
         );
         template = await vite.transformIndexHtml(req.originalUrl, template);
