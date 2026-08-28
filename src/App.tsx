@@ -135,6 +135,7 @@ export default function App() {
               <Route path="/document-delivery-uae" element={<DocumentLanding />} />
               <Route path="/spare-parts-delivery-uae" element={<SparePartsLanding />} />
               <Route path="/track" element={<Track />} />
+              <Route path="/track/:trackingId" element={<Track />} />
               <Route path="/business-account" element={<BusinessAccountInquiry />} />
               <Route path="/apply-driver" element={<DriverApplication />} />
               <Route path="/about" element={<About />} />

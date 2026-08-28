@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Lock, ArrowRight, Loader2, Terminal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { supabase, getSafeSession, clearStaleAuthSession } from '../lib/supabase';
 
 export default function Login() {
   const [email, setEmail] = React.useState('');
@@ -13,15 +13,20 @@ export default function Login() {
 
   // Redirect if already authenticated
   React.useEffect(() => {
-    if (!supabase) return;
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error && (error.message?.includes('Refresh Token Not Found') || error.message?.includes('Invalid Refresh Token'))) {
-        console.warn('Invalid or expired session detected, clearing auth storage.');
-        supabase.auth.signOut();
-        return;
-      }
-      if (session) navigate('/dashboard');
-    });
+    let isMounted = true;
+    getSafeSession()
+      .then((session) => {
+        if (isMounted && session) {
+          navigate('/dashboard');
+        }
+      })
+      .catch(() => {
+        clearStaleAuthSession();
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {

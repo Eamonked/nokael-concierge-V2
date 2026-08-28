@@ -73,7 +73,9 @@ import {
   type JobStatus,
   type ItemType,
   type UrgencyType,
-  type JobWithDriver
+  type JobWithDriver,
+  getSafeSession,
+  clearStaleAuthSession
 } from '../lib/supabase';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -119,29 +121,33 @@ export default function Dashboard() {
 
   // Auth check using real Supabase session
   React.useEffect(() => {
+    let isMounted = true;
+
     if (!supabase) {
       setLoading(false);
       return;
     }
     
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error && (error.message?.includes('Refresh Token Not Found') || error.message?.includes('Invalid Refresh Token'))) {
-        console.warn('Invalid or expired session detected, clearing auth storage.');
-        supabase.auth.signOut().finally(() => {
+    getSafeSession()
+      .then((session) => {
+        if (!isMounted) return;
+        if (!session) {
           navigate('/login');
+        } else {
+          fetchData();
+        }
+      })
+      .catch((err) => {
+        console.warn('[Dashboard] Auth validation error:', err);
+        clearStaleAuthSession().finally(() => {
+          if (isMounted) navigate('/login');
         });
-        return;
-      }
-      if (!session) {
-        navigate('/login');
-      } else {
-        fetchData();
-      }
-    });
+      });
 
     // Subscribe to job changes
     const subscription = subscribeToJobs((payload) => {
       getJobs().then(jobsData => {
+        if (!isMounted) return;
         setJobs(jobsData);
         if (selectedJob?.id) {
           const updatedSelected = jobsData.find(j => j.id === selectedJob.id);
@@ -153,7 +159,8 @@ export default function Dashboard() {
     });
 
     return () => {
-      if (subscription) supabase.removeChannel(subscription);
+      isMounted = false;
+      if (subscription && supabase) supabase.removeChannel(subscription);
     };
   }, [navigate, selectedJob?.id]);
 
@@ -252,9 +259,7 @@ export default function Dashboard() {
   };
 
   const handleLogout = async () => {
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
+    await clearStaleAuthSession();
     navigate('/login');
   };
 
@@ -266,6 +271,23 @@ export default function Dashboard() {
                           (r.tracking_id || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || r.status === filterStatus;
     return matchesSearch && matchesFilter;
+  });
+
+  const filteredJobs = jobs.filter(j => {
+    const s = searchTerm.toLowerCase();
+    const matchesSearch = !searchTerm.trim() || 
+                          (j.job_ref || '').toLowerCase().includes(s) ||
+                          (j.sender_name || '').toLowerCase().includes(s) ||
+                          (j.sender_phone || '').toLowerCase().includes(s) ||
+                          (j.recipient_name || '').toLowerCase().includes(s) ||
+                          (j.recipient_phone || '').toLowerCase().includes(s) ||
+                          (j.pickup_location || '').toLowerCase().includes(s) ||
+                          (j.delivery_location || '').toLowerCase().includes(s) ||
+                          (j.tracking_token || '').toLowerCase().includes(s) ||
+                          (j.company_name || '').toLowerCase().includes(s) ||
+                          (j.id || '').toLowerCase().includes(s) ||
+                          (j.driver?.full_name || '').toLowerCase().includes(s);
+    return matchesSearch;
   });
 
   const filteredDrivers = drivers.filter(d => {
@@ -512,19 +534,19 @@ export default function Dashboard() {
                 <KanbanColumn 
                   title="Pending Dispatch" 
                   status="pending" 
-                  jobs={jobs.filter(j => j.status === 'pending')} 
+                  jobs={filteredJobs.filter(j => j.status === 'pending')} 
                   onJobClick={setSelectedJob} 
                 />
                 <KanbanColumn 
                   title="In Transit / Operational" 
                   status="in_transit" 
-                  jobs={jobs.filter(j => ['client_pickup', 'driver_pickup', 'driver_delivery'].includes(j.status))} 
+                  jobs={filteredJobs.filter(j => ['client_pickup', 'driver_pickup', 'driver_delivery'].includes(j.status))} 
                   onJobClick={setSelectedJob} 
                 />
                 <KanbanColumn 
                   title="Audit / Completed" 
                   status="completed" 
-                  jobs={jobs.filter(j => j.status === 'completed')} 
+                  jobs={filteredJobs.filter(j => j.status === 'completed')} 
                   onJobClick={setSelectedJob} 
                 />
               </div>
@@ -541,7 +563,7 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-brand-border">
-                      {jobs.map((job) => (
+                      {filteredJobs.map((job) => (
                         <tr 
                           key={job.id} 
                           className="hover:bg-brand-surface/30 transition-colors group cursor-pointer"

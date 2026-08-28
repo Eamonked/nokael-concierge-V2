@@ -27,6 +27,80 @@ export const supabase =
       })
     : null;
 
+/**
+ * Safely clears any stale or corrupted auth tokens from localStorage and Supabase auth state.
+ */
+export const clearStaleAuthSession = async (): Promise<void> => {
+  if (supabase) {
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch {
+      // ignore
+    }
+  }
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('supabase') || key.includes('auth-token'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    }
+  } catch {
+    // ignore
+  }
+};
+
+/**
+ * Safely fetches the current Supabase session without throwing unhandled "Invalid Refresh Token" exceptions.
+ */
+export const getSafeSession = async () => {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      if (
+        error.message?.includes('Refresh Token Not Found') ||
+        error.message?.includes('Invalid Refresh Token') ||
+        error.message?.includes('invalid_grant')
+      ) {
+        console.warn('[Nokael Auth] Stale refresh token found. Resetting local auth session.');
+        await clearStaleAuthSession();
+        return null;
+      }
+      console.warn('[Nokael Auth] Auth session retrieval notice:', error.message);
+      return null;
+    }
+    return data?.session || null;
+  } catch (err: any) {
+    if (
+      err?.message?.includes('Refresh Token Not Found') ||
+      err?.message?.includes('Invalid Refresh Token') ||
+      err?.message?.includes('invalid_grant')
+    ) {
+      console.warn('[Nokael Auth] Caught invalid refresh token exception. Resetting session.');
+      await clearStaleAuthSession();
+    }
+    return null;
+  }
+};
+
+// Global auth listener to safely handle token lifecycle without unhandled errors
+if (supabase) {
+  try {
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        // clear local state quietly
+      }
+    });
+  } catch (e) {
+    console.warn('[Nokael Auth] onAuthStateChange setup notice:', e);
+  }
+}
+
 // ==========================================
 // Shared Types & Enums
 // ==========================================
@@ -457,15 +531,54 @@ export const assignDriverToJob = async (
   return mapJobDbToClient(data as Job);
 };
 
+// Safely attach driver objects to jobs without relying on PostgREST foreign key schema constraints
+export const populateJobsDrivers = async (rawJobs: any[]): Promise<JobWithDriver[]> => {
+  if (!rawJobs || rawJobs.length === 0) return [];
+  const driverIds = Array.from(
+    new Set(rawJobs.map((j) => j.driver_id).filter(Boolean))
+  ) as string[];
+
+  const driversMap: Record<string, Partial<Driver>> = {};
+  if (driverIds.length > 0 && supabase) {
+    try {
+      const { data: driversData } = await supabase
+        .from('drivers')
+        .select('id, full_name, phone, whatsapp, vehicle_type, status, rating, tier')
+        .in('id', driverIds);
+
+      if (driversData) {
+        driversData.forEach((d: any) => {
+          driversMap[d.id] = d;
+        });
+      }
+    } catch (e) {
+      console.warn('[Nokael] Notice during driver lookup:', e);
+    }
+  }
+
+  return rawJobs.map((j: any) => {
+    const driver = j.driver_id ? driversMap[j.driver_id] || (j.driver ?? null) : (j.driver ?? null);
+    return mapJobDbToClient({ ...j, driver } as JobWithDriver);
+  });
+};
+
 export const getJobs = async (): Promise<JobWithDriver[]> => {
   if (!supabase) return [];
-  const { data, error } = await supabase
-    .from('jobs')
-    .select('*, driver:drivers(id, full_name, phone, whatsapp, vehicle_type, status, rating)')
-    .order('created_at', { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-  if (error) throw error;
-  return (data || []).map(job => mapJobDbToClient(job as JobWithDriver));
+    if (error) {
+      console.error('[Nokael] Error fetching jobs from database:', error);
+      return [];
+    }
+    return await populateJobsDrivers(data || []);
+  } catch (err) {
+    console.error('[Nokael] Exception in getJobs:', err);
+    return [];
+  }
 };
 
 /**
@@ -474,14 +587,287 @@ export const getJobs = async (): Promise<JobWithDriver[]> => {
  */
 export const getJobByTrackingToken = async (token: string): Promise<JobWithDriver | null> => {
   if (!supabase) return null;
-  const { data, error } = await supabase
-    .from('jobs')
-    .select('*, driver:drivers(id, full_name, phone, vehicle_type, status)')
-    .eq('tracking_token', token)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('tracking_token', token)
+      .limit(1);
 
-  if (error) return null;
-  return mapJobDbToClient(data as JobWithDriver);
+    if (error || !data || data.length === 0) return null;
+    const populated = await populateJobsDrivers(data);
+    return populated[0] || null;
+  } catch {
+    return null;
+  }
+};
+
+export const getJobById = async (id: string): Promise<JobWithDriver | null> => {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('id', id)
+      .limit(1);
+
+    if (error || !data || data.length === 0) return null;
+    const populated = await populateJobsDrivers(data);
+    return populated[0] || null;
+  } catch {
+    return null;
+  }
+};
+
+export interface TrackingResult {
+  type: 'job' | 'quote';
+  job?: JobWithDriver;
+  quote?: QuoteRequest;
+  trackingId: string;
+}
+
+/**
+ * Universal lookup for the customer live tracking page and command center.
+ * Resolves job_ref (e.g. NOK-0053, NOK-1024, NK-1024), tracking_token, UUIDs,
+ * phone numbers, or quote_requests tracking_id.
+ */
+export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult | null> => {
+  if (!supabase) return null;
+  const raw = queryStr.trim();
+  if (!raw) return null;
+
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw);
+  const upper = raw.toUpperCase();
+  const digitsOnly = raw.replace(/\D/g, '');
+
+  // Build possible variants (e.g., 'NOK-0053', 'NOK0053', '0053', '53')
+  const variations = Array.from(
+    new Set([
+      raw,
+      upper,
+      raw.toLowerCase(),
+      digitsOnly ? `NOK-${digitsOnly}` : '',
+      digitsOnly ? `NOK-${digitsOnly.padStart(4, '0')}` : '',
+      digitsOnly ? `NK-${digitsOnly}` : '',
+      digitsOnly ? `NK-${digitsOnly.padStart(4, '0')}` : '',
+    ].filter(Boolean))
+  );
+
+  // 1. Direct search by UUID on jobs table
+  if (isUUID) {
+    try {
+      const { data: jobById } = await supabase
+        .from('jobs')
+        .select('*')
+        .or(`id.eq.${raw},token_client_pickup.eq.${raw},token_driver_pickup.eq.${raw},token_driver_delivery.eq.${raw},token_client_delivery.eq.${raw},tracking_token.eq.${raw}`)
+        .limit(1);
+
+      if (jobById && jobById.length > 0) {
+        const populated = await populateJobsDrivers(jobById);
+        const job = populated[0];
+        return {
+          type: 'job',
+          job,
+          trackingId: job.job_ref || raw,
+        };
+      }
+    } catch (e) {
+      console.warn('[Nokael] Notice searching jobs by UUID:', e);
+    }
+  }
+
+  // 2. Direct search on jobs table by exact job_ref or tracking_token
+  for (const variant of variations) {
+    try {
+      const { data: refJobs } = await supabase
+        .from('jobs')
+        .select('*')
+        .ilike('job_ref', variant)
+        .limit(1);
+
+      if (refJobs && refJobs.length > 0) {
+        const populated = await populateJobsDrivers(refJobs);
+        const job = populated[0];
+        return {
+          type: 'job',
+          job,
+          trackingId: job.job_ref || variant,
+        };
+      }
+    } catch (e) {
+      // continue to next variant
+    }
+
+    try {
+      const { data: tokenJobs } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('tracking_token', variant)
+        .limit(1);
+
+      if (tokenJobs && tokenJobs.length > 0) {
+        const populated = await populateJobsDrivers(tokenJobs);
+        const job = populated[0];
+        return {
+          type: 'job',
+          job,
+          trackingId: job.job_ref || variant,
+        };
+      }
+    } catch {
+      // continue
+    }
+  }
+
+  // 3. Substring search on job_ref (e.g. '0053' in 'NOK-0053')
+  if (digitsOnly.length >= 2 || raw.length >= 3) {
+    const searchParam = digitsOnly.length >= 2 ? digitsOnly : raw;
+    try {
+      const { data: subJobs } = await supabase
+        .from('jobs')
+        .select('*')
+        .ilike('job_ref', `%${searchParam}%`)
+        .limit(1);
+
+      if (subJobs && subJobs.length > 0) {
+        const populated = await populateJobsDrivers(subJobs);
+        const job = populated[0];
+        return {
+          type: 'job',
+          job,
+          trackingId: job.job_ref || raw,
+        };
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // 4. Search quote_requests table by UUID or tracking_id
+  if (isUUID) {
+    try {
+      const { data: quoteById } = await supabase
+        .from('quote_requests')
+        .select('*')
+        .eq('id', raw)
+        .limit(1);
+
+      if (quoteById && quoteById.length > 0) {
+        const quote = quoteById[0] as QuoteRequest;
+        // Check if converted to a job
+        const { data: linkedJobs } = await supabase
+          .from('jobs')
+          .select('*')
+          .eq('quote_id', quote.id)
+          .limit(1);
+
+        if (linkedJobs && linkedJobs.length > 0) {
+          const populated = await populateJobsDrivers(linkedJobs);
+          const job = populated[0];
+          return {
+            type: 'job',
+            job,
+            quote,
+            trackingId: job.job_ref || quote.tracking_id || raw,
+          };
+        }
+
+        return {
+          type: 'quote',
+          quote,
+          trackingId: quote.tracking_id || raw,
+        };
+      }
+    } catch (e) {
+      console.warn('[Nokael] Notice searching quote_requests by UUID:', e);
+    }
+  }
+
+  // 5. Search quote_requests table by tracking_id variants (e.g. 'NK-9285')
+  for (const variant of variations) {
+    try {
+      const { data: quoteData } = await supabase
+        .from('quote_requests')
+        .select('*')
+        .ilike('tracking_id', variant)
+        .limit(1);
+
+      if (quoteData && quoteData.length > 0) {
+        const quote = quoteData[0] as QuoteRequest;
+
+        if (quote.id) {
+          const { data: linkedJobs } = await supabase
+            .from('jobs')
+            .select('*')
+            .eq('quote_id', quote.id)
+            .limit(1);
+
+          if (linkedJobs && linkedJobs.length > 0) {
+            const populated = await populateJobsDrivers(linkedJobs);
+            const job = populated[0];
+            return {
+              type: 'job',
+              job,
+              quote,
+              trackingId: job.job_ref || quote.tracking_id || variant,
+            };
+          }
+        }
+
+        return {
+          type: 'quote',
+          quote,
+          trackingId: quote.tracking_id || variant,
+        };
+      }
+    } catch {
+      // continue
+    }
+  }
+
+  // 6. Search by phone number (if 6+ digits)
+  if (digitsOnly.length >= 6) {
+    try {
+      const { data: phoneJobs } = await supabase
+        .from('jobs')
+        .select('*')
+        .or(`sender_phone.ilike.%${digitsOnly}%,recipient_phone.ilike.%${digitsOnly}%,client_whatsapp.ilike.%${digitsOnly}%`)
+        .limit(1);
+
+      if (phoneJobs && phoneJobs.length > 0) {
+        const populated = await populateJobsDrivers(phoneJobs);
+        const job = populated[0];
+        return {
+          type: 'job',
+          job,
+          trackingId: job.job_ref || raw,
+        };
+      }
+    } catch {
+      // ignore
+    }
+
+    try {
+      const { data: phoneQuotes } = await supabase
+        .from('quote_requests')
+        .select('*')
+        .ilike('phone', `%${digitsOnly}%`)
+        .limit(1);
+
+      if (phoneQuotes && phoneQuotes.length > 0) {
+        const quote = phoneQuotes[0] as QuoteRequest;
+        return {
+          type: 'quote',
+          quote,
+          trackingId: quote.tracking_id || raw,
+        };
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return null;
 };
 
 export const updateJob = async (id: string, updates: Partial<Job>): Promise<Job> => {
