@@ -311,8 +311,15 @@ export default function ConfirmationPage() {
                         <div className="space-y-6 text-center">
                            <p className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">Enter the 6-digit code provided by the pilot</p>
                            <input 
+                            id="coc-otp-input"
+                            name="coc_otp_verification"
                             type="text" 
                             maxLength={6}
+                            autoComplete="off"
+                            autoCorrect="off"
+                            spellCheck={false}
+                            data-lpignore="true"
+                            data-1p-ignore="true"
                             value={otpValue}
                             onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, ''))}
                             placeholder="000000"

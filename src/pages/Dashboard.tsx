@@ -36,7 +36,17 @@ import {
   AlertTriangle,
   Calendar,
   Send,
-  BarChart3
+  BarChart3,
+  RotateCcw,
+  CheckSquare,
+  XCircle,
+  Sliders,
+  FastForward,
+  Edit3,
+  Check,
+  Undo2,
+  HelpCircle,
+  Ban
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -68,6 +78,10 @@ import {
   getJobs,
   createJob,
   updateJob,
+  overrideJobLevel,
+  overrideCocStep,
+  cancelJob,
+  reactivateJob,
   subscribeToJobs,
   type Job,
   type JobStatus,
@@ -108,6 +122,7 @@ export default function Dashboard() {
   const [showJobCreateModal, setShowJobCreateModal] = React.useState(false);
   const [jobPrefillData, setJobPrefillData] = React.useState<Partial<Job> | undefined>(undefined);
   const [jobViewMode, setJobViewMode] = React.useState<'kanban' | 'list'>('kanban');
+  const [jobStatusFilter, setJobStatusFilter] = React.useState<'all' | 'pending' | 'in_transit' | 'completed' | 'cancelled'>('all');
 
   const [loading, setLoading] = React.useState(true);
   const [isUpdating, setIsUpdating] = React.useState<string | null>(null);
@@ -286,8 +301,17 @@ export default function Dashboard() {
                           (j.tracking_token || '').toLowerCase().includes(s) ||
                           (j.company_name || '').toLowerCase().includes(s) ||
                           (j.id || '').toLowerCase().includes(s) ||
+                          (j.cancellation_reason || '').toLowerCase().includes(s) ||
+                          (j.operator_notes || '').toLowerCase().includes(s) ||
                           (j.driver?.full_name || '').toLowerCase().includes(s);
-    return matchesSearch;
+    
+    let matchesStatus = true;
+    if (jobStatusFilter === 'pending') matchesStatus = j.status === 'pending';
+    else if (jobStatusFilter === 'in_transit') matchesStatus = ['client_pickup', 'driver_pickup', 'driver_delivery'].includes(j.status);
+    else if (jobStatusFilter === 'completed') matchesStatus = j.status === 'completed';
+    else if (jobStatusFilter === 'cancelled') matchesStatus = j.status === 'cancelled';
+
+    return matchesSearch && matchesStatus;
   });
 
   const filteredDrivers = drivers.filter(d => {
@@ -497,32 +521,66 @@ export default function Dashboard() {
 
         {activeTab === 'pipeline' ? (
           <div className="space-y-6">
-            <div className="flex justify-between items-center gap-4">
-              <div className="flex items-center gap-1 bg-brand-surface border border-brand-border rounded-xl p-1">
-                <button 
-                  onClick={() => setJobViewMode('kanban')}
-                  className={cn(
-                    "flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg transition-all",
-                    jobViewMode === 'kanban' ? "bg-brand-neon/10 text-brand-neon" : "text-brand-muted hover:text-brand-text"
-                  )}
-                >
-                  <LayoutDashboard className="w-3.5 h-3.5" />
-                  Board
-                </button>
-                <button 
-                  onClick={() => setJobViewMode('list')}
-                  className={cn(
-                    "flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg transition-all",
-                    jobViewMode === 'list' ? "bg-brand-neon/10 text-brand-neon" : "text-brand-muted hover:text-brand-text"
-                  )}
-                >
-                  <Activity className="w-3.5 h-3.5" />
-                  List
-                </button>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1 bg-brand-surface border border-brand-border rounded-xl p-1">
+                  <button 
+                    onClick={() => setJobViewMode('kanban')}
+                    className={cn(
+                      "flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg transition-all",
+                      jobViewMode === 'kanban' ? "bg-brand-neon/10 text-brand-neon" : "text-brand-muted hover:text-brand-text"
+                    )}
+                  >
+                    <LayoutDashboard className="w-3.5 h-3.5" />
+                    Board
+                  </button>
+                  <button 
+                    onClick={() => setJobViewMode('list')}
+                    className={cn(
+                      "flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg transition-all",
+                      jobViewMode === 'list' ? "bg-brand-neon/10 text-brand-neon" : "text-brand-muted hover:text-brand-text"
+                    )}
+                  >
+                    <Activity className="w-3.5 h-3.5" />
+                    List
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1 bg-brand-surface border border-brand-border rounded-xl p-1">
+                  {[
+                    { key: 'all', label: 'All', count: jobs.length },
+                    { key: 'pending', label: 'Pending', count: jobs.filter(j => j.status === 'pending').length },
+                    { key: 'in_transit', label: 'In Transit', count: jobs.filter(j => ['client_pickup', 'driver_pickup', 'driver_delivery'].includes(j.status)).length },
+                    { key: 'completed', label: 'Completed', count: jobs.filter(j => j.status === 'completed').length },
+                    { key: 'cancelled', label: 'Exceptions', count: jobs.filter(j => j.status === 'cancelled').length },
+                  ].map(tab => (
+                    <button
+                      key={tab.key}
+                      onClick={() => setJobStatusFilter(tab.key as any)}
+                      className={cn(
+                        "flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg transition-all",
+                        jobStatusFilter === tab.key 
+                          ? tab.key === 'cancelled' ? "bg-red-500/10 text-red-400 font-semibold" : "bg-brand-neon/10 text-brand-neon font-semibold"
+                          : "text-brand-muted hover:text-brand-text"
+                      )}
+                    >
+                      {tab.label}
+                      <span className={cn(
+                        "text-[10px] px-1.5 py-0.2 rounded-full font-mono",
+                        jobStatusFilter === tab.key 
+                          ? tab.key === 'cancelled' ? "bg-red-500/20 text-red-400" : "bg-brand-neon/20 text-brand-neon" 
+                          : "bg-brand-input text-brand-muted"
+                      )}>
+                        {tab.count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
+
               <button 
                 onClick={() => setShowJobCreateModal(true)}
-                className="flex items-center gap-2 bg-brand-neon text-brand-bg px-4 py-2 rounded-xl text-xs font-semibold hover:opacity-90 active:scale-95 transition-all"
+                className="flex items-center gap-2 bg-brand-neon text-brand-bg px-4 py-2 rounded-xl text-xs font-semibold hover:opacity-90 active:scale-95 transition-all self-end sm:self-auto"
               >
                 <Plus className="w-4 h-4" />
                 New Job
@@ -530,7 +588,7 @@ export default function Dashboard() {
             </div>
 
             {jobViewMode === 'kanban' ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 h-[calc(100vh-320px)] min-h-[560px]">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 h-[calc(100vh-320px)] min-h-[560px]">
                 <KanbanColumn 
                   title="Pending Dispatch" 
                   status="pending" 
@@ -544,9 +602,15 @@ export default function Dashboard() {
                   onJobClick={setSelectedJob} 
                 />
                 <KanbanColumn 
-                  title="Audit / Completed" 
+                  title="Delivered / Completed" 
                   status="completed" 
                   jobs={filteredJobs.filter(j => j.status === 'completed')} 
+                  onJobClick={setSelectedJob} 
+                />
+                <KanbanColumn 
+                  title="Exceptions / Failed" 
+                  status="cancelled" 
+                  jobs={filteredJobs.filter(j => j.status === 'cancelled')} 
                   onJobClick={setSelectedJob} 
                 />
               </div>
@@ -556,10 +620,11 @@ export default function Dashboard() {
                   <table className="w-full text-left">
                     <thead>
                       <tr className="bg-brand-input/50 text-[11px] font-semibold uppercase tracking-wide text-brand-muted">
-                        <th className="px-6 py-3">Job</th>
+                        <th className="px-6 py-3">Job / Status</th>
                         <th className="px-6 py-3">Route</th>
-                        <th className="px-6 py-3">People</th>
+                        <th className="px-6 py-3">Contacts & Pilot</th>
                         <th className="px-6 py-3">COC Progress</th>
+                        <th className="px-6 py-3 text-right">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-brand-border">
@@ -572,23 +637,33 @@ export default function Dashboard() {
                           <td className="px-6 py-4">
                               <div className="text-sm font-mono font-semibold text-brand-neon mb-1">#{job.job_ref?.toString().padStart(4, '0')}</div>
                               <span className={cn(
-                                "text-xs font-medium px-2 py-0.5 rounded",
-                                job.status === 'completed' ? "bg-brand-neon/10 text-brand-neon" : "bg-yellow-500/10 text-yellow-500"
-                              )}>{job.status?.replace('_', ' ')}</span>
+                                "text-xs font-medium px-2 py-0.5 rounded inline-block",
+                                job.status === 'completed' ? "bg-brand-neon/10 text-brand-neon" : 
+                                job.status === 'cancelled' ? "bg-red-500/10 text-red-400 border border-red-500/20" :
+                                job.status === 'pending' ? "bg-yellow-500/10 text-yellow-500" :
+                                "bg-blue-500/10 text-blue-400"
+                              )}>
+                                {job.status === 'cancelled' ? 'FAILED / CANCELLED' : job.status?.replace('_', ' ')}
+                              </span>
+                              {job.status === 'cancelled' && job.cancellation_reason && (
+                                <p className="text-[11px] text-red-400/80 mt-1 line-clamp-1 italic">
+                                  {job.cancellation_reason}
+                                </p>
+                              )}
                           </td>
                           <td className="px-6 py-4">
                               <div className="flex items-center gap-3 text-sm font-medium mb-2">
-                                <span>{job.pickup_location}</span>
-                                <ArrowRight className="w-3 h-3 text-brand-neon" />
-                                <span>{job.delivery_location}</span>
+                                <span className="truncate max-w-[140px]">{job.pickup_location}</span>
+                                <ArrowRight className="w-3 h-3 text-brand-neon shrink-0" />
+                                <span className="truncate max-w-[140px]">{job.delivery_location}</span>
                               </div>
                               <div className="text-xs font-medium text-brand-muted">{job.pickup_emirate} Corridor</div>
                           </td>
                           <td className="px-6 py-4">
-                              <p className="text-xs font-medium text-brand-text mb-1">{job.sender_name}</p>
+                              <p className="text-xs font-medium text-brand-text mb-1">{job.sender_name} ({job.sender_phone})</p>
                               <div className="flex gap-2 items-center">
-                                <Truck className="w-3 h-3 text-brand-muted" />
-                                <p className="text-xs text-brand-muted font-medium">{job.driver?.full_name || 'Pilot Pending'}</p>
+                                <Truck className="w-3 h-3 text-brand-muted shrink-0" />
+                                <p className="text-xs text-brand-muted font-medium truncate">{job.driver?.full_name || 'Pilot Pending'}</p>
                               </div>
                           </td>
                           <td className="px-6 py-4">
@@ -601,6 +676,7 @@ export default function Dashboard() {
                                 ].map((step) => (
                                   <div 
                                       key={step.key}
+                                      title={step.label}
                                       className={cn(
                                         "w-6 h-6 rounded-lg flex items-center justify-center border",
                                         (job as any)[step.key] ? "bg-brand-neon border-brand-neon text-brand-bg" : "bg-brand-input border-brand-border text-brand-muted opacity-30"
@@ -610,6 +686,17 @@ export default function Dashboard() {
                                   </div>
                                 ))}
                               </div>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedJob(job);
+                              }}
+                              className="text-xs font-medium px-3 py-1.5 bg-brand-input hover:bg-brand-surface border border-brand-border rounded-lg text-brand-text transition-colors"
+                            >
+                              Command Centre
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -662,6 +749,9 @@ export default function Dashboard() {
                     <input 
                       type="text" 
                       placeholder="Search quotes..."
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       className="w-full bg-brand-input border border-brand-input-border rounded-xl py-2.5 pl-10 pr-4 text-xs focus:border-brand-neon/50 outline-none transition-all"
                       value={searchTerm}
                       onChange={e => setSearchTerm(e.target.value)}
@@ -791,6 +881,9 @@ export default function Dashboard() {
                 <input 
                   type="text" 
                   placeholder="Search accounts..."
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                   className="w-full bg-brand-input border border-brand-input-border rounded-xl py-2.5 pl-10 pr-4 text-xs focus:border-brand-neon/50 outline-none transition-all"
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
@@ -868,6 +961,9 @@ export default function Dashboard() {
                 <input 
                   type="text" 
                   placeholder="Search drivers..."
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                   className="w-full bg-brand-input border border-brand-input-border rounded-xl py-2.5 pl-10 pr-4 text-xs focus:border-brand-neon/50 outline-none transition-all"
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
@@ -1416,50 +1512,94 @@ export default function Dashboard() {
 const KanbanColumn = ({ title, status, jobs, onJobClick }: { title: string, status: JobStatus | 'in_transit', jobs: Job[], onJobClick: (job: Job) => void }) => {
   return (
     <div className="flex flex-col h-full bg-brand-surface/30 rounded-3xl border border-brand-border/50 overflow-hidden">
-      <div className="p-6 border-b border-brand-border flex justify-between items-center bg-brand-surface/50">
-        <div className="flex items-center gap-3">
+      <div className="p-5 border-b border-brand-border flex justify-between items-center bg-brand-surface/50">
+        <div className="flex items-center gap-2.5">
           <div className={cn(
-            "w-2 h-2 rounded-full animate-pulse",
+            "w-2.5 h-2.5 rounded-full animate-pulse",
             status === 'pending' ? "bg-yellow-500" :
             status === 'client_pickup' || status === 'driver_pickup' ? "bg-blue-500" :
-            status === 'driver_delivery' ? "bg-purple-500" : "bg-brand-neon"
+            status === 'driver_delivery' ? "bg-purple-500" : 
+            status === 'cancelled' ? "bg-red-500" : "bg-brand-neon"
           )} />
-          <h3 className="text-sm font-medium text-brand-text">{title}</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-brand-text">{title}</h3>
         </div>
-        <span className="text-xs font-mono font-semibold text-brand-muted bg-brand-bg px-2 py-0.5 rounded border border-brand-border">{jobs.length}</span>
+        <span className={cn(
+          "text-xs font-mono font-semibold px-2 py-0.5 rounded border",
+          status === 'cancelled' && jobs.length > 0 ? "bg-red-500/10 text-red-400 border-red-500/30" : "bg-brand-bg text-brand-muted border-brand-border"
+        )}>{jobs.length}</span>
       </div>
-      <div className="p-4 flex-grow overflow-y-auto no-scrollbar space-y-4">
+      <div className="p-3.5 flex-grow overflow-y-auto no-scrollbar space-y-3">
         {jobs.map((job) => (
           <motion.div
             layoutId={job.id}
             key={job.id}
             onClick={() => onJobClick(job)}
-            className="dispatch-card p-5 cursor-pointer hover:border-brand-neon/50 transition-all group"
+            className={cn(
+              "dispatch-card p-4 cursor-pointer transition-all group relative",
+              job.status === 'cancelled' 
+                ? "border-red-500/30 hover:border-red-500/60 bg-red-950/10" 
+                : "hover:border-brand-neon/50"
+            )}
           >
-            <div className="flex justify-between items-start mb-4">
-              <span className="text-[11px] font-semibold font-mono text-brand-neon bg-brand-neon/10 px-2 py-0.5 rounded">#{job.job_ref?.toString().padStart(4, '0')}</span>
+            <div className="flex justify-between items-start mb-3">
+              <span className={cn(
+                "text-[11px] font-semibold font-mono px-2 py-0.5 rounded",
+                job.status === 'cancelled' 
+                  ? "text-red-400 bg-red-500/10" 
+                  : "text-brand-neon bg-brand-neon/10"
+              )}>
+                #{job.job_ref?.toString().padStart(4, '0')}
+              </span>
               <span className="text-[11px] font-medium text-brand-muted">{format(new Date(job.created_at || new Date()), 'HH:mm')}</span>
             </div>
-            <div className="space-y-3 mb-4">
+
+            {job.status === 'cancelled' && (
+              <div className="mb-3 px-2.5 py-1 bg-red-500/15 border border-red-500/30 rounded-lg flex items-center gap-1.5 text-red-400 text-xs font-medium">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{job.cancellation_reason || 'Failed / Cancelled'}</span>
+              </div>
+            )}
+
+            <div className="space-y-2 mb-3">
               <div className="flex items-center gap-2">
-                <MapPin className="w-3 h-3 text-brand-muted" />
+                <MapPin className="w-3 h-3 text-brand-muted shrink-0" />
                 <p className="text-xs font-medium truncate">{job.pickup_location}</p>
               </div>
               <ChevronRight className="w-3 h-3 text-brand-muted mx-auto" />
               <div className="flex items-center gap-2">
-                <Navigation className="w-3 h-3 text-brand-muted" />
+                <Navigation className="w-3 h-3 text-brand-muted shrink-0" />
                 <p className="text-xs font-medium truncate">{job.delivery_location}</p>
               </div>
             </div>
-            <div className="flex items-center justify-between pt-4 border-t border-brand-border">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-brand-input flex items-center justify-center border border-brand-border">
-                  <User className="w-3 h-3 text-brand-muted" />
+
+            {/* COC Mini Progress Bar */}
+            <div className="flex items-center gap-1 my-3 pt-2 border-t border-brand-border/60">
+              {[
+                { key: 'client_pickup_at', label: 'Sender' },
+                { key: 'driver_pickup_at', label: 'Driver' },
+                { key: 'driver_delivery_at', label: 'Arrive' },
+                { key: 'client_delivery_at', label: 'Signed' }
+              ].map((step, idx) => (
+                <div 
+                  key={step.key} 
+                  title={step.label}
+                  className={cn(
+                    "flex-1 h-1.5 rounded-full transition-colors",
+                    (job as any)[step.key] ? "bg-brand-neon" : "bg-brand-input"
+                  )} 
+                />
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-brand-border">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <div className="w-5 h-5 rounded-full bg-brand-input flex items-center justify-center border border-brand-border shrink-0">
+                  <User className="w-2.5 h-2.5 text-brand-muted" />
                 </div>
-                <span className="text-xs text-brand-muted font-medium truncate max-w-[80px]">{job.sender_name}</span>
+                <span className="text-xs text-brand-muted font-medium truncate max-w-[90px]">{job.sender_name}</span>
               </div>
               <div className={cn(
-                "px-2 py-0.5 rounded text-xs font-medium",
+                "px-2 py-0.5 rounded text-[11px] font-medium shrink-0",
                 job.urgency === 'immediate' ? "bg-red-500/10 text-red-500 border border-red-500/20" :
                 job.urgency === 'today' ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20" :
                 "bg-blue-500/10 text-blue-500 border border-blue-500/20"
@@ -1479,10 +1619,183 @@ const KanbanColumn = ({ title, status, jobs, onJobClick }: { title: string, stat
   );
 };
 
+const STAGE_ORDER: JobStatus[] = ['pending', 'client_pickup', 'driver_pickup', 'driver_delivery', 'completed'];
+
+const STAGE_CONFIG: Record<JobStatus, { label: string; short: string; color: string; desc: string; icon: any }> = {
+  pending: {
+    label: 'Pending Dispatch',
+    short: 'Pending',
+    color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+    desc: 'Job created, awaiting driver pickup or sender handover.',
+    icon: Clock
+  },
+  client_pickup: {
+    label: 'Sender Handover',
+    short: 'Sender Handover',
+    color: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    desc: 'Sender confirmed item handover to driver.',
+    icon: Package
+  },
+  driver_pickup: {
+    label: 'Driver In-Transit',
+    short: 'In Transit',
+    color: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+    desc: 'Driver confirmed package in custody, moving along corridor.',
+    icon: Truck
+  },
+  driver_delivery: {
+    label: 'Destination Arrival',
+    short: 'Arrived',
+    color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+    desc: 'Driver arrived at recipient drop-off point.',
+    icon: Navigation
+  },
+  completed: {
+    label: 'Delivered & Signed',
+    short: 'Completed',
+    color: 'bg-brand-neon/10 text-brand-neon border-brand-neon/20',
+    desc: 'Recipient confirmed package delivery. Full COC sealed.',
+    icon: CheckCircle2
+  },
+  cancelled: {
+    label: 'Failed / Cancelled',
+    short: 'Failed',
+    color: 'bg-red-500/10 text-red-400 border-red-500/20',
+    desc: 'Job encountered an operational failure or cancellation.',
+    icon: Ban
+  }
+};
+
+const COMMON_FAILURE_REASONS = [
+  'Client / Sender unavailable (No-Show)',
+  'Recipient refused to accept package',
+  'Building / Gate security denied entry',
+  'Incorrect / Non-existent address',
+  'Damaged or prohibited item',
+  'Client cancelled shipment request',
+  'Pilot / Vehicle mechanical breakdown',
+  'Corridor weather / road closure'
+];
+
 const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDriver, drivers: Driver[], onClose: () => void, onUpdate: () => void }) => {
   const [copiedStep, setCopiedStep] = React.useState<string | null>(null);
   const [reassigning, setReassigning] = React.useState(false);
   const [assigningDriver, setAssigningDriver] = React.useState(false);
+
+  // Command Center Override State
+  const [targetStatus, setTargetStatus] = React.useState<JobStatus>(job.status || 'pending');
+  const [autoTimestampCoc, setAutoTimestampCoc] = React.useState(true);
+  const [operatorNotes, setOperatorNotes] = React.useState(job.operator_notes || '');
+  const [isApplyingOverride, setIsApplyingOverride] = React.useState(false);
+  const [overrideMessage, setOverrideMessage] = React.useState<string | null>(null);
+
+  // Failure modal state
+  const [showFailModal, setShowFailModal] = React.useState(false);
+  const [failReason, setFailReason] = React.useState(COMMON_FAILURE_REASONS[0]);
+  const [customFailReason, setCustomFailReason] = React.useState('');
+  const [isCancelling, setIsCancelling] = React.useState(false);
+
+  // COC Step Force-action state
+  const [actingStep, setActingStep] = React.useState<string | null>(null);
+
+  // Keep targetStatus in sync when job updates
+  React.useEffect(() => {
+    setTargetStatus(job.status || 'pending');
+    setOperatorNotes(job.operator_notes || '');
+  }, [job.status, job.operator_notes]);
+
+  const handleNextStage = async () => {
+    const currentIndex = STAGE_ORDER.indexOf(job.status as any);
+    if (currentIndex === -1 || currentIndex >= STAGE_ORDER.length - 1) return;
+    const nextStatus = STAGE_ORDER[currentIndex + 1];
+    
+    setIsApplyingOverride(true);
+    try {
+      await overrideJobLevel(job.id!, {
+        status: nextStatus,
+        autoTimestampCoc: true,
+        overrideNotes: operatorNotes || `Advanced to ${STAGE_CONFIG[nextStatus].label} by Command Centre`
+      });
+      setOverrideMessage(`Job advanced to ${STAGE_CONFIG[nextStatus].label}`);
+      setTimeout(() => setOverrideMessage(null), 3000);
+      onUpdate();
+    } catch (err: any) {
+      alert(`Failed to advance job stage: ${err.message || err}`);
+    } finally {
+      setIsApplyingOverride(false);
+    }
+  };
+
+  const handleApplyOverride = async () => {
+    setIsApplyingOverride(true);
+    try {
+      await overrideJobLevel(job.id!, {
+        status: targetStatus,
+        autoTimestampCoc: autoTimestampCoc,
+        overrideNotes: operatorNotes
+      });
+      setOverrideMessage(`Level manually overridden to ${STAGE_CONFIG[targetStatus].label}`);
+      setTimeout(() => setOverrideMessage(null), 3000);
+      onUpdate();
+    } catch (err: any) {
+      alert(`Failed to apply override: ${err.message || err}`);
+    } finally {
+      setIsApplyingOverride(false);
+    }
+  };
+
+  const handleFailJob = async () => {
+    const finalReason = customFailReason.trim() ? customFailReason.trim() : failReason;
+    setIsCancelling(true);
+    try {
+      await cancelJob(job.id!, finalReason, operatorNotes);
+      setShowFailModal(false);
+      setOverrideMessage('Job marked as Failed / Cancelled');
+      setTimeout(() => setOverrideMessage(null), 3000);
+      onUpdate();
+    } catch (err: any) {
+      alert(`Failed to cancel job: ${err.message || err}`);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const handleReactivateJob = async (targetLevel: JobStatus = 'pending') => {
+    setIsApplyingOverride(true);
+    try {
+      await reactivateJob(job.id!, targetLevel);
+      setOverrideMessage(`Job reactivated to ${STAGE_CONFIG[targetLevel].label}`);
+      setTimeout(() => setOverrideMessage(null), 3000);
+      onUpdate();
+    } catch (err: any) {
+      alert(`Failed to reactivate job: ${err.message || err}`);
+    } finally {
+      setIsApplyingOverride(false);
+    }
+  };
+
+  const handleToggleCocStep = async (
+    stepKey: 'client_pickup_at' | 'driver_pickup_at' | 'driver_delivery_at' | 'client_delivery_at',
+    currentlyConfirmed: boolean
+  ) => {
+    setActingStep(stepKey);
+    try {
+      await overrideCocStep(
+        job.id!,
+        stepKey,
+        !currentlyConfirmed,
+        operatorNotes || `Step ${stepKey} ${!currentlyConfirmed ? 'force-confirmed' : 'reset'} via Command Centre`
+      );
+      setOverrideMessage(`COC Step updated.`);
+      setTimeout(() => setOverrideMessage(null), 2500);
+      onUpdate();
+    } catch (err: any) {
+      alert(`Failed to update COC step: ${err.message || err}`);
+    } finally {
+      setActingStep(null);
+    }
+  };
+
   const dispatchWhatsApp = (type: 'sender' | 'driver' | 'recipient') => {
     let message = '';
     let phone = '';
@@ -1510,8 +1823,11 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
     updateJob(job.id!, updatePayload).then(onUpdate);
   };
 
+  const currentStageIndex = STAGE_ORDER.indexOf(job.status as any);
+  const canAdvance = currentStageIndex >= 0 && currentStageIndex < STAGE_ORDER.length - 1 && job.status !== 'cancelled';
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -1523,223 +1839,600 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-5xl bg-brand-bg border border-brand-border rounded-[40px] shadow-3xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]"
+        className="relative w-full max-w-6xl bg-brand-bg border border-brand-border rounded-[32px] sm:rounded-[40px] shadow-3xl overflow-hidden flex flex-col max-h-[92vh]"
       >
-        <div className="md:w-1/2 p-8 border-r border-brand-border overflow-y-auto no-scrollbar">
-          <div className="flex justify-between items-start mb-6">
+        {/* Top Header Bar */}
+        <div className="px-6 py-5 border-b border-brand-border flex justify-between items-center bg-brand-surface/70">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-mono font-bold text-brand-neon bg-brand-neon/10 px-3 py-1 rounded-lg border border-brand-neon/20">
+              #{job.job_ref?.toString().padStart(4, '0')}
+            </span>
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-xs font-mono font-semibold text-brand-neon bg-brand-neon/10 px-3 py-1 rounded">#{job.job_ref?.toString().padStart(4, '0')}</span>
-                <span className="text-xs font-medium uppercase tracking-wide text-brand-muted">{format(new Date(job.created_at || new Date()), 'PPP')}</span>
-              </div>
-              <h2 className="text-3xl font-display font-medium tracking-tighter">Job Manifest.</h2>
-            </div>
-            <div className={cn(
-              "px-4 py-1.5 rounded-full text-xs font-medium border",
-              job.status === 'completed' ? "bg-brand-neon/10 text-brand-neon border-brand-neon/20" : "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-            )}>
-              {job.status?.replace('_', ' ')}
+              <h2 className="text-lg font-display font-semibold tracking-tight text-brand-text flex items-center gap-2">
+                Mission Command Center
+              </h2>
+              <p className="text-[11px] text-brand-muted font-medium">
+                {format(new Date(job.created_at || new Date()), 'PPPP · HH:mm')} · Corridor: <span className="text-brand-text">{job.pickup_emirate} → {job.delivery_emirate}</span>
+              </p>
             </div>
           </div>
 
-          <div className="space-y-10">
-             <div className="grid grid-cols-2 gap-8">
-               <div className="space-y-4">
-                 <p className="text-xs font-medium text-brand-muted">Consignor (Sender)</p>
-                 <div className="p-5 bg-brand-input rounded-2xl border border-brand-border">
-                   <p className="text-sm font-medium mb-1">{job.sender_name}</p>
-                   <p className="text-[11px] font-mono text-brand-muted">{job.sender_phone}</p>
-                 </div>
-               </div>
-               <div className="space-y-4">
-                 <p className="text-xs font-medium text-brand-muted">Consignee (Recipient)</p>
-                 <div className="p-5 bg-brand-input rounded-2xl border border-brand-border">
-                   <p className="text-sm font-medium mb-1">{job.recipient_name}</p>
-                   <p className="text-[11px] font-mono text-brand-muted">{job.recipient_phone}</p>
-                 </div>
-               </div>
-             </div>
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "px-3.5 py-1 rounded-full text-xs font-semibold border flex items-center gap-1.5",
+              STAGE_CONFIG[job.status]?.color || "bg-brand-surface text-brand-text border-brand-border"
+            )}>
+              <span className="w-2 h-2 rounded-full bg-current animate-pulse" />
+              {STAGE_CONFIG[job.status]?.label || job.status}
+            </div>
 
-             <div className="space-y-4">
-                <p className="text-xs font-medium text-brand-muted">Pilot Assignment</p>
-                <div className="p-6 bg-brand-surface border border-brand-neon/20 rounded-3xl flex justify-between items-center group">
-                   <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-brand-neon/10 flex items-center justify-center border border-brand-neon/20 group-hover:scale-110 transition-transform">
-                        <Truck className="w-6 h-6 text-brand-neon" />
-                      </div>
-                      <div>
-                        {job.driver?.full_name ? (
-                          <>
-                            <p className="text-sm font-medium text-brand-text mb-1">{job.driver.full_name}</p>
-                            <p className="text-xs text-brand-muted font-medium">Active: {job.driver.phone}</p>
-                          </>
-                        ) : (
-                          <p className="text-sm font-medium text-brand-muted">No Driver Assigned Yet</p>
-                        )}
-                      </div>
-                   </div>
-                   <button
-                     type="button"
-                     onClick={() => setReassigning(v => !v)}
-                     className="btn-secondary px-6 py-2 h-auto text-xs uppercase"
-                   >
-                     {job.driver?.full_name ? 'Reassign' : 'Assign'}
-                   </button>
-                </div>
-                {reassigning && (
-                  <div className="flex items-center gap-2">
-                    <select
-                      defaultValue={job.driver_id || 'unassigned'}
-                      disabled={assigningDriver}
-                      onChange={async (e) => {
-                        const val = e.target.value;
-                        setAssigningDriver(true);
-                        try {
-                          await assignDriverToJob(job.id!, val === 'unassigned' ? null : val);
-                          setReassigning(false);
-                          onUpdate();
-                        } catch (err: any) {
-                          alert(`Failed to assign driver: ${err.message || err}`);
-                        } finally {
-                          setAssigningDriver(false);
-                        }
-                      }}
-                      className="flex-1 bg-brand-input border border-brand-input-border rounded-lg px-4 py-2.5 text-xs font-medium text-brand-text focus:border-brand-neon/50 outline-none"
-                    >
-                      <option value="unassigned">Unassigned</option>
-                      {drivers.map(d => {
-                        const statusIcon = d.status === 'available' ? '🟢' : d.status === 'on_job' ? '🟠' : '⚪';
-                        return (
-                          <option key={d.id} value={d.id}>{statusIcon} {d.full_name} (Tier {d.tier || 'D'} · {d.vehicle_type})</option>
-                        );
-                      })}
-                    </select>
-                    {assigningDriver && <Loader2 className="w-4 h-4 animate-spin text-brand-muted" />}
-                  </div>
-                )}
-             </div>
-
-             <div className="space-y-4 pt-4">
-                <p className="text-xs font-medium text-brand-muted">Operational Comms</p>
-                <div className="grid grid-cols-3 gap-4">
-                   {[
-                     { id: 'sender', label: 'Sender Dsp.', sent: job.sender_notified },
-                     { id: 'driver', label: 'Driver Dsp.', sent: job.driver_notified },
-                     { id: 'recipient', label: 'Client Dsp.', sent: job.recipient_notified }
-                   ].map((btn) => (
-                     <button
-                        key={btn.id}
-                        onClick={() => dispatchWhatsApp(btn.id as any)}
-                        className={cn(
-                          "flex flex-col items-center justify-center p-6 rounded-2xl border transition-all gap-4",
-                          btn.sent ? "bg-brand-surface border-brand-border grayscale" : "bg-brand-input border-brand-neon/20 hover:border-brand-neon hover:shadow-[0_0_15px_rgba(57,255,20,0.1)]"
-                        )}
-                     >
-                        <MessageSquare className={cn("w-6 h-6", btn.sent ? "text-brand-muted" : "text-brand-neon")} />
-                        <div className="text-center">
-                          <span className="block text-xs font-semibold uppercase tracking-wide mb-1">{btn.label}</span>
-                          <span className={cn("text-xs font-medium", btn.sent ? "text-brand-muted" : "text-brand-neon")}>
-                            {btn.sent ? 'Dispatched' : 'Ready'}
-                          </span>
-                        </div>
-                     </button>
-                   ))}
-                </div>
-             </div>
+            <button 
+              onClick={onClose}
+              className="p-2 bg-brand-input hover:bg-brand-surface rounded-full text-brand-muted hover:text-brand-text transition-colors border border-brand-border"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
-        <div className="md:w-1/2 p-8 bg-brand-surface/30 flex flex-col">
-           <div className="flex justify-between items-center mb-8">
-              <h3 className="text-xl font-display font-medium tracking-tighter">Chain of Custody (COC).</h3>
-              <button 
-                onClick={onClose}
-                className="p-2 bg-brand-input rounded-full text-brand-muted hover:text-brand-text transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-           </div>
+        {/* Global Alert / Toast */}
+        {overrideMessage && (
+          <div className="bg-brand-neon/15 border-b border-brand-neon/30 px-6 py-2 flex items-center justify-between text-xs font-semibold text-brand-neon">
+            <div className="flex items-center gap-2">
+              <Check className="w-4 h-4" />
+              <span>{overrideMessage}</span>
+            </div>
+          </div>
+        )}
 
-           <div className="flex-grow space-y-8 relative">
-              <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-brand-border" />
-              
-              {[
-                { label: 'Sender Handover', status: job.client_pickup_at, key: 'token_client_pickup', icon: Package },
-                { label: 'Driver Pickup Confirmed', status: job.driver_pickup_at, key: 'token_driver_pickup', icon: Truck },
-                { label: 'In-Transit Validation', status: job.driver_delivery_at, key: 'token_driver_delivery', icon: Navigation },
-                { label: 'Final Receipt & Signature', status: job.client_delivery_at, key: 'token_client_delivery', icon: Shield }
-              ].map((step, i) => {
-                const cocDomain = (import.meta.env.VITE_COC_URL || 'https://nokael.ae').replace(/\/$/, '');
-                const stepSlug = step.key.replace('token_', '').replace('_', '-');
-                const tokenValue = (job as any)[step.key];
-                const stepUrl = tokenValue ? `${cocDomain}/${tokenValue}/${stepSlug}` : '';
-                return (
-                  <div key={i} className="flex gap-8 relative z-10">
-                     <div className={cn(
-                       "w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-500",
-                       step.status ? "bg-brand-neon border-brand-neon text-brand-bg shadow-[0_0_15px_rgba(57,255,20,0.3)]" : "bg-brand-bg border-brand-border text-brand-muted"
-                     )}>
-                        {step.status ? <CheckCircle2 className="w-5 h-5" /> : <step.icon className="w-5 h-5" />}
-                     </div>
-                     <div className="flex-grow min-w-0">
-                        <div className="flex justify-between items-start mb-1">
-                           <p className={cn("text-sm font-medium", step.status ? "text-brand-text" : "text-brand-muted")}>{step.label}</p>
-                           {step.status && (
-                              <span className="text-xs font-mono text-brand-neon font-semibold">{format(new Date(step.status), 'HH:mm:ss')}</span>
-                           )}
+        {/* Failed / Cancelled Banner */}
+        {job.status === 'cancelled' && (
+          <div className="bg-red-500/15 border-b border-red-500/30 px-6 py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="flex items-center gap-2.5 text-red-400 text-xs font-medium">
+              <AlertTriangle className="w-5 h-5 shrink-0 text-red-400" />
+              <div>
+                <span className="font-bold uppercase tracking-wider text-red-300">Job Marked as Failed / Cancelled:</span>{' '}
+                <span className="italic">{job.cancellation_reason || 'Manual Failure Recorded'}</span>
+                {job.cancelled_at && (
+                  <span className="text-[11px] text-red-400/70 ml-2">({format(new Date(job.cancelled_at), 'HH:mm')})</span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleReactivateJob('pending')}
+                disabled={isApplyingOverride}
+                className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reactivate (Pending)
+              </button>
+              <button
+                onClick={() => handleReactivateJob('driver_pickup')}
+                disabled={isApplyingOverride}
+                className="px-3 py-1.5 bg-brand-neon/10 hover:bg-brand-neon/20 text-brand-neon border border-brand-neon/30 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Resume (In-Transit)
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Level Progression Stepper (Command Lifecycle) */}
+        <div className="px-6 py-3.5 bg-brand-surface/40 border-b border-brand-border overflow-x-auto no-scrollbar">
+          <div className="flex items-center justify-between min-w-[620px] gap-2">
+            {STAGE_ORDER.map((stageKey, idx) => {
+              const isPast = currentStageIndex > idx;
+              const isCurrent = currentStageIndex === idx && job.status !== 'cancelled';
+              const config = STAGE_CONFIG[stageKey];
+              const Icon = config.icon;
+
+              return (
+                <React.Fragment key={stageKey}>
+                  <div className="flex items-center gap-2">
+                    <div className={cn(
+                      "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold border transition-all",
+                      isCurrent ? "bg-brand-neon border-brand-neon text-brand-bg shadow-[0_0_12px_rgba(57,255,20,0.35)] scale-105" :
+                      isPast ? "bg-brand-neon/20 border-brand-neon/40 text-brand-neon" :
+                      "bg-brand-input border-brand-border text-brand-muted opacity-50"
+                    )}>
+                      {isPast ? <Check className="w-4 h-4" /> : <Icon className="w-3.5 h-3.5" />}
+                    </div>
+                    <div className="text-left">
+                      <p className={cn(
+                        "text-xs font-semibold leading-none mb-0.5",
+                        isCurrent ? "text-brand-neon" : isPast ? "text-brand-text" : "text-brand-muted opacity-60"
+                      )}>
+                        {config.short}
+                      </p>
+                      <span className="text-[10px] text-brand-muted">L{idx + 1}</span>
+                    </div>
+                  </div>
+
+                  {idx < STAGE_ORDER.length - 1 && (
+                    <div className={cn(
+                      "flex-1 h-0.5 min-w-[24px] mx-1 transition-all",
+                      isPast ? "bg-brand-neon" : "bg-brand-border"
+                    )} />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Modal Main Content */}
+        <div className="flex-1 flex flex-col md:flex-row overflow-y-auto no-scrollbar">
+          {/* Left Column: Job Details & Mission Control */}
+          <div className="md:w-1/2 p-6 sm:p-8 border-r border-brand-border overflow-y-auto no-scrollbar space-y-6">
+            
+            {/* Command Centre Manual Override Panel */}
+            <div className="p-5 bg-brand-surface/60 border border-brand-neon/30 rounded-3xl space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-brand-neon" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-brand-text">Manual Level Override</h3>
+                </div>
+                {canAdvance && (
+                  <button
+                    onClick={handleNextStage}
+                    disabled={isApplyingOverride}
+                    className="px-3 py-1.5 bg-brand-neon text-brand-bg rounded-xl text-xs font-bold hover:opacity-90 active:scale-95 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(57,255,20,0.25)]"
+                  >
+                    <FastForward className="w-3.5 h-3.5" />
+                    Advance to L{currentStageIndex + 2}
+                  </button>
+                )}
+              </div>
+
+              <p className="text-xs text-brand-muted leading-relaxed">
+                If the client or pilot never accessed the digital COC link/OTP, manually force the job through its delivery lifecycle.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-[11px] font-semibold text-brand-muted uppercase mb-1.5">Target Job Level</label>
+                  <select
+                    value={targetStatus}
+                    onChange={(e) => setTargetStatus(e.target.value as JobStatus)}
+                    className="w-full bg-brand-input border border-brand-input-border rounded-xl px-3 py-2 text-xs font-medium text-brand-text focus:border-brand-neon outline-none"
+                  >
+                    <option value="pending">L1: Pending Dispatch</option>
+                    <option value="client_pickup">L2: Sender Handover</option>
+                    <option value="driver_pickup">L3: Driver In-Transit</option>
+                    <option value="driver_delivery">L4: Destination Arrival</option>
+                    <option value="completed">L5: Delivered & Verified</option>
+                    <option value="cancelled">L6: Failed / Cancelled</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col justify-end">
+                  <button
+                    onClick={handleApplyOverride}
+                    disabled={isApplyingOverride || targetStatus === job.status}
+                    className={cn(
+                      "w-full py-2 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5",
+                      targetStatus === job.status 
+                        ? "bg-brand-input text-brand-muted border border-brand-border cursor-not-allowed" 
+                        : "bg-brand-neon/20 hover:bg-brand-neon/30 text-brand-neon border border-brand-neon/50 active:scale-95"
+                    )}
+                  >
+                    {isApplyingOverride ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckSquare className="w-3.5 h-3.5" />}
+                    Apply Level Override
+                  </button>
+                </div>
+              </div>
+
+              {/* Auto-fill COC Timestamps Checkbox */}
+              <label className="flex items-center gap-2 text-xs text-brand-text cursor-pointer select-none pt-1">
+                <input
+                  type="checkbox"
+                  checked={autoTimestampCoc}
+                  onChange={(e) => setAutoTimestampCoc(e.target.checked)}
+                  className="rounded border-brand-border text-brand-neon focus:ring-0 w-3.5 h-3.5"
+                />
+                <span>Auto-stamp missing Chain of Custody (COC) timestamps for prior levels</span>
+              </label>
+
+              {/* Operator Notes Field */}
+              <div>
+                <label className="block text-[11px] font-semibold text-brand-muted uppercase mb-1">Dispatcher / Audit Notes</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={operatorNotes}
+                    onChange={(e) => setOperatorNotes(e.target.value)}
+                    placeholder="e.g., Client confirmed handover by phone - manual override"
+                    className="flex-1 bg-brand-input border border-brand-input-border rounded-xl px-3 py-1.5 text-xs text-brand-text placeholder:text-brand-muted/50 focus:border-brand-neon outline-none"
+                  />
+                  <button
+                    onClick={async () => {
+                      try {
+                        await updateJob(job.id!, { operator_notes: operatorNotes });
+                        setOverrideMessage('Notes saved.');
+                        setTimeout(() => setOverrideMessage(null), 2000);
+                        onUpdate();
+                      } catch (err: any) {
+                        alert(`Failed to save notes: ${err.message || err}`);
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-brand-input hover:bg-brand-surface border border-brand-border text-brand-text rounded-xl text-xs font-semibold"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+
+              {/* Mark as Failed Trigger */}
+              {job.status !== 'cancelled' && (
+                <div className="pt-2 border-t border-brand-border/60 flex justify-between items-center">
+                  <span className="text-[11px] text-brand-muted">Mission exception or failed drop?</span>
+                  <button
+                    onClick={() => setShowFailModal(true)}
+                    className="text-xs font-semibold text-red-400 hover:text-red-300 hover:underline flex items-center gap-1"
+                  >
+                    <Ban className="w-3.5 h-3.5" />
+                    Declare Job Failed / Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Consignor & Consignee Details */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Consignor (Sender)</p>
+                <div className="p-4 bg-brand-input rounded-2xl border border-brand-border">
+                  <p className="text-sm font-semibold text-brand-text mb-0.5 truncate">{job.sender_name}</p>
+                  <p className="text-xs font-mono text-brand-neon">{job.sender_phone}</p>
+                  <div className="mt-2 text-xs text-brand-muted line-clamp-2">
+                    <span className="text-brand-text font-medium">{job.pickup_emirate}:</span> {job.pickup_location}
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Consignee (Recipient)</p>
+                <div className="p-4 bg-brand-input rounded-2xl border border-brand-border">
+                  <p className="text-sm font-semibold text-brand-text mb-0.5 truncate">{job.recipient_name}</p>
+                  <p className="text-xs font-mono text-brand-neon">{job.recipient_phone}</p>
+                  <div className="mt-2 text-xs text-brand-muted line-clamp-2">
+                    <span className="text-brand-text font-medium">{job.delivery_emirate}:</span> {job.delivery_location}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pilot Assignment */}
+            <div className="space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Assigned Pilot</p>
+              <div className="p-4 bg-brand-surface border border-brand-border rounded-2xl flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-brand-neon/10 flex items-center justify-center border border-brand-neon/20">
+                    <Truck className="w-5 h-5 text-brand-neon" />
+                  </div>
+                  <div>
+                    {job.driver?.full_name ? (
+                      <>
+                        <p className="text-sm font-semibold text-brand-text">{job.driver.full_name}</p>
+                        <p className="text-xs text-brand-muted font-mono">{job.driver.phone} · {job.driver.vehicle_type || 'Corridor Pilot'}</p>
+                      </>
+                    ) : (
+                      <p className="text-sm font-medium text-brand-muted italic">Pilot Pending Assignment</p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReassigning(v => !v)}
+                  className="px-3.5 py-1.5 bg-brand-input hover:bg-brand-surface border border-brand-border rounded-xl text-xs font-semibold uppercase tracking-wider"
+                >
+                  {job.driver?.full_name ? 'Reassign' : 'Assign'}
+                </button>
+              </div>
+              {reassigning && (
+                <div className="flex items-center gap-2 pt-1">
+                  <select
+                    defaultValue={job.driver_id || 'unassigned'}
+                    disabled={assigningDriver}
+                    onChange={async (e) => {
+                      const val = e.target.value;
+                      setAssigningDriver(true);
+                      try {
+                        await assignDriverToJob(job.id!, val === 'unassigned' ? null : val);
+                        setReassigning(false);
+                        onUpdate();
+                      } catch (err: any) {
+                        alert(`Failed to assign driver: ${err.message || err}`);
+                      } finally {
+                        setAssigningDriver(false);
+                      }
+                    }}
+                    className="flex-1 bg-brand-input border border-brand-input-border rounded-xl px-3 py-2 text-xs font-medium text-brand-text focus:border-brand-neon outline-none"
+                  >
+                    <option value="unassigned">Unassigned</option>
+                    {drivers.map(d => {
+                      const statusIcon = d.status === 'available' ? '🟢' : d.status === 'on_job' ? '🟠' : '⚪';
+                      return (
+                        <option key={d.id} value={d.id}>{statusIcon} {d.full_name} (Tier {d.tier || 'D'} · {d.vehicle_type})</option>
+                      );
+                    })}
+                  </select>
+                  {assigningDriver && <Loader2 className="w-4 h-4 animate-spin text-brand-muted" />}
+                </div>
+              )}
+            </div>
+
+            {/* Quick Dispatch WhatsApp Buttons */}
+            <div className="space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Operational WhatsApp Links</p>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { id: 'sender', label: 'Sender Dsp.', sent: job.sender_notified },
+                  { id: 'driver', label: 'Pilot Dsp.', sent: job.driver_notified },
+                  { id: 'recipient', label: 'Client Dsp.', sent: job.recipient_notified }
+                ].map((btn) => (
+                  <button
+                    key={btn.id}
+                    onClick={() => dispatchWhatsApp(btn.id as any)}
+                    className={cn(
+                      "flex flex-col items-center justify-center p-3 rounded-2xl border transition-all gap-1.5 text-center",
+                      btn.sent ? "bg-brand-surface border-brand-border text-brand-muted" : "bg-brand-input border-brand-neon/30 hover:border-brand-neon hover:shadow-[0_0_12px_rgba(57,255,20,0.15)] text-brand-text"
+                    )}
+                  >
+                    <MessageSquare className={cn("w-4 h-4", btn.sent ? "text-brand-muted" : "text-brand-neon")} />
+                    <span className="text-[11px] font-semibold">{btn.label}</span>
+                    <span className={cn("text-[10px]", btn.sent ? "text-brand-muted" : "text-brand-neon font-medium")}>
+                      {btn.sent ? 'Dispatched' : 'Ready'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+          </div>
+
+          {/* Right Column: Chain of Custody (COC) Timeline & Force Controls */}
+          <div className="md:w-1/2 p-6 sm:p-8 bg-brand-surface/30 flex flex-col justify-between overflow-y-auto no-scrollbar space-y-6">
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-base font-display font-bold tracking-tight text-brand-text">Chain of Custody (COC)</h3>
+                  <p className="text-xs text-brand-muted">Individual step validation and emergency override stamps</p>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-brand-muted font-mono bg-brand-input px-2.5 py-1 rounded-lg border border-brand-border">
+                  <Shield className="w-3.5 h-3.5 text-brand-neon" />
+                  <span>OTP Protected</span>
+                </div>
+              </div>
+
+              {/* COC Steps List */}
+              <div className="space-y-4 relative">
+                <div className="absolute left-[19px] top-6 bottom-6 w-0.5 bg-brand-border" />
+                
+                {[
+                  { 
+                    label: 'Sender Handover', 
+                    stepKey: 'client_pickup_at' as const,
+                    status: job.client_pickup_at, 
+                    tokenKey: 'token_client_pickup', 
+                    icon: Package,
+                    otp: job.otp_sender,
+                    desc: 'Sender signs or gives OTP to pilot'
+                  },
+                  { 
+                    label: 'Driver Pickup Confirmed', 
+                    stepKey: 'driver_pickup_at' as const,
+                    status: job.driver_pickup_at, 
+                    tokenKey: 'token_driver_pickup', 
+                    icon: Truck,
+                    otp: job.otp_driver_pickup,
+                    desc: 'Pilot confirms possession on highway'
+                  },
+                  { 
+                    label: 'In-Transit / Destination Arrival', 
+                    stepKey: 'driver_delivery_at' as const,
+                    status: job.driver_delivery_at, 
+                    tokenKey: 'token_driver_delivery', 
+                    icon: Navigation,
+                    otp: job.otp_driver_delivery,
+                    desc: 'Pilot validates arrival at recipient hub'
+                  },
+                  { 
+                    label: 'Final Receipt & Signature', 
+                    stepKey: 'client_delivery_at' as const,
+                    status: job.client_delivery_at, 
+                    tokenKey: 'token_client_delivery', 
+                    icon: CheckCircle2,
+                    otp: job.otp_recipient,
+                    desc: 'Recipient confirms sealed delivery'
+                  }
+                ].map((step, i) => {
+                  const cocDomain = (import.meta.env.VITE_COC_URL || 'https://nokael.ae').replace(/\/$/, '');
+                  const stepSlug = step.tokenKey.replace('token_', '').replace('_', '-');
+                  const tokenValue = (job as any)[step.tokenKey];
+                  const stepUrl = tokenValue ? `${cocDomain}/${tokenValue}/${stepSlug}` : '';
+                  const isConfirmed = !!step.status;
+                  const isBusy = actingStep === step.stepKey;
+
+                  return (
+                    <div key={i} className="flex gap-4 relative z-10 p-3.5 bg-brand-bg/80 border border-brand-border rounded-2xl hover:border-brand-neon/30 transition-all">
+                      <div className={cn(
+                        "w-9 h-9 rounded-xl flex items-center justify-center border transition-all shrink-0 mt-0.5",
+                        isConfirmed 
+                          ? "bg-brand-neon border-brand-neon text-brand-bg shadow-[0_0_12px_rgba(57,255,20,0.3)]" 
+                          : "bg-brand-input border-brand-border text-brand-muted"
+                      )}>
+                        {isConfirmed ? <CheckCircle2 className="w-5 h-5" /> : <step.icon className="w-4 h-4" />}
+                      </div>
+
+                      <div className="flex-grow min-w-0">
+                        <div className="flex justify-between items-start mb-0.5">
+                          <p className={cn("text-xs font-bold", isConfirmed ? "text-brand-text" : "text-brand-muted")}>
+                            {step.label}
+                          </p>
+                          {isConfirmed && (
+                            <span className="text-[11px] font-mono text-brand-neon font-semibold bg-brand-neon/10 px-2 py-0.5 rounded border border-brand-neon/20">
+                              {format(new Date(step.status!), 'HH:mm:ss')}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-xs text-brand-muted font-medium leading-relaxed">
-                          {step.status ? 
-                            `Authorized via Link/OTP Authentication` : 
-                            `Waiting for digital confirmation via token [${tokenValue?.toString().substring(0, 8) || '...'}]`
+
+                        <p className="text-[11px] text-brand-muted font-medium mb-2">
+                          {isConfirmed 
+                            ? 'Verified & Sealed in Chain of Custody'
+                            : `Awaiting verification · OTP: ${step.otp || 'N/A'}`
                           }
                         </p>
-                        {tokenValue && (
-                          <div className="flex items-center gap-2 mt-2">
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(stepUrl);
-                                setCopiedStep(step.key);
-                                setTimeout(() => setCopiedStep(null), 2000);
-                              }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-input hover:bg-brand-border rounded-lg border border-brand-border text-xs font-semibold text-brand-neon tracking-wider uppercase transition-all hover:scale-105"
-                            >
-                              <Copy className="w-3 h-3" />
-                              {copiedStep === step.key ? 'Copied' : 'Copy link'}
-                            </button>
-                            <a
-                              href={stepUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-input hover:bg-brand-border rounded-lg border border-brand-border text-xs font-semibold text-brand-muted hover:text-brand-text tracking-wider uppercase transition-all hover:scale-105"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                              Open link
-                            </a>
-                          </div>
-                        )}
-                     </div>
-                  </div>
-                );
-              })}
-           </div>
 
-           {job.status === 'completed' && (
-             <motion.div 
-               initial={{ opacity: 0, y: 10 }}
-               animate={{ opacity: 1, y: 0 }}
-               className="pt-10 border-t border-brand-border"
-             >
+                        {/* Force Pass / Undo & Link Actions */}
+                        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-brand-border/60">
+                          <button
+                            onClick={() => handleToggleCocStep(step.stepKey, isConfirmed)}
+                            disabled={isBusy}
+                            className={cn(
+                              "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold tracking-wide uppercase transition-all",
+                              isConfirmed
+                                ? "bg-brand-input hover:bg-brand-surface text-brand-muted hover:text-brand-text border border-brand-border"
+                                : "bg-brand-neon/15 hover:bg-brand-neon/25 text-brand-neon border border-brand-neon/40 shadow-[0_0_8px_rgba(57,255,20,0.15)]"
+                            )}
+                          >
+                            {isBusy ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : isConfirmed ? (
+                              <>
+                                <Undo2 className="w-3 h-3" />
+                                Undo Step
+                              </>
+                            ) : (
+                              <>
+                                <FastForward className="w-3 h-3" />
+                                Force Pass
+                              </>
+                            )}
+                          </button>
+
+                          {tokenValue && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(stepUrl);
+                                  setCopiedStep(step.tokenKey);
+                                  setTimeout(() => setCopiedStep(null), 2000);
+                                }}
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-brand-input hover:bg-brand-surface rounded-lg border border-brand-border text-[10px] font-semibold text-brand-muted hover:text-brand-text uppercase transition-all"
+                              >
+                                <Copy className="w-2.5 h-2.5" />
+                                {copiedStep === step.tokenKey ? 'Copied' : 'Copy'}
+                              </button>
+                              <a
+                                href={stepUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-brand-input hover:bg-brand-surface rounded-lg border border-brand-border text-[10px] font-semibold text-brand-muted hover:text-brand-text uppercase transition-all"
+                              >
+                                <ExternalLink className="w-2.5 h-2.5" />
+                                Open
+                              </a>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Bottom Actions: Certificate PDF Export */}
+            {(job.status === 'completed' || !!job.client_delivery_at) && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="pt-4 border-t border-brand-border"
+              >
                 <button 
                   onClick={() => generateJobPOC(job)}
-                  className="btn-primary w-full py-5 text-sm flex items-center justify-center gap-3"
+                  className="btn-primary w-full py-4 text-xs font-bold flex items-center justify-center gap-2.5"
                 >
-                   <Download className="w-5 h-5" />
-                   Generate COC Certificate (PDF)
+                  <Download className="w-4 h-4" />
+                  Generate COC Certificate (PDF)
                 </button>
-             </motion.div>
-           )}
+              </motion.div>
+            )}
+          </div>
         </div>
+
+        {/* Declare Failed Modal Overlay */}
+        <AnimatePresence>
+          {showFailModal && (
+            <div className="absolute inset-0 z-50 bg-brand-bg/95 backdrop-blur-md p-6 flex items-center justify-center">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="max-w-md w-full bg-brand-surface border border-red-500/40 rounded-3xl p-6 shadow-2xl space-y-4"
+              >
+                <div className="flex items-center gap-3 text-red-400">
+                  <div className="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/30">
+                    <Ban className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-brand-text">Declare Mission Failure</h3>
+                    <p className="text-xs text-brand-muted">Record reason for audit & dispatch logs</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-brand-muted uppercase mb-1">Standard Failure Reason</label>
+                    <select
+                      value={failReason}
+                      onChange={(e) => setFailReason(e.target.value)}
+                      className="w-full bg-brand-input border border-brand-input-border rounded-xl px-3 py-2 text-xs text-brand-text outline-none focus:border-red-500"
+                    >
+                      {COMMON_FAILURE_REASONS.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                      <option value="Custom">Custom / Other Reason...</option>
+                    </select>
+                  </div>
+
+                  {failReason === 'Custom' && (
+                    <div>
+                      <label className="block text-xs font-semibold text-brand-muted uppercase mb-1">Specify Reason</label>
+                      <textarea
+                        value={customFailReason}
+                        onChange={(e) => setCustomFailReason(e.target.value)}
+                        placeholder="Provide details about the exception..."
+                        rows={2}
+                        className="w-full bg-brand-input border border-brand-input-border rounded-xl p-3 text-xs text-brand-text outline-none focus:border-red-500"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3 border-t border-brand-border">
+                  <button
+                    onClick={() => setShowFailModal(false)}
+                    className="px-4 py-2 bg-brand-input hover:bg-brand-surface border border-brand-border rounded-xl text-xs font-medium text-brand-text"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handleFailJob}
+                    disabled={isCancelling}
+                    className="px-5 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-lg shadow-red-500/20"
+                  >
+                    {isCancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Ban className="w-3.5 h-3.5" />}
+                    Confirm Failure Status
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
       </motion.div>
     </div>
   );

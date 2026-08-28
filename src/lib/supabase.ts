@@ -627,31 +627,24 @@ export interface TrackingResult {
 }
 
 /**
- * Universal lookup for the customer live tracking page and command center.
- * Resolves job_ref (e.g. NOK-0053, NOK-1024, NK-1024), tracking_token, UUIDs,
- * phone numbers, or quote_requests tracking_id.
+ * Lookup for the customer live tracking page and command center.
+ * Strictly verifies the exact job_ref (e.g. NOK-1024, NK-8492), tracking_token,
+ * quote_requests tracking_id, or secure UUID.
+ * 
+ * NOTE: Does NOT auto-complete or substring match partial numbers; the user must
+ * provide the correct, exact reference number.
  */
 export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult | null> => {
   if (!supabase) return null;
   const raw = queryStr.trim();
   if (!raw) return null;
 
-  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw);
-  const upper = raw.toUpperCase();
-  const digitsOnly = raw.replace(/\D/g, '');
+  // Clean leading '#' or leading/trailing whitespace (e.g., "#NOK-1024" -> "NOK-1024")
+  const cleaned = raw.replace(/^[#\s]+/, '').trim();
+  if (!cleaned) return null;
 
-  // Build possible variants (e.g., 'NOK-0053', 'NOK0053', '0053', '53')
-  const variations = Array.from(
-    new Set([
-      raw,
-      upper,
-      raw.toLowerCase(),
-      digitsOnly ? `NOK-${digitsOnly}` : '',
-      digitsOnly ? `NOK-${digitsOnly.padStart(4, '0')}` : '',
-      digitsOnly ? `NK-${digitsOnly}` : '',
-      digitsOnly ? `NK-${digitsOnly.padStart(4, '0')}` : '',
-    ].filter(Boolean))
-  );
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleaned);
+  const upper = cleaned.toUpperCase();
 
   // 1. Direct search by UUID on jobs table
   if (isUUID) {
@@ -659,7 +652,7 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
       const { data: jobById } = await supabase
         .from('jobs')
         .select('*')
-        .or(`id.eq.${raw},token_client_pickup.eq.${raw},token_driver_pickup.eq.${raw},token_driver_delivery.eq.${raw},token_client_delivery.eq.${raw},tracking_token.eq.${raw}`)
+        .or(`id.eq.${cleaned},token_client_pickup.eq.${cleaned},token_driver_pickup.eq.${cleaned},token_driver_delivery.eq.${cleaned},token_client_delivery.eq.${cleaned},tracking_token.eq.${cleaned}`)
         .limit(1);
 
       if (jobById && jobById.length > 0) {
@@ -668,7 +661,7 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
         return {
           type: 'job',
           job,
-          trackingId: job.job_ref || raw,
+          trackingId: job.job_ref || cleaned,
         };
       }
     } catch (e) {
@@ -676,8 +669,10 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
     }
   }
 
-  // 2. Direct search on jobs table by exact job_ref or tracking_token
-  for (const variant of variations) {
+  // 2. Strict exact match on jobs table by job_ref or tracking_token
+  const exactCandidates = Array.from(new Set([cleaned, upper])).filter(Boolean);
+
+  for (const variant of exactCandidates) {
     try {
       const { data: refJobs } = await supabase
         .from('jobs')
@@ -694,8 +689,8 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
           trackingId: job.job_ref || variant,
         };
       }
-    } catch (e) {
-      // continue to next variant
+    } catch {
+      // continue
     }
 
     try {
@@ -719,37 +714,13 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
     }
   }
 
-  // 3. Substring search on job_ref (e.g. '0053' in 'NOK-0053')
-  if (digitsOnly.length >= 2 || raw.length >= 3) {
-    const searchParam = digitsOnly.length >= 2 ? digitsOnly : raw;
-    try {
-      const { data: subJobs } = await supabase
-        .from('jobs')
-        .select('*')
-        .ilike('job_ref', `%${searchParam}%`)
-        .limit(1);
-
-      if (subJobs && subJobs.length > 0) {
-        const populated = await populateJobsDrivers(subJobs);
-        const job = populated[0];
-        return {
-          type: 'job',
-          job,
-          trackingId: job.job_ref || raw,
-        };
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  // 4. Search quote_requests table by UUID or tracking_id
+  // 3. Search quote_requests table by exact UUID
   if (isUUID) {
     try {
       const { data: quoteById } = await supabase
         .from('quote_requests')
         .select('*')
-        .eq('id', raw)
+        .eq('id', cleaned)
         .limit(1);
 
       if (quoteById && quoteById.length > 0) {
@@ -768,14 +739,14 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
             type: 'job',
             job,
             quote,
-            trackingId: job.job_ref || quote.tracking_id || raw,
+            trackingId: job.job_ref || quote.tracking_id || cleaned,
           };
         }
 
         return {
           type: 'quote',
           quote,
-          trackingId: quote.tracking_id || raw,
+          trackingId: quote.tracking_id || cleaned,
         };
       }
     } catch (e) {
@@ -783,8 +754,8 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
     }
   }
 
-  // 5. Search quote_requests table by tracking_id variants (e.g. 'NK-9285')
-  for (const variant of variations) {
+  // 4. Search quote_requests table by exact tracking_id
+  for (const variant of exactCandidates) {
     try {
       const { data: quoteData } = await supabase
         .from('quote_requests')
@@ -825,48 +796,6 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
     }
   }
 
-  // 6. Search by phone number (if 6+ digits)
-  if (digitsOnly.length >= 6) {
-    try {
-      const { data: phoneJobs } = await supabase
-        .from('jobs')
-        .select('*')
-        .or(`sender_phone.ilike.%${digitsOnly}%,recipient_phone.ilike.%${digitsOnly}%,client_whatsapp.ilike.%${digitsOnly}%`)
-        .limit(1);
-
-      if (phoneJobs && phoneJobs.length > 0) {
-        const populated = await populateJobsDrivers(phoneJobs);
-        const job = populated[0];
-        return {
-          type: 'job',
-          job,
-          trackingId: job.job_ref || raw,
-        };
-      }
-    } catch {
-      // ignore
-    }
-
-    try {
-      const { data: phoneQuotes } = await supabase
-        .from('quote_requests')
-        .select('*')
-        .ilike('phone', `%${digitsOnly}%`)
-        .limit(1);
-
-      if (phoneQuotes && phoneQuotes.length > 0) {
-        const quote = phoneQuotes[0] as QuoteRequest;
-        return {
-          type: 'quote',
-          quote,
-          trackingId: quote.tracking_id || raw,
-        };
-      }
-    } catch {
-      // ignore
-    }
-  }
-
   return null;
 };
 
@@ -884,7 +813,126 @@ export const updateJob = async (id: string, updates: Partial<Job>): Promise<Job>
   return mapJobDbToClient(data as Job);
 };
 
-export const cancelJob = async (id: string, reason: string): Promise<Job> => {
+export interface OverrideJobOptions {
+  status: JobStatus;
+  overrideNotes?: string;
+  autoTimestampCoc?: boolean;
+  cancellationReason?: string;
+}
+
+/**
+ * Command Centre Manual Override for Job Levels and COC.
+ * Allows dispatchers to advance or revert job stages, auto-stamp missing COC steps if the client/driver
+ * didn't use the digital link, or flag the job with a failed/cancelled status with full audit notes.
+ */
+export const overrideJobLevel = async (
+  jobId: string,
+  options: OverrideJobOptions
+): Promise<Job> => {
+  if (!supabase) throw new Error('Supabase not configured');
+  const now = new Date().toISOString();
+  const updates: any = {
+    status: options.status,
+    updated_at: now,
+  };
+
+  if (options.overrideNotes !== undefined) {
+    updates.operator_notes = options.overrideNotes;
+  }
+
+  if (options.status === 'cancelled') {
+    updates.cancelled_at = now;
+    updates.cancellation_reason = options.cancellationReason || options.overrideNotes || 'Manual failure/cancellation by Command Centre';
+  } else {
+    // If reactivating from cancelled, clear cancellation fields
+    updates.cancelled_at = null;
+    updates.cancellation_reason = null;
+  }
+
+  // Automatic timestamping based on target level so COC is complete
+  if (options.autoTimestampCoc && options.status !== 'cancelled') {
+    if (options.status === 'client_pickup') {
+      updates.client_pickup_at = now;
+      updates.client_pickup_confirmed_at = now;
+    } else if (options.status === 'driver_pickup') {
+      updates.client_pickup_at = now;
+      updates.client_pickup_confirmed_at = now;
+      updates.driver_pickup_at = now;
+      updates.driver_pickup_confirmed_at = now;
+    } else if (options.status === 'driver_delivery') {
+      updates.client_pickup_at = now;
+      updates.client_pickup_confirmed_at = now;
+      updates.driver_pickup_at = now;
+      updates.driver_pickup_confirmed_at = now;
+      updates.driver_delivery_at = now;
+      updates.driver_delivery_confirmed_at = now;
+    } else if (options.status === 'completed') {
+      updates.client_pickup_at = now;
+      updates.client_pickup_confirmed_at = now;
+      updates.driver_pickup_at = now;
+      updates.driver_pickup_confirmed_at = now;
+      updates.driver_delivery_at = now;
+      updates.driver_delivery_confirmed_at = now;
+      updates.client_delivery_at = now;
+      updates.client_delivery_confirmed_at = now;
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('jobs')
+    .update(updates)
+    .eq('id', jobId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return mapJobDbToClient(data as Job);
+};
+
+/**
+ * Manually toggle / force-verify an individual COC step from the Command Centre.
+ */
+export const overrideCocStep = async (
+  jobId: string,
+  stepKey: 'client_pickup_at' | 'driver_pickup_at' | 'driver_delivery_at' | 'client_delivery_at',
+  confirmed: boolean,
+  operatorNotes?: string
+): Promise<Job> => {
+  if (!supabase) throw new Error('Supabase not configured');
+  const now = new Date().toISOString();
+  const updates: any = {
+    [stepKey]: confirmed ? now : null,
+    updated_at: now,
+  };
+
+  if (stepKey === 'client_pickup_at') updates.client_pickup_confirmed_at = confirmed ? now : null;
+  if (stepKey === 'driver_pickup_at') updates.driver_pickup_confirmed_at = confirmed ? now : null;
+  if (stepKey === 'driver_delivery_at') updates.driver_delivery_confirmed_at = confirmed ? now : null;
+  if (stepKey === 'client_delivery_at') updates.client_delivery_confirmed_at = confirmed ? now : null;
+
+  if (operatorNotes) {
+    updates.operator_notes = operatorNotes;
+  }
+
+  if (confirmed) {
+    if (stepKey === 'client_pickup_at') updates.status = 'client_pickup';
+    else if (stepKey === 'driver_pickup_at') updates.status = 'driver_pickup';
+    else if (stepKey === 'driver_delivery_at') updates.status = 'driver_delivery';
+    else if (stepKey === 'client_delivery_at') updates.status = 'completed';
+  }
+
+  const { data, error } = await supabase
+    .from('jobs')
+    .update(updates)
+    .eq('id', jobId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return mapJobDbToClient(data as Job);
+};
+
+export const cancelJob = async (id: string, reason: string, notes?: string): Promise<Job> => {
   if (!supabase) throw new Error('Supabase not configured');
 
   const { data, error } = await supabase
@@ -893,6 +941,26 @@ export const cancelJob = async (id: string, reason: string): Promise<Job> => {
       status: 'cancelled',
       cancellation_reason: reason,
       cancelled_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...(notes ? { operator_notes: notes } : {})
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return mapJobDbToClient(data as Job);
+};
+
+export const reactivateJob = async (id: string, targetStatus: JobStatus = 'pending'): Promise<Job> => {
+  if (!supabase) throw new Error('Supabase not configured');
+
+  const { data, error } = await supabase
+    .from('jobs')
+    .update({
+      status: targetStatus,
+      cancellation_reason: null,
+      cancelled_at: null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)

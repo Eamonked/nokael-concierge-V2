@@ -340,12 +340,21 @@ export default function Track() {
         </div>
 
         {/* Search Bar */}
-        <form onSubmit={handleSubmit} className="mb-10">
+        <form onSubmit={handleSubmit} className="mb-10" autoComplete="off">
           <div className="relative group shadow-2xl shadow-black/20">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-muted group-focus-within:text-brand-neon transition-colors" />
             <input
+              id="tracking-job-ref-input"
+              name="nokael_job_reference_number"
               type="text"
-              placeholder="Enter Job Ref (e.g. NOK-1024, NK-8492)"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-form-type="other"
+              placeholder="Enter exact Job Ref (e.g. NOK-1024, NK-8492)"
               className="w-full bg-brand-input border border-brand-input-border rounded-2xl py-5 pl-14 pr-32 text-base sm:text-lg text-brand-text placeholder:text-brand-muted/50 focus:outline-none focus:border-brand-neon/60 focus:ring-1 focus:ring-brand-neon/30 transition-all font-display tracking-tight"
               value={queryInput}
               onChange={(e) => setQueryInput(e.target.value)}
@@ -366,7 +375,7 @@ export default function Track() {
             </button>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 mt-3 px-2 text-[11px] text-brand-muted">
-            <span>Supports <b>NOK-xxxx</b>, <b>NK-xxxx</b>, or confirmation tokens</span>
+            <span>Exact match required — enter your exact <b>Job Ref</b> (e.g. NOK-1024, NK-8492) or token</span>
             {lastRefreshedAt && (
               <span className="text-brand-muted/70">
                 Synced {formatDistanceToNow(lastRefreshedAt, { addSuffix: true })}
