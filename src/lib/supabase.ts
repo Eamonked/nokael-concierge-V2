@@ -585,17 +585,18 @@ export const getJobs = async (): Promise<JobWithDriver[]> => {
  * Fetch a single job by its public tracking token.
  * Used for the customer-facing live tracking page.
  */
+// NOTE: these two no longer touch the `jobs` table directly. The anon
+// SELECT policy that used to make raw `.from('jobs').select('*')` work for
+// anonymous trackers has been closed (see migration
+// 001_lock_down_jobs_public_access.sql) — all public reads now go through
+// the get_job_by_ref RPC, which returns an explicit safe-column allowlist
+// (no phones, no OTPs, no tokens, no price/notes).
 export const getJobByTrackingToken = async (token: string): Promise<JobWithDriver | null> => {
   if (!supabase) return null;
   try {
-    const { data, error } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('tracking_token', token)
-      .limit(1);
-
-    if (error || !data || data.length === 0) return null;
-    const populated = await populateJobsDrivers(data);
+    const { data, error } = await supabase.rpc('get_job_by_ref', { p_query: token });
+    if (error || !Array.isArray(data) || data.length === 0) return null;
+    const populated = await populateJobsDrivers([data[0]]);
     return populated[0] || null;
   } catch {
     return null;
@@ -605,14 +606,9 @@ export const getJobByTrackingToken = async (token: string): Promise<JobWithDrive
 export const getJobById = async (id: string): Promise<JobWithDriver | null> => {
   if (!supabase) return null;
   try {
-    const { data, error } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('id', id)
-      .limit(1);
-
-    if (error || !data || data.length === 0) return null;
-    const populated = await populateJobsDrivers(data);
+    const { data, error } = await supabase.rpc('get_job_by_ref', { p_query: id });
+    if (error || !Array.isArray(data) || data.length === 0) return null;
+    const populated = await populateJobsDrivers([data[0]]);
     return populated[0] || null;
   } catch {
     return null;
@@ -646,17 +642,43 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleaned);
   const upper = cleaned.toUpperCase();
 
-  // 1. Direct search by UUID on jobs table
+  // 1. Job lookup via the safe allowlist RPC — matches UUID id, job_ref
+  //    (case-insensitive), or the generic tracking_token in a single call.
+  //    Replaces what used to be three separate raw `jobs` table selects;
+  //    those only worked because of the anon SELECT policy that's now
+  //    closed (see migration 001_lock_down_jobs_public_access.sql). The
+  //    RPC returns an explicit safe-column allowlist — no phones, OTPs,
+  //    tokens, price, or notes.
+  const exactCandidates = Array.from(new Set([cleaned, upper])).filter(Boolean);
+
+  for (const variant of exactCandidates) {
+    try {
+      const { data, error } = await supabase.rpc('get_job_by_ref', { p_query: variant });
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const populated = await populateJobsDrivers([data[0]]);
+        const job = populated[0];
+        return {
+          type: 'job',
+          job,
+          trackingId: job.job_ref || variant,
+        };
+      }
+    } catch (e) {
+      console.warn('[Nokael] get_job_by_ref notice:', e);
+    }
+  }
+
+  // 2. If it looks like a UUID but didn't match a job id / tracking_token
+  //    above, it may be one of the four step tokens instead — try the
+  //    token RPC. get_job_by_token now returns a row set (allowlist),
+  //    not a single JSONB object, so take the first row.
   if (isUUID) {
     try {
-      const { data: jobById, error: idError } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('id', cleaned)
-        .limit(1);
-
-      if (!idError && jobById && jobById.length > 0) {
-        const populated = await populateJobsDrivers(jobById);
+      const { data: rpcRows, error: rpcError } = await supabase.rpc('get_job_by_token', { p_token: cleaned });
+      if (rpcError) {
+        console.warn('[Nokael] get_job_by_token RPC error:', rpcError);
+      } else if (Array.isArray(rpcRows) && rpcRows.length > 0) {
+        const populated = await populateJobsDrivers([rpcRows[0]]);
         const job = populated[0];
         return {
           type: 'job',
@@ -665,68 +687,7 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
         };
       }
     } catch (e) {
-      console.warn('[Nokael] Notice searching jobs by UUID id:', e);
-    }
-
-    // Try token RPC fallback for secure UUID token lookup
-    try {
-      const { data: rpcJob, error: rpcError } = await (supabase as any).rpc('get_job_by_token', { token_val: cleaned });
-      if (!rpcError && rpcJob) {
-        const populated = await populateJobsDrivers([rpcJob]);
-        const job = populated[0];
-        return {
-          type: 'job',
-          job,
-          trackingId: job.job_ref || cleaned,
-        };
-      }
-    } catch {
-      // Ignore RPC fallback if not present
-    }
-  }
-
-  // 2. Strict exact match on jobs table by job_ref or tracking_token
-  const exactCandidates = Array.from(new Set([cleaned, upper])).filter(Boolean);
-
-  for (const variant of exactCandidates) {
-    try {
-      const { data: refJobs } = await supabase
-        .from('jobs')
-        .select('*')
-        .ilike('job_ref', variant)
-        .limit(1);
-
-      if (refJobs && refJobs.length > 0) {
-        const populated = await populateJobsDrivers(refJobs);
-        const job = populated[0];
-        return {
-          type: 'job',
-          job,
-          trackingId: job.job_ref || variant,
-        };
-      }
-    } catch {
-      // continue
-    }
-
-    try {
-      const { data: tokenJobs } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('tracking_token', variant)
-        .limit(1);
-
-      if (tokenJobs && tokenJobs.length > 0) {
-        const populated = await populateJobsDrivers(tokenJobs);
-        const job = populated[0];
-        return {
-          type: 'job',
-          job,
-          trackingId: job.job_ref || variant,
-        };
-      }
-    } catch {
-      // continue
+      console.warn('[Nokael] get_job_by_token RPC exception:', e);
     }
   }
 
@@ -741,15 +702,12 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
 
       if (quoteById && quoteById.length > 0) {
         const quote = quoteById[0] as QuoteRequest;
-        // Check if converted to a job
-        const { data: linkedJobs } = await supabase
-          .from('jobs')
-          .select('*')
-          .eq('quote_id', quote.id)
-          .limit(1);
+        // Check if converted to a job — via the safe RPC, not a raw select
+        // (quote.id doubles as the jobs.quote_id lookup key in get_job_by_ref)
+        const { data: linkedRows } = await supabase.rpc('get_job_by_ref', { p_query: quote.id });
 
-        if (linkedJobs && linkedJobs.length > 0) {
-          const populated = await populateJobsDrivers(linkedJobs);
+        if (Array.isArray(linkedRows) && linkedRows.length > 0) {
+          const populated = await populateJobsDrivers([linkedRows[0]]);
           const job = populated[0];
           return {
             type: 'job',
@@ -783,14 +741,10 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
         const quote = quoteData[0] as QuoteRequest;
 
         if (quote.id) {
-          const { data: linkedJobs } = await supabase
-            .from('jobs')
-            .select('*')
-            .eq('quote_id', quote.id)
-            .limit(1);
+          const { data: linkedRows } = await supabase.rpc('get_job_by_ref', { p_query: quote.id });
 
-          if (linkedJobs && linkedJobs.length > 0) {
-            const populated = await populateJobsDrivers(linkedJobs);
+          if (Array.isArray(linkedRows) && linkedRows.length > 0) {
+            const populated = await populateJobsDrivers([linkedRows[0]]);
             const job = populated[0];
             return {
               type: 'job',

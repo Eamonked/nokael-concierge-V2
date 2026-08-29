@@ -69,9 +69,14 @@ export function rateLimit(maxRequests: number, windowMs: number) {
 export function requireApiKey(req: Request, res: Response, next: NextFunction) {
   const expectedKey = process.env.NOKAEL_API_KEY;
 
-  // Bypass in development if no key is set
   if (!expectedKey) {
-    console.warn("[auth] NOKAEL_API_KEY not set — API auth is DISABLED");
+    if (process.env.NODE_ENV === "production") {
+      // Fail closed in production — an unset key must never mean "open access".
+      console.error("[auth] NOKAEL_API_KEY not set in production — refusing request");
+      return res.status(503).json({ error: "Service misconfigured" });
+    }
+    // Bypass only in non-production environments so local dev works without configuration.
+    console.warn("[auth] NOKAEL_API_KEY not set — API auth is DISABLED (non-production)");
     return next();
   }
 

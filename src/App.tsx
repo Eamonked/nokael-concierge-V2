@@ -6,7 +6,6 @@ import Home from './pages/Home';
 
 // Code splitting for improved performance/LCP/TBT
 const GetQuote = lazy(() => import('./pages/GetQuote'));
-const ConfirmationPage = lazy(() => import('./pages/ConfirmationPage'));
 const Thankyou = lazy(() => import('./pages/Thankyou'));
 const Services = lazy(() => import('./pages/Services'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -147,7 +146,6 @@ export default function App() {
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/admin" element={<Dashboard />} />
-              <Route path="/:token/:step" element={<ConfirmationPage />} />
               <Route path="/login" element={<Login />} />
               {/* 404 — must be last */}
               <Route path="*" element={<NotFound />} />
