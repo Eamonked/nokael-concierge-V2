@@ -11,6 +11,7 @@ import { injectMetadata } from "./seo/inject.js";
 import { securityHeaders, rateLimit, requireApiKey } from "./middleware/security.js";
 import { createUploadRouter } from "./routes/upload.js";
 import { createNotifyRouter } from "./routes/notify.js";
+import { createPoolRouter } from "./routes/pool.js";
 
 const _filename = typeof __filename !== "undefined" ? __filename : fileURLToPath(import.meta.url);
 const _dirname = typeof __dirname !== "undefined" ? __dirname : path.dirname(_filename);
@@ -32,7 +33,14 @@ async function startServer() {
   // ---------------------------------------------------------------------------
   // API routes
   // ---------------------------------------------------------------------------
-  // Apply rate limiting and API key auth to all /api routes
+  // Multi-tenant pool API — mounted BEFORE the site-wide requireApiKey
+  // chain below, and deliberately not under it. It has its own per-tenant
+  // auth (requirePoolApiKey, checked against api_keys via the
+  // verify_api_key RPC) — stacking the shared NOKAEL_API_KEY secret on
+  // top would conflate two unrelated auth models for no reason.
+  app.use("/api/pool", createPoolRouter());
+
+  // Apply rate limiting and API key auth to all other /api routes
   app.use("/api", rateLimit(60, 60 * 1000)); // 60 requests per minute
   app.use("/api", requireApiKey);
   

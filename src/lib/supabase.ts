@@ -531,7 +531,11 @@ export const assignDriverToJob = async (
   return mapJobDbToClient(data as Job);
 };
 
-// Safely attach driver objects to jobs without relying on PostgREST foreign key schema constraints
+// Safely attach driver objects to jobs without relying on PostgREST foreign key schema constraints.
+// ADMIN-ONLY: this pulls the full driver record (name, phone, whatsapp, rating) and is
+// intended for the authenticated Command Centre (getJobs()) — never wire this into a
+// public/anonymous read path. Use populateJobsDriversPublic() for anything reachable
+// without auth (tracking token, guessable job ref, etc).
 export const populateJobsDrivers = async (rawJobs: any[]): Promise<JobWithDriver[]> => {
   if (!rawJobs || rawJobs.length === 0) return [];
   const driverIds = Array.from(
@@ -553,6 +557,42 @@ export const populateJobsDrivers = async (rawJobs: any[]): Promise<JobWithDriver
       }
     } catch (e) {
       console.warn('[Nokael] Notice during driver lookup:', e);
+    }
+  }
+
+  return rawJobs.map((j: any) => {
+    const driver = j.driver_id ? driversMap[j.driver_id] || (j.driver ?? null) : (j.driver ?? null);
+    return mapJobDbToClient({ ...j, driver } as JobWithDriver);
+  });
+};
+
+// PUBLIC-SAFE variant for anonymous read paths (Track.tsx via getJobById /
+// getJobByTrackingToken / getTrackingInfo). These are reachable with nothing more
+// than a guessable job ref, so the drivers query here must never ask for
+// full_name, phone, whatsapp, or rating — only vehicle_type, which is all the
+// public tracker actually renders. If Track.tsx ever needs another driver field,
+// add it explicitly here rather than reusing the admin selector above.
+export const populateJobsDriversPublic = async (rawJobs: any[]): Promise<JobWithDriver[]> => {
+  if (!rawJobs || rawJobs.length === 0) return [];
+  const driverIds = Array.from(
+    new Set(rawJobs.map((j) => j.driver_id).filter(Boolean))
+  ) as string[];
+
+  const driversMap: Record<string, Partial<Driver>> = {};
+  if (driverIds.length > 0 && supabase) {
+    try {
+      const { data: driversData } = await supabase
+        .from('drivers')
+        .select('id, vehicle_type')
+        .in('id', driverIds);
+
+      if (driversData) {
+        driversData.forEach((d: any) => {
+          driversMap[d.id] = d;
+        });
+      }
+    } catch (e) {
+      console.warn('[Nokael] Notice during public driver lookup:', e);
     }
   }
 
@@ -596,7 +636,7 @@ export const getJobByTrackingToken = async (token: string): Promise<JobWithDrive
   try {
     const { data, error } = await supabase.rpc('get_job_by_ref', { p_query: token });
     if (error || !Array.isArray(data) || data.length === 0) return null;
-    const populated = await populateJobsDrivers([data[0]]);
+    const populated = await populateJobsDriversPublic([data[0]]);
     return populated[0] || null;
   } catch {
     return null;
@@ -608,7 +648,7 @@ export const getJobById = async (id: string): Promise<JobWithDriver | null> => {
   try {
     const { data, error } = await supabase.rpc('get_job_by_ref', { p_query: id });
     if (error || !Array.isArray(data) || data.length === 0) return null;
-    const populated = await populateJobsDrivers([data[0]]);
+    const populated = await populateJobsDriversPublic([data[0]]);
     return populated[0] || null;
   } catch {
     return null;
@@ -655,7 +695,7 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
     try {
       const { data, error } = await supabase.rpc('get_job_by_ref', { p_query: variant });
       if (!error && Array.isArray(data) && data.length > 0) {
-        const populated = await populateJobsDrivers([data[0]]);
+        const populated = await populateJobsDriversPublic([data[0]]);
         const job = populated[0];
         return {
           type: 'job',
@@ -678,7 +718,7 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
       if (rpcError) {
         console.warn('[Nokael] get_job_by_token RPC error:', rpcError);
       } else if (Array.isArray(rpcRows) && rpcRows.length > 0) {
-        const populated = await populateJobsDrivers([rpcRows[0]]);
+        const populated = await populateJobsDriversPublic([rpcRows[0]]);
         const job = populated[0];
         return {
           type: 'job',
@@ -707,7 +747,7 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
         const { data: linkedRows } = await supabase.rpc('get_job_by_ref', { p_query: quote.id });
 
         if (Array.isArray(linkedRows) && linkedRows.length > 0) {
-          const populated = await populateJobsDrivers([linkedRows[0]]);
+          const populated = await populateJobsDriversPublic([linkedRows[0]]);
           const job = populated[0];
           return {
             type: 'job',
@@ -744,7 +784,7 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
           const { data: linkedRows } = await supabase.rpc('get_job_by_ref', { p_query: quote.id });
 
           if (Array.isArray(linkedRows) && linkedRows.length > 0) {
-            const populated = await populateJobsDrivers([linkedRows[0]]);
+            const populated = await populateJobsDriversPublic([linkedRows[0]]);
             const job = populated[0];
             return {
               type: 'job',

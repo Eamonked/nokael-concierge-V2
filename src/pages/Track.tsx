@@ -16,7 +16,6 @@ import {
   RefreshCw, 
   Copy, 
   Check, 
-  ExternalLink, 
   ShieldCheck, 
   ShieldAlert, 
   ArrowRight, 
@@ -28,10 +27,8 @@ import {
   Wrench, 
   Radio,
   AlertTriangle,
-  XCircle,
-  Download
+  XCircle
 } from 'lucide-react';
-import { generateJobPOC } from '../lib/pdf-export';
 import { WHATSAPP_NUMBER } from '../constants';
 import { trackWhatsAppClick } from '../lib/analytics';
 import { 
@@ -339,7 +336,7 @@ export default function Track() {
             Corridor Tracking
           </h1>
           <p className="text-brand-muted text-sm max-w-lg mx-auto leading-relaxed">
-            Enter your Job Ref or Dispatch ID to inspect the exact database status, driver location, and Chain of Custody timestamps.
+            Enter your Job Ref or Dispatch ID to inspect the exact database status and Chain of Custody timestamps.
           </p>
         </div>
 
@@ -410,7 +407,7 @@ export default function Track() {
                 Querying Live Dispatch System...
               </p>
               <p className="text-xs text-brand-muted max-w-sm mx-auto">
-                Retrieving corridor coordinates, driver status, and Chain of Custody records for ID <b>{queryInput}</b>.
+                Retrieving dispatch status and Chain of Custody records for ID <b>{queryInput}</b>.
               </p>
             </motion.div>
           )}
@@ -642,7 +639,7 @@ export default function Track() {
                             </div>
                             <p className="text-xs text-brand-muted mt-0.5">
                               {hasDriver 
-                                ? `Assigned Pilot (${activeJob.driver?.full_name || 'Pilot'}) arriving at pickup point.`
+                                ? 'Assigned pilot arriving at pickup point.'
                                 : 'Awaiting pilot dispatch arrival confirmation.'}
                             </p>
                           </div>
@@ -734,33 +731,6 @@ export default function Track() {
                   </div>
                 </div>
 
-                {/* Live GPS Telemetry Card if available */}
-                {activeJob.driver_lat && activeJob.driver_lng && (
-                  <div className="p-4 rounded-xl bg-brand-input/40 border border-brand-input-border flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-brand-neon/10 text-brand-neon flex items-center justify-center">
-                        <Navigation className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-brand-text">Pilot GPS Coordinates Active</p>
-                        <p className="text-[10px] text-brand-muted font-mono">
-                          {activeJob.driver_lat.toFixed(4)}° N, {activeJob.driver_lng.toFixed(4)}° E
-                          {activeJob.driver_updated_at && ` · Last ping ${formatDistanceToNow(new Date(activeJob.driver_updated_at), { addSuffix: true })}`}
-                        </p>
-                      </div>
-                    </div>
-                    <a
-                      href={`https://maps.google.com/?q=${activeJob.driver_lat},${activeJob.driver_lng}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[10px] font-bold uppercase tracking-wider text-brand-neon hover:underline inline-flex items-center gap-1"
-                    >
-                      <span>View Map</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                )}
-
               </div>
 
               {/* Route & Manifest Details */}
@@ -833,38 +803,43 @@ export default function Track() {
                   }
 
                   // Dynamic Pilot/Desk Information
-                  let title = activeJob.driver?.full_name || 'Nokael Central Operations';
+                  // NOTE: deliberately never surfaces activeJob.driver?.full_name or
+                  // .rating here — this is the public tracking page, reachable with a
+                  // guessable job ref (no auth, no token). Personally-identifying pilot
+                  // details and live GPS only ever appear in the token-gated Chain of
+                  // Custody confirmation portal.
+                  let title = 'Nokael Central Operations';
                   let subtitle = '24/7 Monitoring Desk · Allocating Nearest Pilot';
                   let iconElement = <Zap className="w-6 h-6 animate-pulse" />;
                   let iconBg = 'bg-brand-input border-brand-input-border text-brand-neon';
 
                   if (isCancelled) {
-                    title = activeJob.driver?.full_name ? `${activeJob.driver.full_name} (Disengaged)` : 'Nokael Operations Control';
+                    title = 'Nokael Operations Control';
                     subtitle = activeJob.cancellation_reason ? `Terminated: ${activeJob.cancellation_reason}` : 'Mission Cancelled · Operations Terminated';
                     iconElement = <XCircle className="w-6 h-6" />;
                     iconBg = 'bg-red-500/10 border-red-500/30 text-red-400';
                   } else if (isCompleted) {
-                    title = activeJob.driver?.full_name || 'Nokael Executive Pilot';
+                    title = 'Nokael Executive Pilot';
                     subtitle = activeJob.driver?.vehicle_type ? `${activeJob.driver.vehicle_type} · Dedicated Delivery Verified` : 'Dedicated Fleet · Delivered Successfully';
                     iconElement = <ShieldCheck className="w-6 h-6" />;
                     iconBg = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
                   } else if (isInTransit) {
-                    title = activeJob.driver?.full_name || 'Assigned Dedicated Pilot';
+                    title = 'Assigned Dedicated Pilot';
                     subtitle = activeJob.driver?.vehicle_type ? `${activeJob.driver.vehicle_type} · Non-Stop Highway Transit` : 'Dedicated Corridor Pilot · Active Transit';
                     iconElement = <Truck className="w-6 h-6" />;
                     iconBg = 'bg-brand-neon/10 border-brand-neon/40 text-brand-neon shadow-[0_0_15px_rgba(57,255,20,0.2)]';
                   } else if (isAtDelivery) {
-                    title = activeJob.driver?.full_name || 'Assigned Dedicated Pilot';
+                    title = 'Assigned Dedicated Pilot';
                     subtitle = `Pilot Arrived at ${activeJob.delivery_emirate} · Initiating Handover`;
                     iconElement = <MapPin className="w-6 h-6" />;
                     iconBg = 'bg-purple-500/10 border-purple-500/30 text-purple-400';
                   } else if (isAtPickup) {
-                    title = activeJob.driver?.full_name || 'Assigned Dedicated Pilot';
+                    title = 'Assigned Dedicated Pilot';
                     subtitle = `Pilot at Pickup Location (${activeJob.pickup_emirate}) · Securing Package`;
                     iconElement = <User className="w-6 h-6" />;
                     iconBg = 'bg-blue-500/10 border-blue-500/30 text-blue-400';
                   } else if (hasDriver) {
-                    title = activeJob.driver?.full_name || 'Assigned Pilot';
+                    title = 'Assigned Pilot';
                     subtitle = activeJob.driver?.vehicle_type ? `${activeJob.driver.vehicle_type} · En Route to Pickup` : 'Dedicated Pilot · En Route to Pickup';
                     iconElement = <Truck className="w-6 h-6" />;
                     iconBg = 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400';
@@ -910,12 +885,6 @@ export default function Track() {
                           <p className="text-[11px] text-brand-muted truncate">
                             {subtitle}
                           </p>
-                          {activeJob.driver?.rating && !isCancelled && (
-                            <div className="flex items-center gap-1 mt-1 text-[11px] text-amber-400 font-bold">
-                              <span>★</span>
-                              <span>{activeJob.driver.rating.toFixed(1)} Rating · Dedicated Pilot</span>
-                            </div>
-                          )}
                           {isCancelled && activeJob.cancelled_at && (
                             <p className="text-[10px] text-red-400/80 font-mono mt-0.5">
                               Terminated on {format(new Date(activeJob.cancelled_at), 'dd MMM yyyy, hh:mm a')}
@@ -954,18 +923,11 @@ export default function Track() {
                       </div>
 
                       {/* Action Buttons based on status */}
+                      {/* Chain of Custody PDF download intentionally lives only in the
+                          token-gated Confirmation Portal, not here — job refs on this
+                          public page are guessable, so this must never be a place
+                          anyone can pull a COC record (with pilot + GPS detail) from. */}
                       <div className="pt-2 space-y-2">
-                        {isCompleted && (
-                          <button
-                            type="button"
-                            onClick={() => generateJobPOC(activeJob)}
-                            className="btn-primary w-full py-3 text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-2"
-                          >
-                            <Download className="w-4 h-4" />
-                            <span>Download Chain of Custody (PDF)</span>
-                          </button>
-                        )}
-
                         <a
                           href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(contextualWaMsg)}`}
                           target="_blank"
