@@ -9,6 +9,8 @@ export default function Login() {
   const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [resetSent, setResetSent] = React.useState(false);
+  const [resetLoading, setResetLoading] = React.useState(false);
   const navigate = useNavigate();
 
   // Redirect if already authenticated
@@ -28,6 +30,26 @@ export default function Login() {
       isMounted = false;
     };
   }, [navigate]);
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Enter your email above first, then tap Forgot password.');
+      return;
+    }
+    setResetLoading(true);
+    setError('');
+    try {
+      if (!supabase) throw new Error('Supabase not configured.');
+      const redirectTo = `${window.location.origin}/accept-invite`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) throw error;
+      setResetSent(true);
+    } catch (err: any) {
+      setError(err.message || 'Failed to send reset link.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,6 +132,23 @@ export default function Login() {
             >
               {error}
             </motion.p>
+          )}
+
+          {resetSent ? (
+            <p className="text-brand-neon text-[10px] font-bold uppercase tracking-widest text-center">
+              Reset link sent — check your inbox.
+            </p>
+          ) : (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={resetLoading}
+                className="text-brand-muted text-[10px] uppercase tracking-[0.2em] font-bold hover:text-brand-neon transition-colors disabled:opacity-50"
+              >
+                {resetLoading ? 'Sending...' : 'Forgot password?'}
+              </button>
+            </div>
           )}
 
           <button

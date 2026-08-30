@@ -12,6 +12,7 @@ import { securityHeaders, rateLimit, requireApiKey } from "./middleware/security
 import { createUploadRouter } from "./routes/upload.js";
 import { createNotifyRouter } from "./routes/notify.js";
 import { createPoolRouter } from "./routes/pool.js";
+import { createTeamRouter } from "./routes/team.js";
 
 const _filename = typeof __filename !== "undefined" ? __filename : fileURLToPath(import.meta.url);
 const _dirname = typeof __dirname !== "undefined" ? __dirname : path.dirname(_filename);
@@ -39,6 +40,12 @@ async function startServer() {
   // verify_api_key RPC) — stacking the shared NOKAEL_API_KEY secret on
   // top would conflate two unrelated auth models for no reason.
   app.use("/api/pool", createPoolRouter());
+
+  // Team management API — same reasoning as /api/pool above: it has its
+  // own per-user auth (the caller's real Supabase session token, checked
+  // against org_members role), so it's mounted before the shared
+  // requireApiKey chain rather than under it.
+  app.use("/api/team", createTeamRouter());
 
   // Apply rate limiting and API key auth to all other /api routes
   app.use("/api", rateLimit(60, 60 * 1000)); // 60 requests per minute

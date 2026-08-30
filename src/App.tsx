@@ -10,6 +10,7 @@ const Thankyou = lazy(() => import('./pages/Thankyou'));
 const Services = lazy(() => import('./pages/Services'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Login = lazy(() => import('./pages/Login'));
+const AcceptInvite = lazy(() => import('./pages/AcceptInvite'));
 const BusinessAccountInquiry = lazy(() => import('./pages/BusinessAccountInquiry'));
 const DriverApplication = lazy(() => import('./pages/DriverApplication'));
 const About = lazy(() => import('./pages/About'));
@@ -147,6 +148,7 @@ export default function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/admin" element={<Dashboard />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/accept-invite" element={<AcceptInvite />} />
               {/* 404 — must be last */}
               <Route path="*" element={<NotFound />} />
             </Routes>

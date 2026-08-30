@@ -46,7 +46,9 @@ import {
   Check,
   Undo2,
   HelpCircle,
-  Ban
+  Ban,
+  UserPlus,
+  Crown
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -91,6 +93,15 @@ import {
   getSafeSession,
   clearStaleAuthSession
 } from '../lib/supabase';
+import {
+  getTeamMembers,
+  inviteTeamMember,
+  updateTeamMemberRole,
+  removeTeamMember,
+  getCurrentUserOrg,
+  type OrgMember,
+  type OrgRole
+} from '../lib/team';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
@@ -110,7 +121,9 @@ const StatCard: React.FC<{ title: string; value: number; icon: any }> = ({ title
 );
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = React.useState<'pipeline' | 'quotes' | 'drivers' | 'business'>('pipeline');
+  const [activeTab, setActiveTab] = React.useState<'pipeline' | 'quotes' | 'drivers' | 'business' | 'team'>('pipeline');
+  const [orgId, setOrgId] = React.useState<string | null>(null);
+  const [currentRole, setCurrentRole] = React.useState<OrgRole | null>(null);
   const [jobs, setJobs] = React.useState<JobWithDriver[]>([]);
   const [requests, setRequests] = React.useState<QuoteRequest[]>([]);
   const [drivers, setDrivers] = React.useState<Driver[]>([]);
@@ -150,6 +163,11 @@ export default function Dashboard() {
           navigate('/login');
         } else {
           fetchData();
+          getCurrentUserOrg().then((org) => {
+            if (!isMounted || !org) return;
+            setOrgId(org.orgId);
+            setCurrentRole(org.role);
+          });
         }
       })
       .catch((err) => {
@@ -377,6 +395,7 @@ export default function Dashboard() {
     { id: 'quotes', label: 'Dispatch Log', icon: FileText, badge: stats.pending },
     { id: 'drivers', label: 'Driver Network', icon: Truck, badge: stats.pendingDrivers },
     { id: 'business', label: 'Business Accounts', icon: Shield, badge: stats.pendingBusiness },
+    { id: 'team', label: 'Team', icon: Users },
   ];
 
   const TAB_META: Record<typeof activeTab, { title: string; subtitle: string }> = {
@@ -384,6 +403,7 @@ export default function Dashboard() {
     quotes: { title: 'Dispatch Log', subtitle: 'Quote requests and conversions' },
     drivers: { title: 'Driver Network', subtitle: 'Onboarding and verification' },
     business: { title: 'Business Accounts', subtitle: 'Corporate partnerships' },
+    team: { title: 'Team', subtitle: 'Command Centre users and roles' },
   };
 
   const jobsActive = jobs.filter(j => j.status !== 'completed').length;
@@ -410,6 +430,7 @@ export default function Dashboard() {
       { title: 'Pending', value: stats.pendingBusiness, icon: Clock },
       { title: 'Active', value: businessInquiries.filter(b => b.status === 'active').length, icon: CheckCircle2 },
     ],
+    team: [],
   };
 
   return (
@@ -513,11 +534,13 @@ export default function Dashboard() {
         )}
 
         {/* Contextual stats */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          {CONTEXT_STATS[activeTab].map(stat => (
-            <StatCard key={stat.title} title={stat.title} value={stat.value} icon={stat.icon} />
-          ))}
-        </div>
+        {CONTEXT_STATS[activeTab].length > 0 && (
+          <div className="grid grid-cols-3 gap-4 mb-8">
+            {CONTEXT_STATS[activeTab].map(stat => (
+              <StatCard key={stat.title} title={stat.title} value={stat.value} icon={stat.icon} />
+            ))}
+          </div>
+        )}
 
         {activeTab === 'pipeline' ? (
           <div className="space-y-6">
@@ -953,6 +976,8 @@ export default function Dashboard() {
               </table>
             </div>
           </div>
+        ) : activeTab === 'team' ? (
+          <TeamPanel orgId={orgId} currentRole={currentRole} />
         ) : (
           <div className="dispatch-card overflow-hidden p-0">
             <div className="p-5 border-b border-brand-border flex flex-col md:flex-row justify-end items-center gap-3">
@@ -2646,6 +2671,262 @@ const JobCreateModal = ({ onClose, onSuccess, initialData, drivers }: { onClose:
                {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Zap className="w-6 h-6" />}
                Commit Dispatch to Pipeline
             </button>
+        </form>
+      </motion.div>
+    </div>
+  );
+};
+
+// ==========================================
+// TEAM MANAGEMENT PANEL
+// ==========================================
+
+const ROLE_META: Record<OrgRole, { label: string; color: string }> = {
+  owner: { label: 'Owner', color: 'bg-brand-neon/10 text-brand-neon border-brand-neon/20' },
+  admin: { label: 'Admin', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
+  operator: { label: 'Operator', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20' },
+  viewer: { label: 'Viewer', color: 'bg-brand-input text-brand-muted border-brand-border' },
+};
+
+const TeamPanel = ({ orgId, currentRole }: { orgId: string | null; currentRole: OrgRole | null }) => {
+  const [members, setMembers] = React.useState<OrgMember[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [showInvite, setShowInvite] = React.useState(false);
+  const [busyUserId, setBusyUserId] = React.useState<string | null>(null);
+
+  const canManage = currentRole === 'owner' || currentRole === 'admin';
+
+  const loadMembers = React.useCallback(() => {
+    if (!orgId) return;
+    setLoading(true);
+    setError(null);
+    getTeamMembers(orgId)
+      .then(setMembers)
+      .catch((err: any) => setError(err.message || 'Failed to load team'))
+      .finally(() => setLoading(false));
+  }, [orgId]);
+
+  React.useEffect(() => {
+    loadMembers();
+  }, [loadMembers]);
+
+  const handleRoleChange = async (userId: string, role: OrgRole) => {
+    if (!orgId) return;
+    setBusyUserId(userId);
+    try {
+      await updateTeamMemberRole(orgId, userId, role);
+      loadMembers();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update role');
+    } finally {
+      setBusyUserId(null);
+    }
+  };
+
+  const handleRemove = async (userId: string, email: string) => {
+    if (!orgId) return;
+    if (!window.confirm(`Remove ${email} from this organization?`)) return;
+    setBusyUserId(userId);
+    try {
+      await removeTeamMember(orgId, userId);
+      loadMembers();
+    } catch (err: any) {
+      alert(err.message || 'Failed to remove team member');
+    } finally {
+      setBusyUserId(null);
+    }
+  };
+
+  if (!orgId) {
+    return (
+      <div className="dispatch-card p-8 text-center text-brand-muted text-sm">
+        Resolving your organization membership...
+      </div>
+    );
+  }
+
+  return (
+    <div className="dispatch-card overflow-hidden p-0">
+      <div className="p-5 border-b border-brand-border flex justify-between items-center">
+        <div>
+          <h2 className="text-base font-display font-medium tracking-tight">Command Centre access</h2>
+          <p className="text-xs text-brand-muted">Who can log in and what they can do</p>
+        </div>
+        {canManage && (
+          <button
+            onClick={() => setShowInvite(true)}
+            className="flex items-center gap-2 bg-brand-neon text-brand-bg px-4 py-2 rounded-xl text-xs font-semibold hover:opacity-90 active:scale-95 transition-all"
+          >
+            <UserPlus className="w-4 h-4" />
+            Invite
+          </button>
+        )}
+      </div>
+
+      {error && (
+        <div className="m-5 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-xs">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="p-10 flex justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-brand-neon" />
+        </div>
+      ) : (
+        <div className="overflow-x-auto no-scrollbar">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-brand-input text-[11px] uppercase tracking-wide font-medium text-brand-muted">
+                <th className="px-6 py-3">User</th>
+                <th className="px-6 py-3">Role</th>
+                <th className="px-6 py-3">Member Since</th>
+                {canManage && <th className="px-6 py-3 text-right">Actions</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-brand-border">
+              {members.map((m) => (
+                <tr key={m.id} className="hover:bg-brand-input transition-colors group">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      {m.role === 'owner' && <Crown className="w-3.5 h-3.5 text-brand-neon shrink-0" />}
+                      <span className="text-sm font-medium text-brand-text truncate">{m.email}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    {canManage ? (
+                      <select
+                        value={m.role}
+                        disabled={busyUserId === m.user_id}
+                        onChange={(e) => handleRoleChange(m.user_id, e.target.value as OrgRole)}
+                        className={cn(
+                          'text-[11px] font-medium uppercase tracking-wide px-3 py-1.5 rounded-lg border outline-none transition-all',
+                          ROLE_META[m.role].color
+                        )}
+                      >
+                        <option value="owner">Owner</option>
+                        <option value="admin">Admin</option>
+                        <option value="operator">Operator</option>
+                        <option value="viewer">Viewer</option>
+                      </select>
+                    ) : (
+                      <span className={cn('px-3 py-1.5 rounded-lg text-[11px] font-medium uppercase tracking-wide border inline-block', ROLE_META[m.role].color)}>
+                        {ROLE_META[m.role].label}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-xs text-brand-muted">
+                    {format(new Date(m.created_at), 'PP')}
+                  </td>
+                  {canManage && (
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => handleRemove(m.user_id, m.email)}
+                        disabled={busyUserId === m.user_id}
+                        className="w-9 h-9 bg-red-500/10 text-red-500 rounded-lg items-center justify-center hover:bg-red-500 hover:text-white transition-all disabled:opacity-40 inline-flex"
+                      >
+                        {busyUserId === m.user_id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {members.length === 0 && (
+            <div className="p-10 text-center text-brand-muted text-xs">No team members found.</div>
+          )}
+        </div>
+      )}
+
+      {showInvite && orgId && (
+        <InviteModal
+          orgId={orgId}
+          onClose={() => setShowInvite(false)}
+          onSuccess={() => {
+            setShowInvite(false);
+            loadMembers();
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+const InviteModal = ({ orgId, onClose, onSuccess }: { orgId: string; onClose: () => void; onSuccess: () => void }) => {
+  const [email, setEmail] = React.useState('');
+  const [role, setRole] = React.useState<OrgRole>('operator');
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await inviteTeamMember(orgId, email.trim(), role);
+      onSuccess();
+    } catch (err: any) {
+      setError(err.message || 'Failed to send invite');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="absolute inset-0 bg-brand-bg/90 backdrop-blur-md"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="relative w-full max-w-md bg-brand-bg border border-brand-border rounded-3xl shadow-2xl overflow-hidden"
+      >
+        <div className="p-6 border-b border-brand-border flex justify-between items-center">
+          <h2 className="text-lg font-display font-medium tracking-tight">Invite team member</h2>
+          <button onClick={onClose} className="p-2 bg-brand-input rounded-full text-brand-muted hover:text-brand-text transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          <div>
+            <label className="block text-[11px] font-semibold text-brand-muted uppercase mb-2">Email</label>
+            <input
+              required
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@company.com"
+              className="w-full bg-brand-input border border-brand-input-border rounded-xl px-4 py-3 text-sm focus:border-brand-neon/50 outline-none transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-brand-muted uppercase mb-2">Role</label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as OrgRole)}
+              className="w-full bg-brand-input border border-brand-input-border rounded-xl px-4 py-3 text-sm outline-none"
+            >
+              <option value="admin">Admin — full access, can manage team</option>
+              <option value="operator">Operator — dispatch and driver management</option>
+              <option value="viewer">Viewer — read-only</option>
+              <option value="owner">Owner — full access, org ownership</option>
+            </select>
+          </div>
+          {error && <p className="text-red-500 text-xs font-medium">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary w-full py-3.5 text-xs"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+            Send Invite
+          </button>
         </form>
       </motion.div>
     </div>
