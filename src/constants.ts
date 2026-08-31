@@ -1,4 +1,22 @@
 /**
+ * SINGLE-TENANT ORG ID
+ * Nokael is currently the only tenant in the multi-tenant schema (see
+ * public.organizations). Every INSERT into an org-scoped table
+ * (quote_requests, business_inquiries, jobs, drivers, driver_documents)
+ * MUST set organization_id, or the org_members_manage_* RLS policies
+ * (which check is_org_member(organization_id)) will reject the row for
+ * everyone — including the org owner — because organization_id = NULL
+ * never satisfies an equality check.
+ *
+ * When Nokael's driver-pool becomes multi-tenant for real, replace this
+ * with a per-request lookup (getCurrentUserOrg() for authenticated writes,
+ * a resolved-by-domain/API-key value for public writes) instead of a
+ * hardcoded constant.
+ */
+export const NOKAEL_ORG_ID =
+  import.meta.env.VITE_NOKAEL_ORG_ID || '89412cf2-dd3a-447c-906a-e59aaa64926d';
+
+/**
  * GLOBAL BUSINESS CONTACT DATA
  * Use these constants to update the phone/WhatsApp numbers sitewide.
  * This ensures consistency for B2B branding and lead attribution.

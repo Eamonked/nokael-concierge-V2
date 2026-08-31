@@ -6,6 +6,7 @@ import {
   formatDriverNotification,
   formatStatusUpdateNotification,
 } from './notifications';
+import { NOKAEL_ORG_ID } from '../constants';
 
 // ==========================================
 // Supabase Client
@@ -152,11 +153,17 @@ export interface QuoteRequest {
   utm_content?: string;
   utm_term?: string;
   gclid?: string;
+  organization_id?: string;
 }
 
 export const submitQuoteRequest = async (data: QuoteRequest): Promise<QuoteRequest> => {
   const tracking_id = `NK-${Math.floor(1000 + Math.random() * 9000)}`;
-  const payload: QuoteRequest = { ...data, tracking_id };
+  // organization_id MUST be set here — the anon insert policy allows the
+  // row through regardless, but without it the row is permanently stuck:
+  // org_members_manage_quote_requests (used by every operator UPDATE from
+  // the dashboard — status changes, convert-to-job, delete) checks
+  // is_org_member(organization_id), and is_org_member(NULL) is always false.
+  const payload: QuoteRequest = { ...data, tracking_id, organization_id: NOKAEL_ORG_ID };
 
   if (supabase) {
     const { error } = await supabase.from('quote_requests').insert([payload]);
@@ -258,12 +265,16 @@ export interface BusinessInquiry {
   utm_term?: string;
   utm_content?: string;
   gclid?: string;
+  organization_id?: string;
 }
 
 export const submitBusinessInquiry = async (data: BusinessInquiry): Promise<BusinessInquiry> => {
   // Auto-generate corporate code — operator can reassign later
   const corporate_code = `NOK-${Math.floor(1000 + Math.random() * 9000)}`;
-  const payload: BusinessInquiry = { ...data, corporate_code, status: 'pending' };
+  // organization_id MUST be set — same reasoning as submitQuoteRequest above:
+  // without it, org_members_manage_business_inquiries UPDATE calls from the
+  // dashboard (status changes, follow-up notes) will 403 forever.
+  const payload: BusinessInquiry = { ...data, corporate_code, status: 'pending', organization_id: NOKAEL_ORG_ID };
 
   if (supabase) {
     const { error } = await supabase.from('business_inquiries').insert([payload]);
@@ -396,6 +407,8 @@ export interface Job {
   // Meta
   created_at?: string;
   updated_at?: string;
+
+  organization_id?: string;
 }
 
 // Map database fields to client field expectations (e.g. client_pickup_confirmed_at vs client_pickup_at)
@@ -436,9 +449,16 @@ export type JobWithDriver = Job & { driver: Partial<Driver> | null };
 export const createJob = async (jobData: Partial<Job>): Promise<Job> => {
   if (!supabase) throw new Error('Supabase not configured');
 
+  // organization_id MUST be set on every job insert, or
+  // org_members_manage_jobs's is_org_member(organization_id) check rejects
+  // the row for everyone — including the org owner — since
+  // is_org_member(NULL) is always false. Caller-provided organization_id
+  // (e.g. a future multi-tenant caller) takes precedence over the default.
+  const payload: Partial<Job> = { organization_id: NOKAEL_ORG_ID, ...jobData };
+
   const { data, error } = await supabase
     .from('jobs')
-    .insert([jobData])
+    .insert([payload])
     .select()
     .single();
 
@@ -462,6 +482,10 @@ export const createJobFromQuote = async (
   const driverOtp = genOtp();
 
   const jobPayload: Partial<Job> = {
+    // Prefer the quote's own organization_id (set at submission time by
+    // submitQuoteRequest) so a converted job stays in the same tenant as
+    // its source quote; fall back to the single-tenant default otherwise.
+    organization_id: quote.organization_id || NOKAEL_ORG_ID,
     quote_id: quote.id,
     source: 'quote',
     sender_name: quote.name,
@@ -1135,6 +1159,7 @@ export interface DriverDocument {
   verification_status?: VerificationStatus;
   expiry_date?: string;
   uploaded_at?: string;
+  organization_id?: string;
 }
 
 export const submitDriverApplication = async (data: Driver): Promise<Driver> => {
@@ -1154,6 +1179,11 @@ export const submitDriverApplication = async (data: Driver): Promise<Driver> => 
     inter_emirate_yes_no: data.inter_emirate ?? true,
     availability_hours: data.availability_hours ?? null,
     onboarding_status: 'pending',
+    // Same reasoning as submitQuoteRequest: the public anon insert policy
+    // lets this through regardless, but without organization_id the row
+    // is stuck — org_members_manage_drivers UPDATE calls from the
+    // dashboard (approve/reject, tiering, PIN, status) will 403 forever.
+    organization_id: NOKAEL_ORG_ID,
   };
 
   // The client-side Driver object keeps the original shape for UI use.
@@ -1181,7 +1211,11 @@ export const submitDriverApplication = async (data: Driver): Promise<Driver> => 
 
 export const uploadDriverDocument = async (data: DriverDocument): Promise<void> => {
   if (!supabase) return;
-  const { error } = await supabase.from('driver_documents').insert([data]);
+  // Same reasoning as submitDriverApplication above: without
+  // organization_id, org_members_manage_driver_documents will hide/block
+  // this row for the dashboard even though the public insert succeeded.
+  const payload: DriverDocument = { ...data, organization_id: NOKAEL_ORG_ID };
+  const { error } = await supabase.from('driver_documents').insert([payload]);
   if (error) throw error;
 };
 

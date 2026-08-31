@@ -33,7 +33,7 @@ const ServiceCard = ({ title, desc, icon: Icon, features, link, index }: any) =>
       to={link} 
       className="inline-flex items-center gap-2 text-brand-neon font-bold uppercase tracking-[0.2em] text-[10px] group-hover:gap-4 transition-all"
     >
-      <span>Deploy Dispatch</span>
+      <span>Learn more</span>
       <ArrowRight className="w-3 h-3" />
     </Link>
   </div>
@@ -86,23 +86,14 @@ export default function Services() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="asymmetric-grid items-end">
             <div className="max-w-2xl">
-              <p className="text-brand-neon font-bold uppercase tracking-[0.4em] text-[10px] mb-6">Operational Capabilities</p>
+              <p className="text-brand-neon font-bold uppercase tracking-[0.4em] text-[10px] mb-6">What We Do</p>
               <h1 className="text-5xl md:text-8xl font-display font-medium tracking-tighter mb-8 leading-[0.85]">
-                Direct Response<br />
-                Logistics.
+                When It Can't<br />
+                Wait.
               </h1>
               <p className="text-lg text-brand-muted leading-relaxed max-w-lg">
-                We provide specialized, high-speed transport solutions across the UAE. Built for speed, security, and direct accountability.
+                A tender due in an hour. A part that's shut down a line. We get one driver on it, direct, until it's delivered.
               </p>
-            </div>
-            <div className="hidden md:block pb-4">
-              <div className="p-6 rounded-2xl bg-brand-input border border-brand-input-border max-w-xs">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted mb-2">System Load</p>
-                <div className="h-1 bg-brand-input-border rounded-full overflow-hidden mb-4">
-                  <div className="h-full bg-brand-neon w-[65%]" />
-                </div>
-                <p className="text-[10px] text-brand-muted uppercase tracking-widest">Typical Pickup: 42 mins</p>
-              </div>
             </div>
           </div>
         </div>
@@ -129,7 +120,7 @@ export default function Services() {
               </p>
               <div className="p-6 rounded-2xl border border-brand-neon/20 bg-brand-neon/5">
                 <p className="text-xs italic text-brand-text leading-relaxed">
-                  "One driver, one item, one direct route. We eliminate the friction of traditional logistics."
+                  "One driver, one item, one direct route."
                 </p>
               </div>
             </div>
@@ -138,7 +129,7 @@ export default function Services() {
               <div className="space-y-6">
                 <h3 className="text-xs font-bold text-brand-text uppercase tracking-[0.2em]">Urgent Delivery UAE</h3>
                 <p className="text-xs text-brand-muted leading-relaxed">
-                  Whether you are in Dubai, Abu Dhabi, or the Northern Emirates, our dispatch network is positioned to respond immediately. When you book a dispatch with Nokael, a dedicated driver is assigned to your specific job, ensuring the fastest possible transit time.
+                  Whether you're in Dubai, Abu Dhabi, or the Northern Emirates, a dedicated driver is assigned to your job the moment you book — usually moving within the hour.
                 </p>
               </div>
               <div className="space-y-6">
@@ -155,7 +146,7 @@ export default function Services() {
       {/* Final Action */}
       <section className="py-40 text-center relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <h2 className="text-5xl md:text-8xl font-display font-medium tracking-tighter mb-12">Ready for Dispatch?</h2>
+          <h2 className="text-5xl md:text-8xl font-display font-medium tracking-tighter mb-12">Send it today.</h2>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <Link
               to="/get-quote"

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { MapPin, Zap, MessageSquare, Phone, ArrowRight, Shield, Clock, CheckCircle2, Navigation, Truck, Star, User, ChevronRight } from 'lucide-react';
+import { MapPin, Zap, MessageSquare, Phone, ArrowRight, Shield, Clock, CheckCircle2, Navigation, Truck, User, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE, PRICE_TIER_SAME_DAY } from '../constants';
 import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
@@ -70,14 +70,6 @@ export const LandingTemplate = ({ title, subtitle, city, industry, heroImg, cont
                 <span className="opacity-40 ml-2">| Live Active</span>
               </div>
               
-              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-surface border border-brand-border">
-                <div className="flex items-center gap-0.5">
-                  {[1, 2, 3, 4, 5].map(i => (
-                    <Star key={i} className="w-3 h-3 fill-brand-neon text-brand-neon" />
-                  ))}
-                </div>
-                <span className="text-[10px] font-bold text-brand-text uppercase tracking-widest">4.9/5 (240+ Reviews)</span>
-              </div>
             </div>
             
             <h1 className="text-5xl md:text-9xl font-display font-medium tracking-tighter mb-10 leading-[0.8] text-brand-text">
@@ -143,23 +135,12 @@ export const LandingTemplate = ({ title, subtitle, city, industry, heroImg, cont
       {/* Trust Bar */}
       <div className="bg-brand-surface/30 border-b border-brand-border py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap justify-center md:justify-between items-center gap-8 opacity-40 grayscale">
-            <div className="flex items-center gap-2 font-display font-bold text-lg italic tracking-tighter">
-              <Shield className="w-4 h-4 text-brand-neon" />
-              <span>LEGAL<span className="text-brand-neon">CORP</span></span>
-            </div>
-            <div className="flex items-center gap-2 font-display font-bold text-lg italic tracking-tighter">
-              <Zap className="w-4 h-4 text-brand-neon" />
-              <span>DIFC<span className="text-brand-neon">LOGISTICS</span></span>
-            </div>
-            <div className="flex items-center gap-2 font-display font-bold text-lg italic tracking-tighter">
-              <Navigation className="w-4 h-4 text-brand-neon" />
-              <span>ADGM<span className="text-brand-neon">EXPRESS</span></span>
-            </div>
-            <div className="flex items-center gap-2 font-display font-bold text-lg italic tracking-tighter">
-              <Truck className="w-4 h-4 text-brand-neon" />
-              <span>SUPPLY<span className="text-brand-neon">CHAIN</span></span>
-            </div>
+          <div className="flex flex-wrap justify-center md:justify-between items-center gap-8 text-[11px] font-bold uppercase tracking-widest text-brand-muted">
+            <span>Trusted for:</span>
+            <span>Legal & Finance</span>
+            <span>Government Filings</span>
+            <span>Industrial Parts</span>
+            <span>Supply Chain</span>
           </div>
         </div>
       </div>
@@ -225,29 +206,12 @@ export const LandingTemplate = ({ title, subtitle, city, industry, heroImg, cont
                 ))}
               </div>
 
-              {/* Social Proof / Testimonials */}
+              {/* SLA recap — replaces fabricated testimonials until real client feedback exists */}
               <div className="pt-16 border-t border-brand-border">
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] mb-10 text-brand-muted">Client Feedback</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map(i => <Star key={i} className="w-3 h-3 fill-brand-neon text-brand-neon" />)}
-                    </div>
-                    <p className="text-sm font-medium italic text-brand-text leading-relaxed">
-                      "The only service that actually delivers same-day between Dubai and Abu Dhabi without excuses. Driver was assigned in 5 minutes."
-                    </p>
-                    <p className="text-[10px] uppercase tracking-widest text-brand-muted">— Operations Manager, DIFC Firm</p>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map(i => <Star key={i} className="w-3 h-3 fill-brand-neon text-brand-neon" />)}
-                    </div>
-                    <p className="text-sm font-medium italic text-brand-text leading-relaxed">
-                      "Used them for urgent spare parts delivery to a site in RAK. Saved us thousands in downtime. Highly recommended."
-                    </p>
-                    <p className="text-[10px] uppercase tracking-widest text-brand-muted">— Logistics Lead, Industrial Solutions</p>
-                  </div>
-                </div>
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] mb-6 text-brand-muted">What Clients Use This For</h3>
+                <p className="text-sm text-brand-muted leading-relaxed max-w-2xl">
+                  Same-day contracts and tenders into government offices. Spare parts moved straight from supplier to a site that's down. Documents that need to be in someone's hands — not a mailbox — by a specific hour.
+                </p>
               </div>
             </div>
             
@@ -328,7 +292,7 @@ export const DubaiLanding = () => (
     city="Dubai"
     heroImg="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=1920"
     content={[
-      "Dubai is the heart of UAE commerce, and when logistics fail, business stops. Nokael provides a direct-response dispatch system for companies and individuals in Dubai who need items moved to other emirates immediately.",
+      "Dubai is the heart of UAE commerce, and when logistics fail, business stops. Nokael moves urgent items out of Dubai to other emirates — one driver, no hubs, no sorting delays.",
       "Our drivers are strategically positioned across Dubai—from Downtown and DIFC to Jebel Ali and Dubai Marina—to ensure rapid response times. We don't use sorting hubs; your item goes from the pickup point directly to the delivery destination.",
       "Whether it's a critical document for a government office in Abu Dhabi or a forgotten passport for a flight in Sharjah, our Dubai dispatch team is ready 24/7."
     ]}
@@ -342,7 +306,7 @@ export const AbuDhabiLanding = () => (
     city="Abu Dhabi"
     heroImg="https://images.unsplash.com/photo-1580674285054-bed31e145f59?auto=format&fit=crop&q=80&w=1920"
     content={[
-      "Abu Dhabi requires a higher level of logistics precision. Nokael serves the capital's most demanding delivery needs, providing dedicated transport for government, corporate, and private clients.",
+      "Abu Dhabi requires a higher level of logistics precision. Nokael serves the capital's most demanding delivery needs with dedicated transport for government, corporate, and private clients.",
       "Our Abu Dhabi dispatch network covers the entire city, including Al Reem Island, Khalifa City, and the Industrial areas. We specialize in the Abu Dhabi ↔ Dubai corridor, offering the fastest possible transit times between the two major hubs.",
       "With Nokael, you get a dedicated driver who understands the urgency of your mission. No shared loads, no delays, just direct inter-emirate delivery."
     ]}
@@ -372,7 +336,7 @@ export const SparePartsLanding = () => (
     content={[
       "When machinery breaks down or a vehicle is off the road, every minute costs money. Nokael provides emergency spare parts logistics for the industrial and automotive sectors across the UAE.",
       "We specialize in the rapid transport of critical components that are too urgent for traditional freight. Our drivers can pick up directly from suppliers or warehouses and deliver straight to the site where the part is needed.",
-      "From heavy industrial components to delicate electronic parts, our direct-response logistics system ensures your operations get back on track as quickly as possible."
+      "From heavy industrial components to delicate electronic parts, we get your operations back on track as quickly as possible."
     ]}
   />
 );

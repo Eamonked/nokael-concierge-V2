@@ -28,11 +28,11 @@ const Hero = () => {
             width="1200"
             height="675"
             fetchPriority="high"
-            className="w-full h-full object-cover opacity-20 grayscale"
+            className="w-full h-full object-cover opacity-40"
             referrerPolicy="no-referrer"
           />
         </picture>
-        <div className="absolute inset-0 bg-gradient-to-b from-brand-bg/80 via-brand-bg to-brand-bg" />
+        <div className="absolute inset-0 bg-gradient-to-b from-brand-bg/60 via-brand-bg/85 to-brand-bg" />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20 relative z-10 w-full">
@@ -47,10 +47,10 @@ const Hero = () => {
               <span>LIVE DISPATCH ACTIVE</span>
             </div>
             
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-medium leading-[0.85] tracking-tighter mb-6 text-brand-text">
-              Urgent Logistics <br />
-              <span className="text-brand-neon italic">Dubai → Abu Dhabi</span> <br />
-              in 90–120 Minutes
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-medium leading-[1.0] tracking-tighter mb-6 text-brand-text">
+              Urgent Logistics<br />
+              <span className="text-brand-neon italic">Dubai → Abu Dhabi</span><br />
+              <span className="text-brand-muted">in 90–120 Minutes</span>
             </h1>
             
             <p className="text-xl md:text-2xl text-brand-muted font-medium mb-12 max-w-xl leading-snug">
@@ -93,20 +93,20 @@ const Hero = () => {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 border-t border-brand-border pt-12">
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-2">Average Dispatch</p>
-                <p className="text-lg font-display font-medium">2-5 Mins</p>
+                <p className="text-[10px] uppercase tracking-widest text-brand-muted mb-2">Avg. Dispatch</p>
+                <p className="text-xl font-display font-medium">2–5 min</p>
               </div>
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-2">Same-Day Transit</p>
-                <p className="text-lg font-display font-medium">AED {PRICE_TIER_SAME_DAY}</p>
+                <p className="text-[10px] uppercase tracking-widest text-brand-muted mb-2">Same-Day</p>
+                <p className="text-xl font-display font-medium">AED {PRICE_TIER_SAME_DAY}</p>
               </div>
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-2">Dedicated Transit</p>
-                <p className="text-lg font-display font-medium">AED {PRICE_TIER_DEDICATED}</p>
+                <p className="text-[10px] uppercase tracking-widest text-brand-muted mb-2">Dedicated</p>
+                <p className="text-xl font-display font-medium">AED {PRICE_TIER_DEDICATED}</p>
               </div>
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-2">Tracking</p>
-                <p className="text-lg font-display font-medium">Real-time WhatsApp Updates</p>
+                <p className="text-[10px] uppercase tracking-widest text-brand-muted mb-2">Tracking</p>
+                <p className="text-xl font-display font-medium">Live GPS</p>
               </div>
             </div>
           </motion.div>
@@ -116,28 +116,32 @@ const Hero = () => {
           >
             <div className="dispatch-card relative z-10 rotate-2 translate-x-4">
               <div className="flex items-center justify-between mb-6">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-brand-muted">Live Dispatch Feed</span>
-                <span className="text-[10px] font-bold text-brand-neon">ACTIVE</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-brand-muted">Live Dispatch</span>
+                <span className="flex items-center gap-1.5 text-[10px] font-bold text-brand-neon">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-neon animate-pulse inline-block" />
+                  ACTIVE
+                </span>
               </div>
-              <div className="space-y-4">
-                <div className="flex items-start gap-4 p-3 rounded-xl bg-brand-input border border-brand-input-border">
-                  <div className="w-8 h-8 rounded-lg bg-brand-blue/10 flex items-center justify-center text-brand-blue">
-                    <Navigation className="w-4 h-4" />
+              <div className="space-y-3">
+                {[
+                  { time: '08:14', from: 'DIFC', to: 'ADGM', item: 'Legal tender', status: 'Delivered' },
+                  { time: '09:32', from: 'JLT', to: 'Mussafah', item: 'Spare part', status: 'In transit' },
+                  { time: '11:05', from: 'Downtown', to: 'Khalifa City', item: 'Document', status: 'Dispatched' },
+                ].map((job, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-brand-input border border-brand-input-border">
+                    <span className="text-[10px] font-mono text-brand-muted w-10 shrink-0">{job.time}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-brand-text truncate">{job.from} → {job.to}</p>
+                      <p className="text-[10px] text-brand-muted">{job.item}</p>
+                    </div>
+                    <span className={cn(
+                      'text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md shrink-0',
+                      job.status === 'Delivered' ? 'bg-brand-neon/10 text-brand-neon' :
+                      job.status === 'In transit' ? 'bg-brand-blue/10 text-brand-blue' :
+                      'bg-brand-border text-brand-muted'
+                    )}>{job.status}</span>
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-brand-text">Direct Assignment</p>
-                    <p className="text-[10px] text-brand-muted">Dubai ↔ Abu Dhabi Corridor</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4 p-3 rounded-xl bg-brand-input border border-brand-input-border">
-                  <div className="w-8 h-8 rounded-lg bg-brand-neon/10 flex items-center justify-center text-brand-neon">
-                    <Package className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-brand-text">No Sorting Hubs</p>
-                    <p className="text-[10px] text-brand-muted">Point-to-Point Delivery</p>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
             <div className="absolute inset-0 bg-brand-neon/5 blur-[100px] rounded-full" />
@@ -171,7 +175,7 @@ const Differentiators = () => {
                 <item.icon className="w-6 h-6 text-brand-neon" />
               </div>
               <h3 className="text-xl font-bold mb-4 text-brand-text whitespace-nowrap">{item.title}</h3>
-              <p className="text-xs text-brand-muted leading-relaxed font-medium uppercase tracking-widest">{item.desc}</p>
+              <p className="text-sm text-brand-muted leading-relaxed">{item.desc}</p>
             </div>
           ))}
         </div>
@@ -198,7 +202,7 @@ const SupportingSection = () => {
             What We Carry
           </h2>
           <p className="text-xl text-brand-muted leading-relaxed">
-            Nokael handles high-priority items that require a dedicated driver and synchronous delivery. We do not use hubs or sorting centers.
+            Nokael handles high-priority items that need one driver, moving in a straight line — no hubs, no sorting centers.
           </p>
         </div>
         
@@ -292,8 +296,8 @@ const ServiceCards = () => {
               
               <ul className="space-y-5 mb-12 flex-1">
                 {s.features.map((f, j) => (
-                  <li key={j} className="flex items-start gap-4 text-xs text-brand-muted font-medium uppercase tracking-wide">
-                    <div className="mt-1 w-1.5 h-1.5 rounded-full bg-brand-neon shrink-0" />
+                  <li key={j} className="flex items-start gap-3 text-sm text-brand-muted">
+                    <div className="mt-2 w-1.5 h-1.5 rounded-full bg-brand-neon shrink-0" />
                     <span className="leading-relaxed">{f}</span>
                   </li>
                 ))}
@@ -329,7 +333,7 @@ const BusinessAccounts = () => {
         <div className="bg-brand-neon text-brand-bg rounded-3xl p-12 text-center relative overflow-hidden">
           <div className="relative z-10">
             <h2 className="text-3xl md:text-5xl font-display font-medium tracking-tighter mb-6 uppercase">
-              Running 5+ deliveries a month?
+              For businesses running 5+ deliveries a month.
             </h2>
             <p className="text-lg font-medium mb-10 max-w-2xl mx-auto leading-relaxed">
               Ask about a Corporate Account — fixed pricing, monthly invoicing & priority dispatch.
@@ -511,26 +515,26 @@ const FinalAction = () => {
 };
 
 const TrustBar = () => {
+  const stats = [
+    { value: '90 min', label: 'Dubai → Abu Dhabi', icon: Clock },
+    { value: '30 min', label: 'Guaranteed dispatch', icon: Zap },
+    { value: '100%', label: 'Dedicated driver, no hubs', icon: Shield },
+    { value: '24/7', label: 'Dispatch available', icon: CheckCircle2 },
+  ];
+
   return (
-    <div className="bg-brand-surface/30 border-y border-brand-border py-8">
+    <div className="bg-brand-surface/40 border-y border-brand-border py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-wrap justify-center md:justify-between items-center gap-8 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-          <div className="flex items-center gap-2 font-display font-bold text-xl italic tracking-tighter">
-            <Shield className="w-5 h-5 text-brand-neon" />
-            <span>LEGAL<span className="text-brand-neon">CORP</span></span>
-          </div>
-          <div className="flex items-center gap-2 font-display font-bold text-xl italic tracking-tighter">
-            <Building2 className="w-5 h-5 text-brand-neon" />
-            <span>DIFC<span className="text-brand-neon">LOGISTICS</span></span>
-          </div>
-          <div className="flex items-center gap-2 font-display font-bold text-xl italic tracking-tighter">
-            <Zap className="w-5 h-5 text-brand-neon" />
-            <span>ADGM<span className="text-brand-neon">EXPRESS</span></span>
-          </div>
-          <div className="flex items-center gap-2 font-display font-bold text-xl italic tracking-tighter">
-            <Package className="w-5 h-5 text-brand-neon" />
-            <span>SUPPLY<span className="text-brand-neon">CHAIN</span></span>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-brand-border">
+          {stats.map((s, i) => (
+            <div key={i} className="bg-brand-bg flex items-center gap-4 px-6 py-4">
+              <s.icon className="w-5 h-5 text-brand-neon shrink-0" />
+              <div>
+                <p className="text-base font-display font-medium text-brand-text leading-none mb-0.5">{s.value}</p>
+                <p className="text-[11px] text-brand-muted">{s.label}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

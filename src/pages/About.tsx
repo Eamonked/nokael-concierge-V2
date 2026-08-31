@@ -33,7 +33,7 @@ export default function About() {
                 <span className="text-brand-neon italic">Speed of Trust.</span>
               </h1>
               <p className="text-xl md:text-2xl text-brand-muted font-medium leading-relaxed max-w-xl">
-                We didn’t build a courier company. We built a direct-response dispatch system for items that simply cannot be late.
+                We didn’t build a courier company. We built a way to get one driver, one item, moving the moment you call.
               </p>
             </div>
           </motion.div>
@@ -82,9 +82,9 @@ export default function About() {
                     <Navigation className="w-6 h-6 text-brand-neon" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold mb-4 text-brand-text">Synchronous Logistics</h3>
+                    <h3 className="text-xl font-bold mb-4 text-brand-text">No Waiting Around</h3>
                     <p className="text-brand-muted leading-relaxed max-w-lg">
-                      Traditional couriers are asynchronous—packets sit in hubs waiting for the next truck. Nokael is synchronous. The moment we pick up, the driver is heading to your destination.
+                      Traditional couriers make your package wait for the next truck. We don't. The moment we pick up, the driver is already heading to your destination.
                     </p>
                   </div>
                 </div>
@@ -94,7 +94,7 @@ export default function About() {
                     <Truck className="w-6 h-6 text-brand-blue" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold mb-4 text-brand-text">Dedicated Capacity</h3>
+                    <h3 className="text-xl font-bold mb-4 text-brand-text">One Driver, One Job</h3>
                     <p className="text-brand-muted leading-relaxed max-w-lg">
                       Every "Urgent" booking gets a dedicated driver. They are not juggling 50 other deliveries. Their only mission is your item.
                     </p>
@@ -108,7 +108,7 @@ export default function About() {
                   <div>
                     <h3 className="text-xl font-bold mb-4 text-brand-text">Ironclad Accountability</h3>
                     <p className="text-brand-muted leading-relaxed max-w-lg">
-                      We track every movement via GPS and provide real-time updates directly on WhatsApp. You have a direct line to the system handling your cargo.
+                      We track every movement via GPS and send real-time updates on WhatsApp. You always know exactly where your item is.
                     </p>
                   </div>
                 </div>
@@ -118,7 +118,7 @@ export default function About() {
             <div className="lg:col-span-5">
               <div className="dispatch-card scale-105 p-10 bg-brand-bg relative z-10 overflow-hidden">
                 <div className="relative z-10">
-                  <h3 className="text-xs font-black uppercase tracking-[0.3em] text-brand-neon mb-8">System Compliance</h3>
+                  <h3 className="text-xs font-black uppercase tracking-[0.3em] text-brand-neon mb-8">The Basics, Covered</h3>
                   <div className="space-y-6">
                     <div className="flex items-center gap-4">
                       <div className="w-8 h-8 rounded-lg bg-brand-input flex items-center justify-center text-brand-neon">
@@ -165,8 +165,8 @@ export default function About() {
       <section className="py-24 bg-brand-bg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-display font-medium tracking-tighter mb-4 text-brand-text">Who Trusts Nokael?</h2>
-            <p className="text-brand-muted uppercase tracking-widest text-[10px] font-bold">The most time-critical sectors in the UAE</p>
+            <h2 className="text-4xl md:text-5xl font-display font-medium tracking-tighter mb-4 text-brand-text">Who We Work With</h2>
+            <p className="text-brand-muted uppercase tracking-widest text-[10px] font-bold">Industries where a late delivery costs real money</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -191,9 +191,9 @@ export default function About() {
       {/* Call to Action */}
       <section className="py-40 bg-brand-bg text-center relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <h2 className="text-6xl md:text-8xl font-display font-medium tracking-tighter mb-12 text-brand-text">Ready for Dispatch?</h2>
+          <h2 className="text-6xl md:text-8xl font-display font-medium tracking-tighter mb-12 text-brand-text">Every minute matters. Send it.</h2>
           <p className="text-xl text-brand-muted mb-16 max-w-2xl mx-auto font-medium">
-            Join the network of businesses that never worry about delivery deadlines.
+            For businesses that can't afford a late delivery.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <a 
