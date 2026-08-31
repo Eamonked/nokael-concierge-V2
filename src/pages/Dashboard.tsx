@@ -108,26 +108,33 @@ import { format } from 'date-fns';
 import { generateJobPOC } from '../lib/pdf-export';
 import { sendTelegramNotification, formatJobAssignmentNotification } from '../lib/notifications';
 
-const StatCard: React.FC<{ title: string; value: number; icon: any; highlight?: boolean }> = ({ title, value, icon: Icon, highlight }) => (
-  <div className={cn(
-    "bg-brand-surface border rounded-2xl px-5 py-4 flex items-center gap-4 transition-all",
-    highlight && value > 0 ? "border-brand-neon/30 bg-brand-neon/5" : "border-brand-border"
-  )}>
-    <div className={cn(
-      "w-9 h-9 shrink-0 rounded-lg flex items-center justify-center",
-      highlight && value > 0 ? "bg-brand-neon/20 text-brand-neon" : "bg-brand-input text-brand-muted"
-    )}>
-      <Icon className="w-4 h-4" />
+type StatTone = 'attention' | 'pending' | 'complete' | 'neutral';
+
+const STAT_TONE_COLOR: Record<StatTone, string> = {
+  attention: 'var(--color-signal)',
+  pending: 'var(--color-stage-pending)',
+  complete: 'var(--color-stage-complete)',
+  neutral: 'var(--color-brand-border)',
+};
+
+const StatCard: React.FC<{ title: string; value: number; icon: any; tone?: StatTone }> = ({ title, value, icon: Icon, tone = 'neutral' }) => {
+  const active = tone !== 'neutral' && value > 0;
+  const spine = active ? STAT_TONE_COLOR[tone] : STAT_TONE_COLOR.neutral;
+  return (
+    <div className="stat-ticket" style={{ '--stat-spine': spine } as React.CSSProperties}>
+      <div className="flex items-start justify-between gap-3">
+        <p
+          className="stat-figure text-3xl font-medium leading-none"
+          style={{ color: active ? spine : 'var(--color-brand-text)' }}
+        >
+          {value}
+        </p>
+        <Icon className="w-3.5 h-3.5 text-brand-muted opacity-40 shrink-0 mt-0.5" />
+      </div>
+      <h3 className="text-brand-muted text-xs mt-2 truncate">{title}</h3>
     </div>
-    <div className="min-w-0">
-      <p className={cn(
-        "text-2xl font-display font-semibold tracking-tight leading-none mb-1",
-        highlight && value > 0 ? "text-brand-neon" : "text-brand-text"
-      )}>{value}</p>
-      <h3 className="text-brand-muted text-xs truncate">{title}</h3>
-    </div>
-  </div>
-);
+  );
+};
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = React.useState<'pipeline' | 'quotes' | 'drivers' | 'business' | 'team'>('pipeline');
@@ -418,26 +425,26 @@ export default function Dashboard() {
   const jobsActive = jobs.filter(j => j.status !== 'completed').length;
   const jobsCompleted = jobs.filter(j => j.status === 'completed').length;
 
-  const CONTEXT_STATS: Record<typeof activeTab, { title: string; value: number; icon: any; highlight?: boolean }[]> = {
+  const CONTEXT_STATS: Record<typeof activeTab, { title: string; value: number; icon: any; tone?: StatTone }[]> = {
     pipeline: [
-      { title: 'Active', value: jobsActive, icon: Zap, highlight: true },
-      { title: 'Pending', value: jobs.filter(j => j.status === 'pending').length, icon: Clock },
-      { title: 'Completed', value: jobsCompleted, icon: CheckCircle2 },
+      { title: 'Active', value: jobsActive, icon: Zap, tone: 'attention' },
+      { title: 'Pending', value: jobs.filter(j => j.status === 'pending').length, icon: Clock, tone: 'pending' },
+      { title: 'Completed', value: jobsCompleted, icon: CheckCircle2, tone: 'complete' },
     ],
     quotes: [
-      { title: 'New', value: stats.pending, icon: Clock, highlight: true },
+      { title: 'New', value: stats.pending, icon: Clock, tone: 'attention' },
       { title: 'Total', value: stats.total, icon: LayoutDashboard },
-      { title: 'Completed', value: stats.completed, icon: CheckCircle2 },
+      { title: 'Completed', value: stats.completed, icon: CheckCircle2, tone: 'complete' },
     ],
     drivers: [
-      { title: 'Needs Review', value: stats.pendingDrivers, icon: Clock, highlight: true },
+      { title: 'Needs Review', value: stats.pendingDrivers, icon: Clock, tone: 'attention' },
       { title: 'Total', value: stats.drivers, icon: Truck },
-      { title: 'Active', value: approvedDrivers.length, icon: CheckCircle2 },
+      { title: 'Active', value: approvedDrivers.length, icon: CheckCircle2, tone: 'complete' },
     ],
     business: [
-      { title: 'New', value: stats.pendingBusiness, icon: Clock, highlight: true },
+      { title: 'New', value: stats.pendingBusiness, icon: Clock, tone: 'attention' },
       { title: 'Total', value: stats.business, icon: Shield },
-      { title: 'Active', value: businessInquiries.filter(b => b.status === 'active').length, icon: CheckCircle2 },
+      { title: 'Active', value: businessInquiries.filter(b => b.status === 'active').length, icon: CheckCircle2, tone: 'complete' },
     ],
     team: [],
   };
@@ -542,7 +549,7 @@ export default function Dashboard() {
         {CONTEXT_STATS[activeTab].length > 0 && (
           <div className="grid grid-cols-3 gap-4 mb-8">
             {CONTEXT_STATS[activeTab].map(stat => (
-              <StatCard key={stat.title} title={stat.title} value={stat.value} icon={stat.icon} highlight={stat.highlight} />
+              <StatCard key={stat.title} title={stat.title} value={stat.value} icon={stat.icon} tone={stat.tone} />
             ))}
           </div>
         )}
@@ -645,97 +652,94 @@ export default function Dashboard() {
             ) : (
               <div className="dispatch-card p-0 overflow-hidden">
                 <div className="overflow-x-auto no-scrollbar">
-                  <table className="w-full text-left">
+                  <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-brand-input/50 text-[11px] font-semibold uppercase tracking-wide text-brand-muted">
-                        <th className="px-6 py-3">Job</th>
-                        <th className="px-6 py-3">Route</th>
-                        <th className="px-6 py-3">Driver</th>
-                        <th className="px-6 py-3">Progress</th>
-                        <th className="px-6 py-3 text-right">Actions</th>
+                      <tr className="text-[11px] font-medium text-brand-muted border-b border-brand-border">
+                        <th className="pl-6 pr-4 py-3 font-medium">Job</th>
+                        <th className="px-4 py-3 font-medium">Corridor</th>
+                        <th className="px-4 py-3 font-medium">Driver</th>
+                        <th className="px-4 py-3 font-medium w-[160px]">Custody</th>
+                        <th className="pl-4 pr-6 py-3 font-medium text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-brand-border">
-                      {filteredJobs.map((job) => (
-                        <tr 
-                          key={job.id} 
-                          className="hover:bg-brand-surface/30 transition-colors group cursor-pointer"
-                          onClick={() => setSelectedJob(job)}
-                        >
-                          <td className="px-6 py-4">
-                              <div className="text-sm font-mono font-semibold text-brand-neon mb-1">#{job.job_ref?.toString().padStart(4, '0')}</div>
-                              <span className={cn(
-                                "text-xs font-medium px-2 py-0.5 rounded inline-block capitalize",
-                                job.status === 'completed' ? "bg-brand-neon/10 text-brand-neon" : 
-                                job.status === 'cancelled' ? "bg-red-500/10 text-red-400" :
-                                job.status === 'pending' ? "bg-yellow-500/10 text-yellow-500" :
-                                "bg-blue-500/10 text-blue-400"
-                              )}>
-                                {job.status?.replace('_', ' ')}
-                              </span>
-                              {job.status === 'cancelled' && job.cancellation_reason && (
-                                <p className="text-[10px] text-red-400/70 mt-1 line-clamp-1">
-                                  {job.cancellation_reason}
-                                </p>
-                              )}
-                          </td>
-                          <td className="px-6 py-4">
-                              <div className="flex items-center gap-3 text-sm font-medium mb-2">
-                                <span className="truncate max-w-[140px]">{job.pickup_location}</span>
-                                <ArrowRight className="w-3 h-3 text-brand-neon shrink-0" />
-                                <span className="truncate max-w-[140px]">{job.delivery_location}</span>
-                              </div>
-                              <div className="text-xs font-medium text-brand-muted">{job.pickup_emirate} Corridor</div>
-                          </td>
-                          <td className="px-6 py-4">
-                              {job.driver ? (
-                                <div className="flex items-center gap-2">
-                                  <div className="w-7 h-7 rounded-full bg-brand-neon/10 flex items-center justify-center shrink-0">
-                                    <User className="w-3.5 h-3.5 text-brand-neon" />
-                                  </div>
-                                  <div className="min-w-0">
-                                    <p className="text-xs font-medium text-brand-text truncate">{job.driver.full_name}</p>
-                                    <p className="text-[10px] text-brand-muted">{job.driver.phone}</p>
-                                  </div>
+                    <tbody>
+                      {filteredJobs.map((job) => {
+                        const stageColor =
+                          job.status === 'completed' ? 'var(--color-stage-complete)' :
+                          job.status === 'cancelled' ? 'var(--color-stage-cancelled)' :
+                          job.status === 'pending' ? 'var(--color-stage-pending)' :
+                          'var(--color-stage-transit)';
+                        const custodySteps = [
+                          { key: 'client_pickup_at', label: 'Sender handover' },
+                          { key: 'driver_pickup_at', label: 'Driver pickup' },
+                          { key: 'driver_delivery_at', label: 'Inbound' },
+                          { key: 'client_delivery_at', label: 'Delivered' }
+                        ];
+                        return (
+                          <tr
+                            key={job.id}
+                            className="manifest-row border-b border-brand-border last:border-0 hover:bg-brand-surface/40 cursor-pointer"
+                            style={{ '--row-spine': stageColor } as React.CSSProperties}
+                            onClick={() => setSelectedJob(job)}
+                          >
+                            <td className="pl-6 pr-4 py-4">
+                                <div className="manifest-ref text-sm font-medium text-brand-text mb-1.5">NOK-{job.job_ref?.toString().padStart(4, '0')}</div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="stage-dot" style={{ '--dot-color': stageColor } as React.CSSProperties} />
+                                  <span className="text-xs text-brand-muted capitalize">{job.status?.replace('_', ' ')}</span>
                                 </div>
-                              ) : (
-                                <span className="text-xs text-brand-muted">Not assigned</span>
-                              )}
-                          </td>
-                          <td className="px-6 py-4">
-                              <div className="flex gap-1.5">
-                                {[
-                                  { key: 'client_pickup_at', label: 'Handover' },
-                                  { key: 'driver_pickup_at', label: 'Pickup' },
-                                  { key: 'driver_delivery_at', label: 'Inbound' },
-                                  { key: 'client_delivery_at', label: 'Final' }
-                                ].map((step) => (
-                                  <div 
-                                      key={step.key}
-                                      title={step.label}
-                                      className={cn(
-                                        "w-6 h-6 rounded-lg flex items-center justify-center border",
-                                        (job as any)[step.key] ? "bg-brand-neon border-brand-neon text-brand-bg" : "bg-brand-input border-brand-border text-brand-muted opacity-30"
-                                      )}
-                                  >
-                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                {job.status === 'cancelled' && job.cancellation_reason && (
+                                  <p className="text-[10px] text-brand-muted/70 mt-1 line-clamp-1 max-w-[160px]">
+                                    {job.cancellation_reason}
+                                  </p>
+                                )}
+                            </td>
+                            <td className="px-4 py-4">
+                                <div className="manifest-corridor text-sm font-medium text-brand-text mb-1">
+                                  {(job.pickup_emirate || '').slice(0, 3).toUpperCase() || 'DXB'} → {(job.delivery_emirate || '').slice(0, 3).toUpperCase() || 'AUH'}
+                                </div>
+                                <div className="flex items-center gap-2 text-[11px] text-brand-muted">
+                                  <span className="truncate max-w-[110px]">{job.pickup_location}</span>
+                                  <span className="opacity-40">–</span>
+                                  <span className="truncate max-w-[110px]">{job.delivery_location}</span>
+                                </div>
+                            </td>
+                            <td className="px-4 py-4">
+                                {job.driver ? (
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-full border border-brand-input-border flex items-center justify-center shrink-0 text-[10px] font-mono text-brand-muted">
+                                      {job.driver.full_name?.charAt(0) || '?'}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="text-xs font-medium text-brand-text truncate">{job.driver.full_name}</p>
+                                      <p className="text-[10px] text-brand-muted font-mono">{job.driver.phone}</p>
+                                    </div>
                                   </div>
-                                ))}
-                              </div>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedJob(job);
-                              }}
-                              className="text-xs font-medium px-3 py-1.5 bg-brand-neon/10 hover:bg-brand-neon text-brand-neon hover:text-brand-bg border border-brand-neon/20 rounded-lg transition-all"
-                            >
-                              View
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                                ) : (
+                                  <span className="text-xs text-brand-muted">Unassigned</span>
+                                )}
+                            </td>
+                            <td className="px-4 py-4">
+                                <div className="custody-strip" style={{ '--seg-color': stageColor } as React.CSSProperties}>
+                                  {custodySteps.map((step) => (
+                                    <span key={step.key} title={step.label} data-done={Boolean((job as any)[step.key])} />
+                                  ))}
+                                </div>
+                            </td>
+                            <td className="pl-4 pr-6 py-4 text-right">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedJob(job);
+                                }}
+                                className="text-xs font-medium text-brand-muted hover:text-brand-text transition-colors underline decoration-brand-border hover:decoration-brand-text underline-offset-4"
+                              >
+                                View
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

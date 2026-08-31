@@ -1,41 +1,41 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSearchParams, useParams, Link } from 'react-router-dom';
-import { 
-  Search, 
-  MapPin, 
-  Navigation, 
-  Clock, 
-  CheckCircle2, 
-  Loader2, 
-  MessageSquare, 
-  Phone, 
-  Zap, 
-  Truck, 
-  AlertCircle, 
-  RefreshCw, 
-  Copy, 
-  Check, 
-  ShieldCheck, 
-  ShieldAlert, 
-  ArrowRight, 
-  Calendar, 
-  User, 
-  Building2, 
-  Package, 
-  FileText, 
-  Wrench, 
+import {
+  Search,
+  MapPin,
+  Navigation,
+  Clock,
+  CheckCircle2,
+  Loader2,
+  MessageSquare,
+  Phone,
+  Zap,
+  Truck,
+  AlertCircle,
+  RefreshCw,
+  Copy,
+  Check,
+  ShieldCheck,
+  ShieldAlert,
+  ArrowRight,
+  Calendar,
+  User,
+  Building2,
+  Package,
+  FileText,
+  Wrench,
   Radio,
   AlertTriangle,
   XCircle
 } from 'lucide-react';
 import { WHATSAPP_NUMBER } from '../constants';
 import { trackWhatsAppClick } from '../lib/analytics';
-import { 
-  getTrackingInfo, 
-  getJobById, 
-  subscribeToJob, 
-  type JobWithDriver, 
+import {
+  getTrackingInfo,
+  getJobById,
+  subscribeToJob,
+  type JobWithDriver,
   type QuoteRequest,
   type TrackingResult,
   type JobStatus
@@ -93,7 +93,7 @@ const getJobStatusConfig = (status: JobStatus, hasDriver: boolean): StatusConfig
       return {
         title: hasDriver ? 'Driver Assigned & En Route to Hub' : 'Dispatch Processing & Driver Allocation',
         badge: hasDriver ? 'Driver Assigned' : 'Awaiting Dispatch',
-        subtext: hasDriver 
+        subtext: hasDriver
           ? 'Pilot has been assigned to your corridor manifest and is preparing for pickup.'
           : 'Your dispatch request has been logged. Operations control is routing the nearest available driver.',
         badgeBg: 'bg-blue-500/10 border-blue-500/30',
@@ -203,7 +203,7 @@ export default function Track() {
         setResult(data);
         setSearchStatus('found');
         setLastRefreshedAt(new Date());
-        
+
         // Keep URL in sync without full reload
         setSearchParams({ id: data.trackingId }, { replace: true });
       } else {
@@ -222,11 +222,11 @@ export default function Track() {
 
   // Initial load check from URL or params
   useEffect(() => {
-    const initialId = routeTrackingId || 
-      searchParams.get('id') || 
-      searchParams.get('ref') || 
-      searchParams.get('tracking') || 
-      searchParams.get('token') || 
+    const initialId = routeTrackingId ||
+      searchParams.get('id') ||
+      searchParams.get('ref') ||
+      searchParams.get('tracking') ||
+      searchParams.get('token') ||
       '';
 
     if (initialId) {
@@ -308,22 +308,21 @@ export default function Track() {
   };
 
   const hasDriver = !!(activeJob?.driver || activeJob?.driver_id);
-  const statusConfig = activeJob 
+  const statusConfig = activeJob
     ? getJobStatusConfig(activeJob.status, hasDriver)
     : null;
 
   // Build WhatsApp inquiry link
   const currentTrackingId = result?.trackingId || queryInput;
   const waSupportText = encodeURIComponent(
-    `Hi Nokael Dispatch, I am tracking manifest ${currentTrackingId}${
-      activeJob ? ` (${activeJob.pickup_emirate} ➔ ${activeJob.delivery_emirate})` : ''
+    `Hi Nokael Dispatch, I am tracking manifest ${currentTrackingId}${activeJob ? ` (${activeJob.pickup_emirate} ➔ ${activeJob.delivery_emirate})` : ''
     } and would like a live status update.`
   );
 
   return (
     <div className="bg-brand-bg min-h-[85vh] py-16 sm:py-24">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Header */}
         <div className="mb-10 text-center">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-neon/10 border border-brand-neon/20 mb-4">
@@ -336,7 +335,7 @@ export default function Track() {
             Corridor Tracking
           </h1>
           <p className="text-brand-muted text-sm max-w-lg mx-auto leading-relaxed">
-            Enter your Job Ref or Dispatch ID to inspect the exact database status and Chain of Custody timestamps.
+            Enter your Job Ref or Dispatch ID to inspect the exact Job Status and timestamps.
           </p>
         </div>
 
@@ -387,7 +386,7 @@ export default function Track() {
 
         {/* Dynamic Tracking Display */}
         <AnimatePresence mode="wait">
-          
+
           {/* 1. Searching State */}
           {searchStatus === 'searching' && (
             <motion.div
@@ -431,7 +430,7 @@ export default function Track() {
                 We could not locate an active job or quote matching <b>"{queryInput}"</b>. Please double-check your tracking ID or contact central dispatch for direct assistance.
               </p>
               <div className="flex flex-wrap items-center justify-center gap-4">
-                <a 
+                <a
                   href={`https://wa.me/${WHATSAPP_NUMBER}?text=${waSupportText}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -456,7 +455,7 @@ export default function Track() {
             >
               {/* Primary Status Card */}
               <div className="dispatch-card relative overflow-hidden border border-brand-border bg-brand-surface/70 shadow-2xl">
-                
+
                 {/* Top Action Bar */}
                 <div className="flex flex-wrap items-center justify-between gap-4 pb-6 mb-6 border-b border-brand-border/60">
                   <div className="flex items-center gap-3">
@@ -545,9 +544,9 @@ export default function Track() {
                     {(() => {
                       const ts1 = formatTimestamp(activeJob.created_at);
                       const ts2 = formatTimestamp(
-                        activeJob.client_pickup_at || 
-                        activeJob.client_pickup_confirmed_at || 
-                        activeJob.driver_arrived_pickup_at || 
+                        activeJob.client_pickup_at ||
+                        activeJob.client_pickup_confirmed_at ||
+                        activeJob.driver_arrived_pickup_at ||
                         activeJob.sender_ready_at
                       );
                       const ts3 = formatTimestamp(activeJob.driver_pickup_at || activeJob.driver_pickup_confirmed_at);
@@ -624,8 +623,8 @@ export default function Track() {
                             <div className={cn(
                               "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
                               step2Done ? "bg-brand-neon shadow-[0_0_8px_rgba(57,255,20,0.4)]" :
-                              !isCancelled && statusConfig.stepIndex === 1 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
-                              "bg-brand-input-border"
+                                !isCancelled && statusConfig.stepIndex === 1 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
+                                  "bg-brand-input-border"
                             )} />
                             <div className="flex flex-wrap items-baseline justify-between gap-2">
                               <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
@@ -638,7 +637,7 @@ export default function Track() {
                               {ts2 && <span className="text-[11px] text-brand-muted font-mono">{ts2.time} · {ts2.date}</span>}
                             </div>
                             <p className="text-xs text-brand-muted mt-0.5">
-                              {hasDriver 
+                              {hasDriver
                                 ? 'Assigned pilot arriving at pickup point.'
                                 : 'Awaiting pilot dispatch arrival confirmation.'}
                             </p>
@@ -652,8 +651,8 @@ export default function Track() {
                             <div className={cn(
                               "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
                               step3Done ? "bg-brand-neon shadow-[0_0_8px_rgba(57,255,20,0.4)]" :
-                              !isCancelled && statusConfig.stepIndex === 2 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
-                              "bg-brand-input-border"
+                                !isCancelled && statusConfig.stepIndex === 2 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
+                                  "bg-brand-input-border"
                             )} />
                             <div className="flex flex-wrap items-baseline justify-between gap-2">
                               <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
@@ -678,8 +677,8 @@ export default function Track() {
                             <div className={cn(
                               "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
                               step4Done ? "bg-brand-neon shadow-[0_0_8px_rgba(57,255,20,0.4)]" :
-                              !isCancelled && statusConfig.stepIndex === 3 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
-                              "bg-brand-input-border"
+                                !isCancelled && statusConfig.stepIndex === 3 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
+                                  "bg-brand-input-border"
                             )} />
                             <div className="flex flex-wrap items-baseline justify-between gap-2">
                               <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
@@ -704,8 +703,8 @@ export default function Track() {
                             <div className={cn(
                               "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
                               step5Done ? "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]" :
-                              !isCancelled && statusConfig.stepIndex === 4 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
-                              "bg-brand-input-border"
+                                !isCancelled && statusConfig.stepIndex === 4 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
+                                  "bg-brand-input-border"
                             )} />
                             <div className="flex flex-wrap items-baseline justify-between gap-2">
                               <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
@@ -718,11 +717,11 @@ export default function Track() {
                               {ts5 && <span className="text-[11px] text-emerald-400 font-mono font-bold">{ts5.time} · {ts5.date}</span>}
                             </div>
                             <p className="text-xs text-brand-muted mt-0.5">
-                              {step5Done 
-                                ? 'Final receipt validated. Complete Chain of Custody digitally signed.' 
-                                : isCancelled 
-                                ? 'Delivery handover was not completed due to cancellation.' 
-                                : 'Final receipt validated. Complete Chain of Custody digitally signed.'}
+                              {step5Done
+                                ? 'Final receipt validated. Complete Chain of Custody digitally signed.'
+                                : isCancelled
+                                  ? 'Delivery handover was not completed due to cancellation.'
+                                  : 'Final receipt validated. Complete Chain of Custody digitally signed.'}
                             </p>
                           </div>
                         </>
@@ -735,13 +734,13 @@ export default function Track() {
 
               {/* Route & Manifest Details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
+
                 {/* Route Box */}
                 <div className="dispatch-card border border-brand-border bg-brand-surface/60 space-y-4">
                   <p className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-muted">
                     Route Specification
                   </p>
-                  
+
                   <div className="space-y-4 text-xs">
                     <div className="flex items-start gap-3">
                       <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
@@ -938,20 +937,20 @@ export default function Track() {
                           })}
                           className={cn(
                             "w-full py-3 text-xs uppercase tracking-wider font-bold rounded-xl flex items-center justify-center gap-2 transition-all",
-                            isCancelled 
+                            isCancelled
                               ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30"
                               : isCompleted
-                              ? "bg-brand-input hover:bg-brand-border/60 text-brand-text border border-brand-input-border"
-                              : "btn-primary"
+                                ? "bg-brand-input hover:bg-brand-border/60 text-brand-text border border-brand-input-border"
+                                : "btn-primary"
                           )}
                         >
                           <MessageSquare className="w-4 h-4" />
                           <span>
-                            {isCancelled 
-                              ? 'Inquire Regarding Cancellation' 
-                              : isCompleted 
-                              ? 'Contact Dispatch Desk' 
-                              : 'Chat with Live Dispatch Desk'}
+                            {isCancelled
+                              ? 'Inquire Regarding Cancellation'
+                              : isCompleted
+                                ? 'Contact Dispatch Desk'
+                                : 'Chat with Live Dispatch Desk'}
                           </span>
                         </a>
                       </div>
