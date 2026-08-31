@@ -108,13 +108,22 @@ import { format } from 'date-fns';
 import { generateJobPOC } from '../lib/pdf-export';
 import { sendTelegramNotification, formatJobAssignmentNotification } from '../lib/notifications';
 
-const StatCard: React.FC<{ title: string; value: number; icon: any }> = ({ title, value, icon: Icon }) => (
-  <div className="bg-brand-surface border border-brand-border rounded-2xl px-5 py-4 flex items-center gap-4">
-    <div className="w-9 h-9 shrink-0 bg-brand-neon/10 rounded-lg flex items-center justify-center text-brand-neon">
+const StatCard: React.FC<{ title: string; value: number; icon: any; highlight?: boolean }> = ({ title, value, icon: Icon, highlight }) => (
+  <div className={cn(
+    "bg-brand-surface border rounded-2xl px-5 py-4 flex items-center gap-4 transition-all",
+    highlight && value > 0 ? "border-brand-neon/30 bg-brand-neon/5" : "border-brand-border"
+  )}>
+    <div className={cn(
+      "w-9 h-9 shrink-0 rounded-lg flex items-center justify-center",
+      highlight && value > 0 ? "bg-brand-neon/20 text-brand-neon" : "bg-brand-input text-brand-muted"
+    )}>
       <Icon className="w-4 h-4" />
     </div>
     <div className="min-w-0">
-      <p className="text-2xl font-display font-medium tracking-tight text-brand-text leading-none mb-1">{value}</p>
+      <p className={cn(
+        "text-2xl font-display font-semibold tracking-tight leading-none mb-1",
+        highlight && value > 0 ? "text-brand-neon" : "text-brand-text"
+      )}>{value}</p>
       <h3 className="text-brand-muted text-xs truncate">{title}</h3>
     </div>
   </div>
@@ -391,43 +400,43 @@ export default function Dashboard() {
   }
 
   const NAV_ITEMS: { id: typeof activeTab; label: string; icon: any; badge?: number }[] = [
-    { id: 'pipeline', label: 'Command Centre', icon: LayoutDashboard },
-    { id: 'quotes', label: 'Dispatch Log', icon: FileText, badge: stats.pending },
-    { id: 'drivers', label: 'Driver Network', icon: Truck, badge: stats.pendingDrivers },
-    { id: 'business', label: 'Business Accounts', icon: Shield, badge: stats.pendingBusiness },
+    { id: 'pipeline', label: 'Jobs', icon: LayoutDashboard },
+    { id: 'quotes', label: 'Quotes', icon: FileText, badge: stats.pending },
+    { id: 'drivers', label: 'Drivers', icon: Truck, badge: stats.pendingDrivers },
+    { id: 'business', label: 'Business', icon: Shield, badge: stats.pendingBusiness },
     { id: 'team', label: 'Team', icon: Users },
   ];
 
   const TAB_META: Record<typeof activeTab, { title: string; subtitle: string }> = {
-    pipeline: { title: 'Command Centre', subtitle: 'Live job pipeline and dispatch' },
-    quotes: { title: 'Dispatch Log', subtitle: 'Quote requests and conversions' },
-    drivers: { title: 'Driver Network', subtitle: 'Onboarding and verification' },
-    business: { title: 'Business Accounts', subtitle: 'Corporate partnerships' },
-    team: { title: 'Team', subtitle: 'Command Centre users and roles' },
+    pipeline: { title: 'Active Jobs', subtitle: 'Track and manage deliveries' },
+    quotes: { title: 'Quote Requests', subtitle: 'Incoming delivery requests' },
+    drivers: { title: 'Drivers', subtitle: 'Manage driver applications' },
+    business: { title: 'Business Clients', subtitle: 'Corporate accounts' },
+    team: { title: 'Team', subtitle: 'Manage team access' },
   };
 
   const jobsActive = jobs.filter(j => j.status !== 'completed').length;
   const jobsCompleted = jobs.filter(j => j.status === 'completed').length;
 
-  const CONTEXT_STATS: Record<typeof activeTab, { title: string; value: number; icon: any }[]> = {
+  const CONTEXT_STATS: Record<typeof activeTab, { title: string; value: number; icon: any; highlight?: boolean }[]> = {
     pipeline: [
-      { title: 'Active Jobs', value: jobsActive, icon: Zap },
-      { title: 'Pending Dispatch', value: jobs.filter(j => j.status === 'pending').length, icon: Clock },
+      { title: 'Active', value: jobsActive, icon: Zap, highlight: true },
+      { title: 'Pending', value: jobs.filter(j => j.status === 'pending').length, icon: Clock },
       { title: 'Completed', value: jobsCompleted, icon: CheckCircle2 },
     ],
     quotes: [
-      { title: 'Total Quotes', value: stats.total, icon: LayoutDashboard },
-      { title: 'Pending', value: stats.pending, icon: Clock },
+      { title: 'New', value: stats.pending, icon: Clock, highlight: true },
+      { title: 'Total', value: stats.total, icon: LayoutDashboard },
       { title: 'Completed', value: stats.completed, icon: CheckCircle2 },
     ],
     drivers: [
-      { title: 'Total Drivers', value: stats.drivers, icon: Truck },
-      { title: 'Pending Review', value: stats.pendingDrivers, icon: Clock },
-      { title: 'Approved', value: approvedDrivers.length, icon: CheckCircle2 },
+      { title: 'Needs Review', value: stats.pendingDrivers, icon: Clock, highlight: true },
+      { title: 'Total', value: stats.drivers, icon: Truck },
+      { title: 'Active', value: approvedDrivers.length, icon: CheckCircle2 },
     ],
     business: [
-      { title: 'Total Accounts', value: stats.business, icon: Shield },
-      { title: 'Pending', value: stats.pendingBusiness, icon: Clock },
+      { title: 'New', value: stats.pendingBusiness, icon: Clock, highlight: true },
+      { title: 'Total', value: stats.business, icon: Shield },
       { title: 'Active', value: businessInquiries.filter(b => b.status === 'active').length, icon: CheckCircle2 },
     ],
     team: [],
@@ -443,7 +452,7 @@ export default function Dashboard() {
           </div>
           <div className="min-w-0">
             <h1 className="text-sm font-display font-medium leading-tight truncate">Nokael</h1>
-            <p className="text-[11px] text-brand-muted truncate">Dispatch Centre</p>
+            <p className="text-[11px] text-brand-muted truncate">Dashboard</p>
           </div>
         </div>
 
@@ -470,10 +479,6 @@ export default function Dashboard() {
         </nav>
 
         <div className="space-y-1 pt-4 border-t border-brand-border">
-          <div className="flex items-center gap-2 px-3 py-2 text-[11px] text-brand-muted">
-            <div className="w-1.5 h-1.5 rounded-full bg-brand-neon animate-pulse" />
-            Live
-          </div>
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-brand-muted hover:text-brand-text hover:bg-brand-surface transition-colors"
@@ -537,7 +542,7 @@ export default function Dashboard() {
         {CONTEXT_STATS[activeTab].length > 0 && (
           <div className="grid grid-cols-3 gap-4 mb-8">
             {CONTEXT_STATS[activeTab].map(stat => (
-              <StatCard key={stat.title} title={stat.title} value={stat.value} icon={stat.icon} />
+              <StatCard key={stat.title} title={stat.title} value={stat.value} icon={stat.icon} highlight={stat.highlight} />
             ))}
           </div>
         )}
@@ -575,7 +580,7 @@ export default function Dashboard() {
                     { key: 'pending', label: 'Pending', count: jobs.filter(j => j.status === 'pending').length },
                     { key: 'in_transit', label: 'In Transit', count: jobs.filter(j => ['client_pickup', 'driver_pickup', 'driver_delivery'].includes(j.status)).length },
                     { key: 'completed', label: 'Completed', count: jobs.filter(j => j.status === 'completed').length },
-                    { key: 'cancelled', label: 'Exceptions', count: jobs.filter(j => j.status === 'cancelled').length },
+                    { key: 'cancelled', label: 'Cancelled', count: jobs.filter(j => j.status === 'cancelled').length },
                   ].map(tab => (
                     <button
                       key={tab.key}
@@ -613,25 +618,25 @@ export default function Dashboard() {
             {jobViewMode === 'kanban' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 h-[calc(100vh-320px)] min-h-[560px]">
                 <KanbanColumn 
-                  title="Pending Dispatch" 
+                  title="Pending" 
                   status="pending" 
                   jobs={filteredJobs.filter(j => j.status === 'pending')} 
                   onJobClick={setSelectedJob} 
                 />
                 <KanbanColumn 
-                  title="In Transit / Operational" 
+                  title="In Transit" 
                   status="in_transit" 
                   jobs={filteredJobs.filter(j => ['client_pickup', 'driver_pickup', 'driver_delivery'].includes(j.status))} 
                   onJobClick={setSelectedJob} 
                 />
                 <KanbanColumn 
-                  title="Delivered / Completed" 
+                  title="Completed" 
                   status="completed" 
                   jobs={filteredJobs.filter(j => j.status === 'completed')} 
                   onJobClick={setSelectedJob} 
                 />
                 <KanbanColumn 
-                  title="Exceptions / Failed" 
+                  title="Cancelled" 
                   status="cancelled" 
                   jobs={filteredJobs.filter(j => j.status === 'cancelled')} 
                   onJobClick={setSelectedJob} 
@@ -643,11 +648,11 @@ export default function Dashboard() {
                   <table className="w-full text-left">
                     <thead>
                       <tr className="bg-brand-input/50 text-[11px] font-semibold uppercase tracking-wide text-brand-muted">
-                        <th className="px-6 py-3">Job / Status</th>
+                        <th className="px-6 py-3">Job</th>
                         <th className="px-6 py-3">Route</th>
-                        <th className="px-6 py-3">Contacts & Pilot</th>
-                        <th className="px-6 py-3">COC Progress</th>
-                        <th className="px-6 py-3 text-right">Action</th>
+                        <th className="px-6 py-3">Driver</th>
+                        <th className="px-6 py-3">Progress</th>
+                        <th className="px-6 py-3 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-brand-border">
@@ -660,16 +665,16 @@ export default function Dashboard() {
                           <td className="px-6 py-4">
                               <div className="text-sm font-mono font-semibold text-brand-neon mb-1">#{job.job_ref?.toString().padStart(4, '0')}</div>
                               <span className={cn(
-                                "text-xs font-medium px-2 py-0.5 rounded inline-block",
+                                "text-xs font-medium px-2 py-0.5 rounded inline-block capitalize",
                                 job.status === 'completed' ? "bg-brand-neon/10 text-brand-neon" : 
-                                job.status === 'cancelled' ? "bg-red-500/10 text-red-400 border border-red-500/20" :
+                                job.status === 'cancelled' ? "bg-red-500/10 text-red-400" :
                                 job.status === 'pending' ? "bg-yellow-500/10 text-yellow-500" :
                                 "bg-blue-500/10 text-blue-400"
                               )}>
-                                {job.status === 'cancelled' ? 'FAILED / CANCELLED' : job.status?.replace('_', ' ')}
+                                {job.status?.replace('_', ' ')}
                               </span>
                               {job.status === 'cancelled' && job.cancellation_reason && (
-                                <p className="text-[11px] text-red-400/80 mt-1 line-clamp-1 italic">
+                                <p className="text-[10px] text-red-400/70 mt-1 line-clamp-1">
                                   {job.cancellation_reason}
                                 </p>
                               )}
@@ -683,11 +688,19 @@ export default function Dashboard() {
                               <div className="text-xs font-medium text-brand-muted">{job.pickup_emirate} Corridor</div>
                           </td>
                           <td className="px-6 py-4">
-                              <p className="text-xs font-medium text-brand-text mb-1">{job.sender_name} ({job.sender_phone})</p>
-                              <div className="flex gap-2 items-center">
-                                <Truck className="w-3 h-3 text-brand-muted shrink-0" />
-                                <p className="text-xs text-brand-muted font-medium truncate">{job.driver?.full_name || 'Pilot Pending'}</p>
-                              </div>
+                              {job.driver ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="w-7 h-7 rounded-full bg-brand-neon/10 flex items-center justify-center shrink-0">
+                                    <User className="w-3.5 h-3.5 text-brand-neon" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-medium text-brand-text truncate">{job.driver.full_name}</p>
+                                    <p className="text-[10px] text-brand-muted">{job.driver.phone}</p>
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-brand-muted">Not assigned</span>
+                              )}
                           </td>
                           <td className="px-6 py-4">
                               <div className="flex gap-1.5">
@@ -716,9 +729,9 @@ export default function Dashboard() {
                                 e.stopPropagation();
                                 setSelectedJob(job);
                               }}
-                              className="text-xs font-medium px-3 py-1.5 bg-brand-input hover:bg-brand-surface border border-brand-border rounded-lg text-brand-text transition-colors"
+                              className="text-xs font-medium px-3 py-1.5 bg-brand-neon/10 hover:bg-brand-neon text-brand-neon hover:text-brand-bg border border-brand-neon/20 rounded-lg transition-all"
                             >
-                              Command Centre
+                              View
                             </button>
                           </td>
                         </tr>
@@ -801,9 +814,9 @@ export default function Dashboard() {
                 <table className="w-full text-left">
                   <thead>
                     <tr className="bg-brand-input text-[11px] uppercase tracking-wide font-medium text-brand-muted">
-                      <th className="px-6 py-3">Client</th>
+                      <th className="px-6 py-3">Customer</th>
                       <th className="px-6 py-3">Route</th>
-                      <th className="px-6 py-3">Item / Urgency</th>
+                      <th className="px-6 py-3">Details</th>
                       <th className="px-6 py-3">Status</th>
                       <th className="px-6 py-3 text-right">Actions</th>
                     </tr>
@@ -835,13 +848,14 @@ export default function Dashboard() {
                           <div className="text-xs uppercase tracking-wide text-brand-muted font-medium">{req.emirate} Corridor</div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-xs font-medium uppercase tracking-wide mb-2 text-brand-text">{req.item_type}</div>
-                          <div className={`text-xs font-semibold uppercase tracking-wide flex items-center gap-2 ${
-                            req.urgency === 'immediate' ? 'text-red-500' : req.urgency === 'today' ? 'text-yellow-500' : 'text-blue-500'
-                          }`}>
-                            <div className={`w-1.5 h-1.5 rounded-full ${
-                              req.urgency === 'immediate' ? 'bg-red-500 animate-pulse' : req.urgency === 'today' ? 'bg-yellow-500' : 'bg-blue-500'
-                            }`} />
+                          <div className="text-xs font-medium text-brand-text mb-1 capitalize">{req.item_type}</div>
+                          <div className={cn(
+                            "text-xs font-medium capitalize inline-flex items-center gap-1.5",
+                            req.urgency === 'immediate' && 'text-red-500',
+                            req.urgency === 'today' && 'text-yellow-500',
+                            req.urgency === 'scheduled' && 'text-blue-500'
+                          )}>
+                            {req.urgency === 'immediate' && <div className="w-1.5 h-1.5 rounded-full bg-red-500" />}
                             {req.urgency}
                           </div>
                         </td>
@@ -865,27 +879,30 @@ export default function Dashboard() {
                           </select>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
+                          <div className="flex items-center justify-end gap-2">
                             <button 
                               onClick={() => handleConvertToJob(req)}
-                              title="Convert to Active Job"
-                              className="w-10 h-10 bg-brand-neon/10 text-brand-neon rounded-lg flex items-center justify-center hover:bg-brand-neon hover:text-brand-bg transition-all"
+                              title="Create Job"
+                              className="px-3 py-1.5 bg-brand-neon/10 text-brand-neon text-xs font-medium rounded-lg flex items-center gap-1.5 hover:bg-brand-neon hover:text-brand-bg transition-all"
                             >
-                              <Zap className="w-4 h-4" />
+                              <Zap className="w-3.5 h-3.5" />
+                              Create Job
                             </button>
                             <a 
                               href={`https://wa.me/${req.phone.replace(/\D/g, '')}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="w-10 h-10 bg-brand-neon/10 text-brand-neon rounded-lg flex items-center justify-center hover:bg-brand-neon hover:text-brand-bg transition-all"
+                              className="w-8 h-8 bg-brand-input text-brand-muted rounded-lg flex items-center justify-center hover:bg-brand-surface hover:text-brand-text transition-all"
+                              title="WhatsApp"
                             >
-                              <MessageSquare className="w-4 h-4" />
+                              <MessageSquare className="w-3.5 h-3.5" />
                             </a>
                             <button 
                               onClick={() => handleDelete(req.id!)}
-                              className="w-10 h-10 bg-red-500/10 text-red-500 rounded-lg flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"
+                              className="w-8 h-8 bg-brand-input text-brand-muted rounded-lg flex items-center justify-center hover:bg-red-500/10 hover:text-red-500 transition-all"
+                              title="Delete"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
@@ -922,7 +939,7 @@ export default function Dashboard() {
                     <th className="px-6 py-3">Volume</th>
                     <th className="px-6 py-3">Billing</th>
                     <th className="px-6 py-3">Status</th>
-                    <th className="px-6 py-3 text-right">Operations</th>
+                    <th className="px-6 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-brand-border">
@@ -1024,10 +1041,10 @@ export default function Dashboard() {
                   <tr className="bg-brand-input text-[11px] uppercase tracking-wide font-medium text-brand-muted">
                     <th className="px-6 py-3">Driver</th>
                     <th className="px-6 py-3">Vehicle</th>
-                    <th className="px-6 py-3">Tier / Score</th>
-                    <th className="px-6 py-3">Availability</th>
-                    <th className="px-6 py-3">Onboarding</th>
-                    <th className="px-6 py-3 text-right">Operations</th>
+                    <th className="px-6 py-3">Rating</th>
+                    <th className="px-6 py-3">Status</th>
+                    <th className="px-6 py-3">Application</th>
+                    <th className="px-6 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-brand-border">
@@ -1042,26 +1059,24 @@ export default function Dashboard() {
                         <div className="text-xs uppercase tracking-wide text-brand-muted font-medium">{driver.base_location}</div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-4">
-                          <div className="px-3 py-1 bg-brand-neon/10 border border-brand-neon/20 rounded text-brand-neon text-xs font-medium">Tier {driver.tier}</div>
-                          <div className="flex items-center gap-1.5 text-brand-text">
-                            <Star className="w-3 h-3 text-brand-neon fill-brand-neon" />
-                            <span className="text-xs font-medium">{driver.reliability_score || 0}</span>
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+                          <span className="text-sm font-medium text-brand-text">{driver.reliability_score || 'New'}</span>
+                          <span className="text-xs text-brand-muted">• Tier {driver.tier}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         {(() => {
                           const statusMap: Record<string, { label: string; dot: string; text: string }> = {
-                            available: { label: 'Available', dot: 'bg-emerald-400', text: 'text-emerald-400' },
-                            on_job: { label: 'On Job', dot: 'bg-amber-400', text: 'text-amber-400' },
+                            available: { label: 'Available', dot: 'bg-emerald-500', text: 'text-emerald-500' },
+                            on_job: { label: 'On Job', dot: 'bg-blue-500', text: 'text-blue-500' },
                             offline: { label: 'Offline', dot: 'bg-brand-muted', text: 'text-brand-muted' },
                           };
                           const cfg = statusMap[driver.status || 'offline'] || statusMap.offline;
                           return (
                             <div className="flex items-center gap-2">
                               <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
-                              <span className={`text-[11px] font-medium uppercase tracking-wide ${cfg.text}`}>{cfg.label}</span>
+                              <span className={`text-xs font-medium ${cfg.text}`}>{cfg.label}</span>
                             </div>
                           );
                         })()}
@@ -1084,9 +1099,9 @@ export default function Dashboard() {
                       <td className="px-6 py-4 text-right">
                         <button 
                           onClick={() => handleViewDriver(driver.id!)}
-                          className="px-6 py-2.5 bg-brand-surface border border-brand-border text-brand-text text-xs font-medium rounded-lg hover:bg-brand-neon hover:text-brand-bg transition-all"
+                          className="px-4 py-2 bg-brand-input border border-brand-border text-brand-text text-xs font-medium rounded-lg hover:bg-brand-surface hover:border-brand-neon/30 transition-all"
                         >
-                          Review Profile
+                          View
                         </button>
                       </td>
                     </tr>
@@ -1722,6 +1737,7 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
 
   // COC Step Force-action state
   const [actingStep, setActingStep] = React.useState<string | null>(null);
+  const [stepNotes, setStepNotes] = React.useState<Record<string, string>>({});
 
   // Keep targetStatus in sync when job updates
   React.useEffect(() => {
@@ -1801,18 +1817,25 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
 
   const handleToggleCocStep = async (
     stepKey: 'client_pickup_at' | 'driver_pickup_at' | 'driver_delivery_at' | 'client_delivery_at',
-    currentlyConfirmed: boolean
+    currentlyConfirmed: boolean,
+    stepLabel?: string,
+    note?: string
   ) => {
     setActingStep(stepKey);
     try {
-      await overrideCocStep(
-        job.id!,
-        stepKey,
-        !currentlyConfirmed,
-        operatorNotes || `Step ${stepKey} ${!currentlyConfirmed ? 'force-confirmed' : 'reset'} via Command Centre`
-      );
+      const action = !currentlyConfirmed ? 'force-confirmed' : 'reset';
+      const entry = note?.trim()
+        ? `[${format(new Date(), 'HH:mm')}] ${stepLabel || stepKey} ${action} — ${note.trim()}`
+        : `[${format(new Date(), 'HH:mm')}] ${stepLabel || stepKey} ${action} via Command Centre`;
+      // Append rather than overwrite — operator_notes is a single shared
+      // field on the job row, and a per-step note shouldn't clobber notes
+      // left on a previous step or in the main override panel.
+      const combinedNotes = job.operator_notes ? `${job.operator_notes}\n${entry}` : entry;
+
+      await overrideCocStep(job.id!, stepKey, !currentlyConfirmed, combinedNotes);
       setOverrideMessage(`COC Step updated.`);
       setTimeout(() => setOverrideMessage(null), 2500);
+      setStepNotes(prev => ({ ...prev, [stepKey]: '' }));
       onUpdate();
     } catch (err: any) {
       alert(`Failed to update COC step: ${err.message || err}`);
@@ -2321,10 +2344,21 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
                           }
                         </p>
 
+                        {/* Per-step audit note — appended to the job's operator_notes log, not a shared/overwritten field */}
+                        <div className="pt-1">
+                          <input
+                            type="text"
+                            value={stepNotes[step.stepKey] || ''}
+                            onChange={(e) => setStepNotes(prev => ({ ...prev, [step.stepKey]: e.target.value }))}
+                            placeholder="Optional note for this step..."
+                            className="w-full bg-brand-input border border-brand-input-border rounded-lg px-2.5 py-1.5 text-[11px] text-brand-text placeholder:text-brand-muted/50 focus:border-brand-neon outline-none"
+                          />
+                        </div>
+
                         {/* Force Pass / Undo & Link Actions */}
                         <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-brand-border/60">
                           <button
-                            onClick={() => handleToggleCocStep(step.stepKey, isConfirmed)}
+                            onClick={() => handleToggleCocStep(step.stepKey, isConfirmed, step.label, stepNotes[step.stepKey])}
                             disabled={isBusy}
                             className={cn(
                               "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold tracking-wide uppercase transition-all",
@@ -2701,7 +2735,7 @@ const TeamPanel = ({ orgId, currentRole }: { orgId: string | null; currentRole: 
     if (!orgId) return;
     setLoading(true);
     setError(null);
-    getTeamMembers(orgId)
+    getTeamMembers()
       .then(setMembers)
       .catch((err: any) => setError(err.message || 'Failed to load team'))
       .finally(() => setLoading(false));
@@ -2715,7 +2749,7 @@ const TeamPanel = ({ orgId, currentRole }: { orgId: string | null; currentRole: 
     if (!orgId) return;
     setBusyUserId(userId);
     try {
-      await updateTeamMemberRole(orgId, userId, role);
+      await updateTeamMemberRole(userId, role);
       loadMembers();
     } catch (err: any) {
       alert(err.message || 'Failed to update role');
@@ -2729,7 +2763,7 @@ const TeamPanel = ({ orgId, currentRole }: { orgId: string | null; currentRole: 
     if (!window.confirm(`Remove ${email} from this organization?`)) return;
     setBusyUserId(userId);
     try {
-      await removeTeamMember(orgId, userId);
+      await removeTeamMember(userId);
       loadMembers();
     } catch (err: any) {
       alert(err.message || 'Failed to remove team member');
@@ -2865,7 +2899,7 @@ const InviteModal = ({ orgId, onClose, onSuccess }: { orgId: string; onClose: ()
     setError('');
     setLoading(true);
     try {
-      await inviteTeamMember(orgId, email.trim(), role);
+      await inviteTeamMember(email.trim(), role);
       onSuccess();
     } catch (err: any) {
       setError(err.message || 'Failed to send invite');

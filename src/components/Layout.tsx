@@ -15,24 +15,24 @@ import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
 
 const TopBar = () => {
   return (
-    <div className="bg-brand-neon text-brand-bg py-2 px-4 relative z-[60]">
-      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em]">
+    <div className="bg-brand-neon text-brand-bg py-2.5 px-4 relative z-[60]">
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-xs font-bold">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-brand-bg animate-pulse" />
+            <div className="w-1.5 h-1.5 rounded-full bg-brand-bg" />
             Urgent Dispatch Active
           </span>
           <span className="hidden md:inline opacity-60">|</span>
-          <span className="hidden md:inline">Dubai ↔ Abu Dhabi (90-120 Min Delivery)</span>
+          <span className="hidden md:inline">Dubai ↔ Abu Dhabi • 90-120 min delivery</span>
         </div>
         <div className="flex items-center gap-6">
           <a href={`tel:${PHONE_NUMBER}`} onClick={() => trackPhoneClick('top_bar')} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <Phone className="w-3 h-3 fill-brand-bg" />
-            <span>Call Now: {DISPLAY_PHONE}</span>
+            <Phone className="w-3.5 h-3.5 fill-brand-bg" />
+            <span>{DISPLAY_PHONE}</span>
           </a>
           <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer" onClick={() => trackWhatsAppClick('top_bar')} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <MessageSquare className="w-3 h-3 fill-brand-bg" />
-            <span>WhatsApp Dispatch</span>
+            <MessageSquare className="w-3.5 h-3.5 fill-brand-bg" />
+            <span>WhatsApp</span>
           </a>
         </div>
       </div>
@@ -63,38 +63,38 @@ export const Navigation = () => {
               <Link
                 to="/services"
                 className={cn(
-                  "text-[11px] font-bold uppercase tracking-[0.2em] transition-colors hover:text-brand-neon",
+                  "text-sm font-semibold transition-colors hover:text-brand-neon",
                   location.pathname === "/services" ? "text-brand-neon" : "text-brand-muted"
                 )}
               >
-                Urgent Transit Routes
+                Routes
               </Link>
               <Link
                 to="/about"
                 className={cn(
-                  "text-[11px] font-bold uppercase tracking-[0.2em] transition-colors hover:text-brand-neon",
+                  "text-sm font-semibold transition-colors hover:text-brand-neon",
                   location.pathname === "/about" ? "text-brand-neon" : "text-brand-muted"
                 )}
               >
-                About Nokael
+                About
               </Link>
               <Link
                 to="/get-quote"
                 className={cn(
-                  "text-[11px] font-bold uppercase tracking-[0.2em] transition-colors hover:text-brand-neon",
+                  "text-sm font-semibold transition-colors hover:text-brand-neon",
                   location.pathname === "/get-quote" ? "text-brand-neon" : "text-brand-muted"
                 )}
               >
-                Request Immediate Pickup
+                Book Now
               </Link>
               <Link
                 to="/track"
                 className={cn(
-                  "text-[11px] font-bold uppercase tracking-[0.2em] transition-colors hover:text-brand-neon",
+                  "text-sm font-semibold transition-colors hover:text-brand-neon",
                   location.pathname === "/track" ? "text-brand-neon" : "text-brand-muted"
                 )}
               >
-                Live Tracking
+                Track
               </Link>
             </div>
 
@@ -102,9 +102,9 @@ export const Navigation = () => {
               <ThemeToggle />
               <Link
                 to="/get-quote"
-                className="px-5 py-2 bg-brand-surface border border-brand-border text-brand-text font-bold rounded-lg text-[10px] uppercase tracking-widest hover:bg-brand-muted/10 transition-all"
+                className="px-6 py-2.5 bg-brand-neon text-brand-bg font-bold rounded-xl text-sm hover:opacity-90 transition-all shadow-lg shadow-brand-neon/20"
               >
-                Dispatch Now
+                Book Now
               </Link>
             </div>
 
@@ -136,30 +136,30 @@ export const Navigation = () => {
               <Link
                 to="/services"
                 onClick={() => setIsOpen(false)}
-                className="block text-2xl font-display font-medium tracking-tighter"
+                className="block text-2xl font-display font-medium tracking-tight hover:text-brand-neon transition-colors"
               >
-                Urgent Transit Routes
+                Routes
               </Link>
               <Link
                 to="/about"
                 onClick={() => setIsOpen(false)}
-                className="block text-2xl font-display font-medium tracking-tighter"
+                className="block text-2xl font-display font-medium tracking-tight hover:text-brand-neon transition-colors"
               >
-                About Nokael
+                About
               </Link>
               <Link
                 to="/get-quote"
                 onClick={() => setIsOpen(false)}
-                className="block text-2xl font-display font-medium tracking-tighter"
+                className="block text-2xl font-display font-medium tracking-tight hover:text-brand-neon transition-colors"
               >
-                Request Immediate Pickup
+                Book Now
               </Link>
               <Link
                 to="/track"
                 onClick={() => setIsOpen(false)}
-                className="block text-2xl font-display font-medium tracking-tighter"
+                className="block text-2xl font-display font-medium tracking-tight hover:text-brand-neon transition-colors"
               >
-                Live Tracking
+                Track
               </Link>
               <div className="pt-6 grid grid-cols-1 gap-4">
                 <a
@@ -170,7 +170,7 @@ export const Navigation = () => {
                   className="btn-primary w-full"
                 >
                   <MessageSquare className="w-4 h-4" />
-                  <span>WhatsApp Dispatch</span>
+                  <span>WhatsApp</span>
                 </a>
                 <a
                   href={`tel:${PHONE_NUMBER}`}
@@ -178,7 +178,7 @@ export const Navigation = () => {
                   className="btn-secondary w-full"
                 >
                   <Phone className="w-4 h-4" />
-                  <span>Call Dispatch</span>
+                  <span>Call Now</span>
                 </a>
               </div>
             </div>
@@ -199,77 +199,82 @@ export const Footer = () => {
               <div className="w-8 h-8 rounded overflow-hidden border border-brand-border transition-transform group-hover:scale-105">
                 <img src="/logo.svg" alt="Nokael Logo" width="32" height="32" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               </div>
-              <span className="text-lg font-display font-medium tracking-tighter uppercase">
+              <span className="text-lg font-display font-medium tracking-tight">
                 Nokael<span className="text-brand-neon">.</span>
               </span>
             </Link>
             <p className="text-brand-muted max-w-sm leading-relaxed mb-10 text-sm">
-              Direct-response logistics dispatch system for urgent inter-emirate delivery across the UAE. Built for operators, not browsers.
+              Same-day delivery between Dubai and Abu Dhabi. One driver, straight to the destination, no sorting hubs.
             </p>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 px-3 py-2 rounded-full bg-brand-surface border border-brand-border inline-flex">
               <div className="w-2 h-2 rounded-full bg-brand-neon" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted">System Status: Operational</span>
+              <span className="text-xs font-semibold text-brand-text">Operational</span>
             </div>
           </div>
           
           <div className="md:col-span-3">
-            <h2 className="text-brand-text font-bold uppercase tracking-[0.2em] text-[10px] mb-8">Logistics Corridors</h2>
-            <ul className="space-y-4 text-xs text-brand-muted">
-              <li className="flex items-center gap-2 group/link">
-                <div className="w-1 h-1 rounded-full bg-brand-neon opacity-0 group-hover/link:opacity-100 transition-opacity" />
-                <Link to="/urgent-delivery-dubai" className="hover:text-brand-neon transition-colors">Same-Day Transit in Dubai</Link>
+            <h2 className="text-brand-text font-bold text-xs uppercase tracking-wider mb-8">Quick Links</h2>
+            <ul className="space-y-4 text-sm text-brand-muted">
+              <li>
+                <Link to="/urgent-delivery-dubai" className="hover:text-brand-neon transition-colors">Dubai Same-Day</Link>
               </li>
-              <li className="flex items-center gap-2 group/link">
-                <div className="w-1 h-1 rounded-full bg-brand-neon opacity-0 group-hover/link:opacity-100 transition-opacity" />
-                <Link to="/urgent-delivery-abu-dhabi" className="hover:text-brand-neon transition-colors">Urgent Delivery Abu Dhabi</Link>
+              <li>
+                <Link to="/urgent-delivery-abu-dhabi" className="hover:text-brand-neon transition-colors">Abu Dhabi Urgent</Link>
               </li>
-              <li className="flex items-center gap-2 group/link">
-                <div className="w-1 h-1 rounded-full bg-brand-neon opacity-0 group-hover/link:opacity-100 transition-opacity" />
-                <Link to="/services" className="hover:text-brand-neon transition-colors">Urgent Inter-Emirate Routes</Link>
+              <li>
+                <Link to="/services" className="hover:text-brand-neon transition-colors">All Routes</Link>
               </li>
-              <li><Link to="/document-delivery-uae" className="hover:text-brand-neon transition-colors">Document Tenders</Link></li>
-              <li><Link to="/spare-parts-delivery-uae" className="hover:text-brand-neon transition-colors">Spare Parts Site Delivery</Link></li>
-              <li><Link to="/about" className="hover:text-brand-neon transition-colors">About the Network</Link></li>
+              <li>
+                <Link to="/document-delivery-uae" className="hover:text-brand-neon transition-colors">Document Delivery</Link>
+              </li>
+              <li>
+                <Link to="/spare-parts-delivery-uae" className="hover:text-brand-neon transition-colors">Parts Delivery</Link>
+              </li>
+              <li>
+                <Link to="/about" className="hover:text-brand-neon transition-colors">About</Link>
+              </li>
             </ul>
           </div>
 
           <div className="md:col-span-4">
-            <h2 className="text-brand-text font-bold uppercase tracking-[0.2em] text-[10px] mb-8">Dispatch Command</h2>
-            <ul className="space-y-4 text-xs text-brand-muted">
-              <li><Link to="/track" className="hover:text-brand-neon transition-colors">Live GPS Tracking</Link></li>
-              <li><Link to="/get-quote" className="hover:text-brand-neon transition-colors">Request Quote</Link></li>
+            <h2 className="text-brand-text font-bold text-xs uppercase tracking-wider mb-8">Contact</h2>
+            <ul className="space-y-4 text-sm text-brand-muted">
+              <li><Link to="/track" className="hover:text-brand-neon transition-colors">Track Order</Link></li>
+              <li><Link to="/get-quote" className="hover:text-brand-neon transition-colors">Get Quote</Link></li>
               <li><Link to="/business-account" className="hover:text-brand-neon transition-colors">Business Accounts</Link></li>
-              <li><Link to="/apply-driver" className="hover:text-brand-neon transition-colors">Driver Intake</Link></li>
+              <li><Link to="/apply-driver" className="hover:text-brand-neon transition-colors">Driver Application</Link></li>
               <li>
                 <a 
                   href={`https://wa.me/${WHATSAPP_NUMBER}`} 
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => trackWhatsAppClick('footer')}
-                  className="hover:text-brand-neon transition-colors"
+                  className="hover:text-brand-neon transition-colors inline-flex items-center gap-2"
                 >
-                  WhatsApp Dispatch
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>WhatsApp</span>
                 </a>
               </li>
               <li>
                 <a 
                   href={`tel:${PHONE_NUMBER}`} 
                   onClick={() => trackPhoneClick('footer')}
-                  className="hover:text-brand-neon transition-colors"
+                  className="hover:text-brand-neon transition-colors inline-flex items-center gap-2"
                 >
-                  {DISPLAY_PHONE}
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>{DISPLAY_PHONE}</span>
                 </a>
               </li>
             </ul>
           </div>
         </div>
         
-        <div className="pt-12 border-t border-brand-border flex flex-col md:flex-row justify-between items-center gap-6 text-[10px] text-brand-muted uppercase tracking-[0.3em] font-bold">
-          <p>© 2026 Nokael Dash Logistics </p>
+        <div className="pt-12 border-t border-brand-border flex flex-col md:flex-row justify-between items-center gap-6 text-xs text-brand-muted font-medium">
+          <p>© 2026 Nokael Dash Logistics</p>
           <div className="flex gap-8">
             <Link to="/privacy" className="hover:text-brand-text transition-colors">Privacy</Link>
             <Link to="/terms" className="hover:text-brand-text transition-colors">Terms</Link>
-            <p>Typically 30-60 min pickup</p>
+            <p>Pickup typically 30-60 min</p>
           </div>
         </div>
       </div>

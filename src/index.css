@@ -47,6 +47,10 @@
     /* Hide scrollbar for IE, Edge and Firefox */
     -ms-overflow-style: none;
     scrollbar-width: none;
+    /* Add subtle texture to reduce flatness */
+    background-image: 
+      radial-gradient(at 40% 20%, rgba(57, 255, 20, 0.02) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, rgba(45, 125, 255, 0.02) 0px, transparent 50%);
   }
   
   /* Hide scrollbar for Chrome, Safari and Opera */
@@ -57,6 +61,10 @@
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-display font-medium tracking-tight;
+    /* Add subtle text rendering for less digital feel */
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
@@ -80,19 +88,36 @@
 }
 
 .dispatch-card:hover {
-  @apply border-brand-neon/20 shadow-[0_8px_30px_rgba(0,0,0,0.1)];
+  @apply border-brand-border;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  transform: translateY(-1px);
 }
 
 .neon-glow {
-  box-shadow: 0 0 20px rgba(57, 255, 20, 0.15);
+  box-shadow: 0 0 16px rgba(57, 255, 20, 0.12);
 }
 
 .btn-primary {
   @apply bg-brand-neon text-brand-bg font-bold px-6 py-4 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2;
+  box-shadow: 0 2px 8px rgba(57, 255, 20, 0.2);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 4px 12px rgba(57, 255, 20, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  box-shadow: 0 1px 4px rgba(57, 255, 20, 0.15);
 }
 
 .btn-secondary {
-  @apply bg-brand-surface border border-brand-border text-brand-text font-bold px-6 py-4 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 hover:bg-brand-muted/10;
+  @apply bg-brand-surface border border-brand-border text-brand-text font-bold px-6 py-4 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 hover:bg-brand-input;
+}
+
+.btn-secondary:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
 }
 
 /* Asymmetry & Rhythm */
@@ -116,4 +141,47 @@
   background-image: linear-gradient(to bottom, rgba(13, 13, 13, 0.8), rgba(13, 13, 13, 1)), url('https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=1920&fm=webp');
   background-size: cover;
   background-position: center;
+}
+
+/* Enhanced interaction states - simplified */
+.float-on-hover:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s ease;
+}
+
+/* Better focus states for accessibility */
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible {
+  outline: 2px solid var(--color-brand-neon);
+  outline-offset: 2px;
+}
+
+/* Improved card texture */
+.card-texture {
+  background-image: 
+    linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%),
+    radial-gradient(at 50% 0%, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
+}
+
+/* Better link underlines */
+a:not(.btn-primary):not(.btn-secondary):hover {
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
