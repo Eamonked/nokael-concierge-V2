@@ -66,6 +66,8 @@ import {
   getQuoteRequests, 
   updateQuoteStatus, 
   deleteQuoteRequest, 
+  markQuoteAsLost,
+  reopenQuoteRequest,
   assignDriverToJob,
   type QuoteRequest,
   getDrivers,
@@ -152,6 +154,7 @@ export default function Dashboard() {
   const [jobPrefillData, setJobPrefillData] = React.useState<Partial<Job> | undefined>(undefined);
   const [jobViewMode, setJobViewMode] = React.useState<'kanban' | 'list'>('kanban');
   const [jobStatusFilter, setJobStatusFilter] = React.useState<'all' | 'pending' | 'in_transit' | 'completed' | 'cancelled'>('all');
+  const [lostModalQuote, setLostModalQuote] = React.useState<QuoteRequest | null>(null);
 
   const [loading, setLoading] = React.useState(true);
   const [isUpdating, setIsUpdating] = React.useState<string | null>(null);
@@ -159,7 +162,7 @@ export default function Dashboard() {
   const [copiedDriverLink, setCopiedDriverLink] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
-  const [filterStatus, setFilterStatus] = React.useState<string>('all');
+  const [filterStatus, setFilterStatus] = React.useState<string>('active');
   const [filterVehicle, setFilterVehicle] = React.useState<string>('all');
   const navigate = useNavigate();
 
@@ -260,6 +263,26 @@ export default function Dashboard() {
     setShowJobCreateModal(true);
   };
 
+  const handleConfirmMarkLost = async (reason: string) => {
+    if (!lostModalQuote?.id) return;
+    try {
+      await markQuoteAsLost(lostModalQuote.id, reason);
+      setRequests(prev => prev.map(r => r.id === lostModalQuote.id ? { ...r, status: 'lost', lost_reason: reason, lost_at: new Date().toISOString() } : r));
+      setLostModalQuote(null);
+    } catch (error: any) {
+      alert(`Failed to mark quote as lost: ${error.message || error}`);
+    }
+  };
+
+  const handleReopenQuote = async (id: string) => {
+    try {
+      await reopenQuoteRequest(id);
+      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'pending', lost_reason: null, lost_at: null } : r));
+    } catch (error: any) {
+      alert(`Failed to reopen quote: ${error.message || error}`);
+    }
+  };
+
   const handleDriverStatusUpdate = async (id: string, updates: Partial<Driver>) => {
     setIsUpdating(id);
     try {
@@ -318,7 +341,15 @@ export default function Dashboard() {
                           r.delivery_location.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (r.corporate_code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (r.tracking_id || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || r.status === filterStatus;
+    
+    let matchesFilter = true;
+    if (filterStatus === 'active') {
+      // Active = pending or contacted (not completed or lost)
+      matchesFilter = r.status === 'pending' || r.status === 'contacted';
+    } else if (filterStatus !== 'all') {
+      matchesFilter = r.status === filterStatus;
+    }
+    
     return matchesSearch && matchesFilter;
   });
 
@@ -802,14 +833,12 @@ export default function Dashboard() {
                     value={filterStatus}
                     onChange={e => setFilterStatus(e.target.value)}
                   >
+                    <option value="active">Active (Pending + Contacted)</option>
                     <option value="all">All status</option>
                     <option value="pending">Pending</option>
-                    <option value="assigned">Assigned</option>
-                    <option value="picked_up">Picked up</option>
-                    <option value="in_transit">In transit</option>
-                    <option value="delivered">Delivered</option>
                     <option value="contacted">Contacted</option>
-                    <option value="completed">Completed</option>
+                    <option value="completed">Completed / Converted</option>
+                    <option value="lost">Lost / Never Converted</option>
                   </select>
                 </div>
               </div>
@@ -841,6 +870,20 @@ export default function Dashboard() {
                             {req.tracking_id && (
                               <div className="text-[11px] text-brand-muted font-medium font-mono">ID: {req.tracking_id}</div>
                             )}
+                            {req.status === 'lost' && req.lost_reason && (
+                              <div className="flex items-start gap-1.5 mt-1 p-2 bg-red-500/5 border border-red-500/20 rounded">
+                                <AlertTriangle className="w-3 h-3 text-red-500 shrink-0 mt-0.5" />
+                                <div>
+                                  <div className="text-[10px] text-red-500/70 font-medium uppercase tracking-wide mb-0.5">Lost Reason:</div>
+                                  <div className="text-xs text-red-500 font-medium">{req.lost_reason}</div>
+                                  {req.lost_at && (
+                                    <div className="text-[10px] text-red-500/60 font-medium mt-0.5">
+                                      {format(new Date(req.lost_at), 'MMM d, yyyy')}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -868,30 +911,57 @@ export default function Dashboard() {
                             value={req.status}
                             onChange={(e) => handleStatusUpdate(req.id!, e.target.value as any)}
                             className={`text-[11px] font-medium uppercase tracking-wide px-4 py-2 rounded-lg border outline-none transition-all ${
-                              req.status === 'completed' || req.status === 'delivered' ? 'bg-brand-neon/5 border-brand-neon/20 text-brand-neon' :
-                              req.status === 'in_transit' || req.status === 'picked_up' ? 'bg-blue-500/5 border-blue-500/20 text-blue-500' :
-                              req.status === 'assigned' ? 'bg-purple-500/5 border-purple-500/20 text-purple-500' :
+                              req.status === 'completed' ? 'bg-brand-neon/5 border-brand-neon/20 text-brand-neon' :
+                              req.status === 'contacted' ? 'bg-blue-500/5 border-blue-500/20 text-blue-500' :
+                              req.status === 'lost' ? 'bg-red-500/5 border-red-500/20 text-red-500' :
                               'bg-yellow-500/5 border-yellow-500/20 text-yellow-500'
                             }`}
                           >
                             <option value="pending">Pending</option>
-                            <option value="assigned">Assigned</option>
-                            <option value="picked_up">Picked Up</option>
-                            <option value="in_transit">In Transit</option>
-                            <option value="delivered">Delivered</option>
-                            <option value="completed">Completed</option>
+                            <option value="contacted">Contacted</option>
+                            <option value="completed">Completed / Converted</option>
+                            <option value="lost">Lost / Never Converted</option>
                           </select>
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <button 
-                              onClick={() => handleConvertToJob(req)}
-                              title="Create Job"
-                              className="px-3 py-1.5 bg-brand-neon/10 text-brand-neon text-xs font-medium rounded-lg flex items-center gap-1.5 hover:bg-brand-neon hover:text-brand-bg transition-all"
-                            >
-                              <Zap className="w-3.5 h-3.5" />
-                              Create Job
-                            </button>
+                            {req.status === 'completed' ? (
+                              <span
+                                title="This quote has already been converted to a job"
+                                className="px-3 py-1.5 bg-brand-neon/5 text-brand-neon/70 text-xs font-medium rounded-lg flex items-center gap-1.5"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                Converted
+                              </span>
+                            ) : req.status === 'lost' ? (
+                              <button 
+                                onClick={() => handleReopenQuote(req.id!)}
+                                title="Reopen Quote"
+                                className="px-3 py-1.5 bg-blue-500/10 text-blue-500 text-xs font-medium rounded-lg flex items-center gap-1.5 hover:bg-blue-500 hover:text-white transition-all"
+                              >
+                                <Undo2 className="w-3.5 h-3.5" />
+                                Reopen
+                              </button>
+                            ) : (
+                              <>
+                                <button 
+                                  onClick={() => handleConvertToJob(req)}
+                                  title="Create Job"
+                                  className="px-3 py-1.5 bg-brand-neon/10 text-brand-neon text-xs font-medium rounded-lg flex items-center gap-1.5 hover:bg-brand-neon hover:text-brand-bg transition-all"
+                                >
+                                  <Zap className="w-3.5 h-3.5" />
+                                  Create Job
+                                </button>
+                                <button 
+                                  onClick={() => setLostModalQuote(req)}
+                                  title="Mark as Lost"
+                                  className="px-3 py-1.5 bg-red-500/10 text-red-500 text-xs font-medium rounded-lg flex items-center gap-1.5 hover:bg-red-500 hover:text-white transition-all"
+                                >
+                                  <XCircle className="w-3.5 h-3.5" />
+                                  Mark Lost
+                                </button>
+                              </>
+                            )}
                             <a 
                               href={`https://wa.me/${req.phone.replace(/\D/g, '')}`}
                               target="_blank"
@@ -1535,6 +1605,7 @@ export default function Dashboard() {
         )}
         {showJobCreateModal && (
           <JobCreateModal 
+            key={jobPrefillData?.quote_id || 'manual-new'}
             initialData={jobPrefillData}
             drivers={approvedDrivers}
             onClose={() => {
@@ -1542,6 +1613,13 @@ export default function Dashboard() {
               setJobPrefillData(undefined);
             }}
             onSuccess={fetchData}
+          />
+        )}
+        {lostModalQuote && (
+          <LostQuoteModal
+            quote={lostModalQuote}
+            onClose={() => setLostModalQuote(null)}
+            onConfirm={handleConfirmMarkLost}
           />
         )}
       </AnimatePresence>
@@ -1743,11 +1821,65 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
   const [actingStep, setActingStep] = React.useState<string | null>(null);
   const [stepNotes, setStepNotes] = React.useState<Record<string, string>>({});
 
+  // Editable Job Details (sender/recipient/route/item — for correcting mistakes
+  // made at intake without having to cancel and re-create the whole job)
+  const [editingDetails, setEditingDetails] = React.useState(false);
+  const [savingDetails, setSavingDetails] = React.useState(false);
+  const buildDetailsForm = (j: JobWithDriver) => ({
+    sender_name: j.sender_name || '',
+    sender_phone: j.sender_phone || '',
+    recipient_name: j.recipient_name || '',
+    recipient_phone: j.recipient_phone || '',
+    pickup_emirate: j.pickup_emirate || 'Dubai',
+    pickup_location: j.pickup_location || '',
+    delivery_emirate: j.delivery_emirate || 'Abu Dhabi',
+    delivery_location: j.delivery_location || '',
+    item_type: (j.item_type || 'parcel') as ItemType,
+    urgency: (j.urgency || 'immediate') as UrgencyType,
+    price_aed: j.price_aed != null ? String(j.price_aed) : '',
+    special_instructions: j.special_instructions || '',
+  });
+  const [detailsForm, setDetailsForm] = React.useState(buildDetailsForm(job));
+
   // Keep targetStatus in sync when job updates
   React.useEffect(() => {
     setTargetStatus(job.status || 'pending');
     setOperatorNotes(job.operator_notes || '');
-  }, [job.status, job.operator_notes]);
+    // Only reset the details form from server data while not actively
+    // editing, so a realtime refresh mid-edit doesn't clobber unsaved input.
+    if (!editingDetails) {
+      setDetailsForm(buildDetailsForm(job));
+    }
+  }, [job.status, job.operator_notes, job.sender_name, job.sender_phone, job.recipient_name, job.recipient_phone, job.pickup_emirate, job.pickup_location, job.delivery_emirate, job.delivery_location, job.item_type, job.urgency, job.price_aed, job.special_instructions]);
+
+  const handleSaveDetails = async () => {
+    setSavingDetails(true);
+    try {
+      const priceVal = detailsForm.price_aed.trim() === '' ? null : Number(detailsForm.price_aed);
+      await updateJob(job.id!, {
+        sender_name: detailsForm.sender_name,
+        sender_phone: detailsForm.sender_phone,
+        recipient_name: detailsForm.recipient_name,
+        recipient_phone: detailsForm.recipient_phone,
+        pickup_emirate: detailsForm.pickup_emirate,
+        pickup_location: detailsForm.pickup_location,
+        delivery_emirate: detailsForm.delivery_emirate,
+        delivery_location: detailsForm.delivery_location,
+        item_type: detailsForm.item_type,
+        urgency: detailsForm.urgency,
+        price_aed: priceVal !== null && !isNaN(priceVal) ? priceVal : null,
+        special_instructions: detailsForm.special_instructions,
+      });
+      setEditingDetails(false);
+      setOverrideMessage('Job details updated.');
+      setTimeout(() => setOverrideMessage(null), 2500);
+      onUpdate();
+    } catch (err: any) {
+      alert(`Failed to update job details: ${err.message || err}`);
+    } finally {
+      setSavingDetails(false);
+    }
+  };
 
   const handleNextStage = async () => {
     const currentIndex = STAGE_ORDER.indexOf(job.status as any);
@@ -2142,28 +2274,202 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
               )}
             </div>
 
-            {/* Consignor & Consignee Details */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Consignor (Sender)</p>
-                <div className="p-4 bg-brand-input rounded-2xl border border-brand-border">
-                  <p className="text-sm font-semibold text-brand-text mb-0.5 truncate">{job.sender_name}</p>
-                  <p className="text-xs font-mono text-brand-neon">{job.sender_phone}</p>
-                  <div className="mt-2 text-xs text-brand-muted line-clamp-2">
-                    <span className="text-brand-text font-medium">{job.pickup_emirate}:</span> {job.pickup_location}
+            {/* Job Details — editable so operators can correct mistakes made at intake */}
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Job Details</p>
+                {!editingDetails ? (
+                  <button
+                    type="button"
+                    onClick={() => { setDetailsForm(buildDetailsForm(job)); setEditingDetails(true); }}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-brand-input hover:bg-brand-surface border border-brand-border rounded-lg text-[11px] font-semibold text-brand-muted hover:text-brand-text transition-all"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                    Edit Details
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={savingDetails}
+                      onClick={() => { setDetailsForm(buildDetailsForm(job)); setEditingDetails(false); }}
+                      className="px-2.5 py-1 bg-brand-input hover:bg-brand-surface border border-brand-border rounded-lg text-[11px] font-semibold text-brand-muted disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={savingDetails}
+                      onClick={handleSaveDetails}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-neon text-brand-bg rounded-lg text-[11px] font-bold disabled:opacity-50"
+                    >
+                      {savingDetails ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                      Save Changes
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {!editingDetails ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Consignor (Sender)</p>
+                    <div className="p-4 bg-brand-input rounded-2xl border border-brand-border">
+                      <p className="text-sm font-semibold text-brand-text mb-0.5 truncate">{job.sender_name}</p>
+                      <p className="text-xs font-mono text-brand-neon">{job.sender_phone}</p>
+                      <div className="mt-2 text-xs text-brand-muted line-clamp-2">
+                        <span className="text-brand-text font-medium">{job.pickup_emirate}:</span> {job.pickup_location}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Consignee (Recipient)</p>
+                    <div className="p-4 bg-brand-input rounded-2xl border border-brand-border">
+                      <p className="text-sm font-semibold text-brand-text mb-0.5 truncate">{job.recipient_name}</p>
+                      <p className="text-xs font-mono text-brand-neon">{job.recipient_phone}</p>
+                      <div className="mt-2 text-xs text-brand-muted line-clamp-2">
+                        <span className="text-brand-text font-medium">{job.delivery_emirate}:</span> {job.delivery_location}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-span-2 grid grid-cols-3 gap-3">
+                    <div className="p-3 bg-brand-input rounded-xl border border-brand-border">
+                      <p className="text-[10px] uppercase text-brand-muted mb-1">Item</p>
+                      <p className="text-xs font-medium text-brand-text capitalize">{job.item_type?.replace('_', ' ') || '—'}</p>
+                    </div>
+                    <div className="p-3 bg-brand-input rounded-xl border border-brand-border">
+                      <p className="text-[10px] uppercase text-brand-muted mb-1">Urgency</p>
+                      <p className="text-xs font-medium text-brand-text capitalize">{job.urgency || '—'}</p>
+                    </div>
+                    <div className="p-3 bg-brand-input rounded-xl border border-brand-border">
+                      <p className="text-[10px] uppercase text-brand-muted mb-1">Price (AED)</p>
+                      <p className="text-xs font-medium text-brand-text">{job.price_aed != null ? job.price_aed : '—'}</p>
+                    </div>
+                  </div>
+                  {job.special_instructions && (
+                    <div className="col-span-2 p-3 bg-brand-input rounded-xl border border-brand-border">
+                      <p className="text-[10px] uppercase text-brand-muted mb-1">Special Instructions</p>
+                      <p className="text-xs text-brand-text whitespace-pre-wrap">{job.special_instructions}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4 p-4 bg-brand-input/60 border border-brand-neon/30 rounded-2xl">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Consignor (Sender)</p>
+                      <input
+                        value={detailsForm.sender_name}
+                        onChange={(e) => setDetailsForm(prev => ({ ...prev, sender_name: e.target.value }))}
+                        placeholder="Sender name"
+                        className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-3 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
+                      />
+                      <input
+                        value={detailsForm.sender_phone}
+                        onChange={(e) => setDetailsForm(prev => ({ ...prev, sender_phone: e.target.value }))}
+                        placeholder="Sender phone"
+                        className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-3 py-2 text-xs font-mono text-brand-text outline-none focus:border-brand-neon"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          value={detailsForm.pickup_emirate}
+                          onChange={(e) => setDetailsForm(prev => ({ ...prev, pickup_emirate: e.target.value }))}
+                          className="bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
+                        >
+                          {['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'RAK', 'Fujairah', 'UMM Al Quwain'].map(e => <option key={e} value={e}>{e}</option>)}
+                        </select>
+                        <input
+                          value={detailsForm.pickup_location}
+                          onChange={(e) => setDetailsForm(prev => ({ ...prev, pickup_location: e.target.value }))}
+                          placeholder="Pickup address"
+                          className="bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Consignee (Recipient)</p>
+                      <input
+                        value={detailsForm.recipient_name}
+                        onChange={(e) => setDetailsForm(prev => ({ ...prev, recipient_name: e.target.value }))}
+                        placeholder="Recipient name"
+                        className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-3 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
+                      />
+                      <input
+                        value={detailsForm.recipient_phone}
+                        onChange={(e) => setDetailsForm(prev => ({ ...prev, recipient_phone: e.target.value }))}
+                        placeholder="Recipient phone"
+                        className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-3 py-2 text-xs font-mono text-brand-text outline-none focus:border-brand-neon"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          value={detailsForm.delivery_emirate}
+                          onChange={(e) => setDetailsForm(prev => ({ ...prev, delivery_emirate: e.target.value }))}
+                          className="bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
+                        >
+                          {['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'RAK', 'Fujairah', 'UMM Al Quwain'].map(e => <option key={e} value={e}>{e}</option>)}
+                        </select>
+                        <input
+                          value={detailsForm.delivery_location}
+                          onChange={(e) => setDetailsForm(prev => ({ ...prev, delivery_location: e.target.value }))}
+                          placeholder="Delivery address"
+                          className="bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] uppercase text-brand-muted mb-1">Item</label>
+                      <select
+                        value={detailsForm.item_type}
+                        onChange={(e) => setDetailsForm(prev => ({ ...prev, item_type: e.target.value as ItemType }))}
+                        className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
+                      >
+                        <option value="parcel">Parcel</option>
+                        <option value="document">Document</option>
+                        <option value="spare_part">Spare Part</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase text-brand-muted mb-1">Urgency</label>
+                      <select
+                        value={detailsForm.urgency}
+                        onChange={(e) => setDetailsForm(prev => ({ ...prev, urgency: e.target.value as UrgencyType }))}
+                        className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
+                      >
+                        <option value="immediate">Immediate</option>
+                        <option value="today">Today</option>
+                        <option value="scheduled">Scheduled</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase text-brand-muted mb-1">Price (AED)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={detailsForm.price_aed}
+                        onChange={(e) => setDetailsForm(prev => ({ ...prev, price_aed: e.target.value }))}
+                        placeholder="e.g. 45"
+                        className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs font-mono text-brand-text outline-none focus:border-brand-neon"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] uppercase text-brand-muted mb-1">Special Instructions</label>
+                    <textarea
+                      value={detailsForm.special_instructions}
+                      onChange={(e) => setDetailsForm(prev => ({ ...prev, special_instructions: e.target.value }))}
+                      placeholder="e.g. Fragile, call before arrival, gate code..."
+                      rows={2}
+                      className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-3 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
+                    />
                   </div>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Consignee (Recipient)</p>
-                <div className="p-4 bg-brand-input rounded-2xl border border-brand-border">
-                  <p className="text-sm font-semibold text-brand-text mb-0.5 truncate">{job.recipient_name}</p>
-                  <p className="text-xs font-mono text-brand-neon">{job.recipient_phone}</p>
-                  <div className="mt-2 text-xs text-brand-muted line-clamp-2">
-                    <span className="text-brand-text font-medium">{job.delivery_emirate}:</span> {job.delivery_location}
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Pilot Assignment */}
@@ -2570,12 +2876,19 @@ const JobCreateModal = ({ onClose, onSuccess, initialData, drivers }: { onClose:
       
       const result = await createJob(payload);
 
-      // If it came from a quote, update the quote status
+      // If it came from a quote, mark the source quote as converted.
+      // 'completed' is the only DB-valid status besides pending/contacted
+      // (see quote_requests_status CHECK constraint) — using anything else
+      // (e.g. 'assigned') fails silently and leaves the quote stuck as
+      // 'pending', so it never disappears from the active quotes list.
       if (formData.quote_id && supabase) {
-        await supabase
+        const { error: quoteError } = await supabase
           .from('quote_requests')
-          .update({ status: 'assigned' })
+          .update({ status: 'completed' })
           .eq('id', formData.quote_id);
+        if (quoteError) {
+          console.error('Error marking quote as converted:', quoteError);
+        }
       }
 
       await sendTelegramNotification(formatJobAssignmentNotification({
@@ -2965,6 +3278,151 @@ const InviteModal = ({ orgId, onClose, onSuccess }: { orgId: string; onClose: ()
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
             Send Invite
           </button>
+        </form>
+      </motion.div>
+    </div>
+  );
+};
+
+const LostQuoteModal = ({ quote, onClose, onConfirm }: { quote: QuoteRequest; onClose: () => void; onConfirm: (reason: string) => void }) => {
+  const [reason, setReason] = React.useState('');
+  const [customReason, setCustomReason] = React.useState('');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const COMMON_LOST_REASONS = [
+    'Customer went with a competitor',
+    'Price objection / Too expensive',
+    'Customer stopped responding / Went dark',
+    'Customer no longer needs the service',
+    'Timing / Urgency mismatch',
+    'Service area / Route not supported',
+    'Corporate account setup required',
+    'Custom reason (specify below)',
+  ];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const finalReason = reason === 'Custom reason (specify below)' 
+      ? customReason.trim() 
+      : reason;
+    
+    if (!finalReason) {
+      alert('Please select or enter a reason');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onConfirm(finalReason);
+      onClose();
+    } catch (error) {
+      console.error('Error marking quote as lost:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-brand-bg/90 backdrop-blur-md"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative w-full max-w-lg bg-brand-bg border border-brand-border rounded-3xl shadow-2xl overflow-hidden"
+      >
+        <div className="p-6 border-b border-brand-border flex justify-between items-start">
+          <div>
+            <h2 className="text-lg font-display font-medium tracking-tight flex items-center gap-2">
+              <XCircle className="w-5 h-5 text-red-500" />
+              Mark Quote as Lost
+            </h2>
+            <p className="text-xs text-brand-muted mt-1">
+              Document why this quote never converted to a job
+            </p>
+          </div>
+          <button onClick={onClose} className="p-2 bg-brand-input rounded-full text-brand-muted hover:text-brand-text transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Quote summary */}
+          <div className="p-4 bg-brand-surface border border-brand-border rounded-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <User className="w-3.5 h-3.5 text-brand-neon" />
+              <span className="text-sm font-medium">{quote.name}</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-brand-muted">
+              <MapPin className="w-3 h-3" />
+              <span>{quote.pickup_location} → {quote.delivery_location}</span>
+            </div>
+          </div>
+
+          {/* Reason selection */}
+          <div>
+            <label className="block text-[11px] font-semibold text-brand-muted uppercase mb-2">
+              Why didn't this quote convert?
+            </label>
+            <select
+              required
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full bg-brand-input border border-brand-input-border rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-neon/50"
+            >
+              <option value="">Select a reason...</option>
+              {COMMON_LOST_REASONS.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Custom reason textarea */}
+          {reason === 'Custom reason (specify below)' && (
+            <div>
+              <label className="block text-[11px] font-semibold text-brand-muted uppercase mb-2">
+                Custom Reason
+              </label>
+              <textarea
+                required
+                value={customReason}
+                onChange={(e) => setCustomReason(e.target.value)}
+                placeholder="Enter specific details..."
+                className="w-full bg-brand-input border border-brand-input-border rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-neon/50 min-h-[100px] resize-none"
+              />
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3 bg-brand-input border border-brand-input-border text-brand-text text-xs font-medium uppercase tracking-wide rounded-xl hover:bg-brand-surface transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting || !reason}
+              className="flex-1 py-3 bg-red-500 text-white text-xs font-medium uppercase tracking-wide rounded-xl hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4" />
+                  Mark as Lost
+                </>
+              )}
+            </button>
+          </div>
         </form>
       </motion.div>
     </div>

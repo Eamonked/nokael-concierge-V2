@@ -139,8 +139,12 @@ export interface QuoteRequest {
   name: string;
   phone: string;
   whatsapp_opt_in: boolean;
-  // DB CHECK: only these 3 statuses are valid
-  status?: 'pending' | 'contacted' | 'completed';
+  // DB CHECK: only these 4 statuses are valid (see
+  // supabase-quote-lost-status.sql for the 'lost' migration)
+  status?: 'pending' | 'contacted' | 'completed' | 'lost';
+  // Populated when status === 'lost' — why the quote never converted
+  lost_reason?: string | null;
+  lost_at?: string | null;
   tracking_id?: string;
   customer_type?: 'business' | 'personal';
   company_name?: string;
@@ -226,6 +230,49 @@ export const deleteQuoteRequest = async (id: string): Promise<void> => {
   if (!supabase) return;
   const { error } = await supabase.from('quote_requests').delete().eq('id', id);
   if (error) throw error;
+};
+
+/**
+ * Explicitly flag a quote as "lost" — i.e. it will never become a job
+ * (customer went dark, price objection, went with a competitor, etc).
+ * Distinct from 'completed', which means it WAS converted into a job.
+ * Captures a reason + timestamp for reporting.
+ */
+export const markQuoteAsLost = async (
+  id: string,
+  reason: string
+): Promise<QuoteRequest[] | null> => {
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from('quote_requests')
+    .update({
+      status: 'lost',
+      lost_reason: reason,
+      lost_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select();
+
+  if (error) throw error;
+  return data as QuoteRequest[];
+};
+
+/**
+ * Reopen a lost (or otherwise stale) quote back to 'pending', clearing
+ * the lost reason/timestamp so it re-enters the active pipeline.
+ */
+export const reopenQuoteRequest = async (id: string): Promise<QuoteRequest[] | null> => {
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from('quote_requests')
+    .update({ status: 'pending', lost_reason: null, lost_at: null })
+    .eq('id', id)
+    .select();
+
+  if (error) throw error;
+  return data as QuoteRequest[];
 };
 
 export const getQuoteByTrackingId = async (trackingId: string): Promise<QuoteRequest | null> => {
