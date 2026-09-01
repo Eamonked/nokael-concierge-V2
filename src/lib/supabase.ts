@@ -599,6 +599,13 @@ export const assignDriverToJob = async (
     .single();
 
   if (error) throw error;
+  
+  // Populate driver details if a driver was assigned
+  if (driverId && data) {
+    const populated = await populateJobsDrivers([data]);
+    return populated[0] as Job;
+  }
+  
   return mapJobDbToClient(data as Job);
 };
 

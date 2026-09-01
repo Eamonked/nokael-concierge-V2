@@ -184,5 +184,75 @@ export function createPoolRouter() {
     }
   });
 
+  // POST /api/pool/drivers
+  // Registers a new driver into the calling org's own pool via
+  // register_driver_for_org. Added for driverapp/ (the standalone driver
+  // onboarding app) to push a fully-onboarded applicant in once they reach
+  // `active` status -- mirrors POST /jobs exactly: same key auth, same
+  // trust-the-verified-org_id shape, same SECURITY DEFINER RPC pattern.
+  // See supabase-pool-register-driver.sql.
+  router.post("/drivers", async (req: PoolRequest, res: Response) => {
+    const client = getServiceClient()!;
+    const { full_name, phone, vehicle_type, vehicle_plate, areas_covered } = req.body ?? {};
+
+    const required = { full_name, phone, vehicle_type };
+    const missing = Object.entries(required)
+      .filter(([, v]) => typeof v !== "string" || v.trim() === "")
+      .map(([k]) => k);
+
+    if (missing.length > 0) {
+      return res.status(400).json({ error: `Missing required fields: ${missing.join(", ")}` });
+    }
+
+    try {
+      const { data, error } = await client.rpc("register_driver_for_org", {
+        org_id: req.orgId,
+        p_full_name: full_name,
+        p_phone: phone,
+        p_vehicle_type: vehicle_type,
+        p_vehicle_plate: vehicle_plate ?? null,
+        p_areas_covered: Array.isArray(areas_covered) ? areas_covered : [],
+      });
+
+      if (error) {
+        console.error("[pool] register_driver_for_org error:", error);
+        return res.status(400).json({ error: error.message });
+      }
+
+      return res.status(201).json(data);
+    } catch (err) {
+      console.error("[pool] Unexpected error in POST /drivers:", err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // GET /api/pool/drivers/:driverId/jobs
+  // Active/assigned jobs for one driver in the calling org, with the
+  // driver-facing tokens needed for confirm_job_step. Backs driverapp/'s
+  // job-feed screen. Does not itself touch confirm_job_step -- the app
+  // calls that directly via supabase.rpc, same as Nokael-Confirmation-
+  // Portal already does.
+  router.get("/drivers/:driverId/jobs", async (req: PoolRequest, res: Response) => {
+    const client = getServiceClient()!;
+    const { driverId } = req.params;
+
+    try {
+      const { data, error } = await client.rpc("list_driver_jobs_for_org", {
+        org_id: req.orgId,
+        p_driver_id: driverId,
+      });
+
+      if (error) {
+        console.error("[pool] list_driver_jobs_for_org error:", error);
+        return res.status(400).json({ error: error.message });
+      }
+
+      return res.json({ jobs: data ?? [] });
+    } catch (err) {
+      console.error("[pool] Unexpected error in GET /drivers/:driverId/jobs:", err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   return router;
 }

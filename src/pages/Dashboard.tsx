@@ -231,6 +231,20 @@ export default function Dashboard() {
       setDrivers(driversData);
       setBusinessInquiries(businessData);
       setJobs(jobsData);
+      
+      // If a job is currently selected, update it with fresh data
+      if (selectedJob?.id) {
+        const updatedSelected = jobsData.find(j => j.id === selectedJob.id);
+        if (updatedSelected) {
+          console.log('[Dashboard] Updating selectedJob with fresh data:', {
+            old_pickup: selectedJob.pickup_emirate,
+            new_pickup: updatedSelected.pickup_emirate,
+            old_delivery: selectedJob.delivery_emirate,
+            new_delivery: updatedSelected.delivery_emirate
+          });
+          setSelectedJob(updatedSelected);
+        }
+      }
     } catch (err: any) {
       console.error('Error fetching data:', err);
       setError(err.message || 'Failed to fetch data.');
@@ -1745,45 +1759,45 @@ const STAGE_ORDER: JobStatus[] = ['pending', 'client_pickup', 'driver_pickup', '
 
 const STAGE_CONFIG: Record<JobStatus, { label: string; short: string; color: string; desc: string; icon: any }> = {
   pending: {
-    label: 'Pending Dispatch',
+    label: 'Waiting for Driver',
     short: 'Pending',
     color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
-    desc: 'Job created, awaiting driver pickup or sender handover.',
+    desc: 'Job created, need to assign a driver for pickup.',
     icon: Clock
   },
   client_pickup: {
-    label: 'Sender Handover',
-    short: 'Sender Handover',
+    label: 'Driver Collecting from Sender',
+    short: 'Pickup',
     color: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    desc: 'Sender confirmed item handover to driver.',
+    desc: 'Driver is picking up the package from sender.',
     icon: Package
   },
   driver_pickup: {
-    label: 'Driver In-Transit',
+    label: 'Driver Has Package - In Transit',
     short: 'In Transit',
     color: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-    desc: 'Driver confirmed package in custody, moving along corridor.',
+    desc: 'Driver confirmed they have the package and are delivering it.',
     icon: Truck
   },
   driver_delivery: {
-    label: 'Destination Arrival',
+    label: 'Driver Arrived at Recipient',
     short: 'Arrived',
     color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
-    desc: 'Driver arrived at recipient drop-off point.',
+    desc: 'Driver is at the delivery location with the package.',
     icon: Navigation
   },
   completed: {
-    label: 'Delivered & Signed',
+    label: 'Delivered Successfully ✓',
     short: 'Completed',
     color: 'bg-brand-neon/10 text-brand-neon border-brand-neon/20',
-    desc: 'Recipient confirmed package delivery. Full COC sealed.',
+    desc: 'Recipient confirmed they received the package. Job complete!',
     icon: CheckCircle2
   },
   cancelled: {
-    label: 'Failed / Cancelled',
-    short: 'Failed',
+    label: 'Cancelled',
+    short: 'Cancelled',
     color: 'bg-red-500/10 text-red-400 border-red-500/20',
-    desc: 'Job encountered an operational failure or cancellation.',
+    desc: 'Job could not be completed.',
     icon: Ban
   }
 };
@@ -1825,20 +1839,57 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
   // made at intake without having to cancel and re-create the whole job)
   const [editingDetails, setEditingDetails] = React.useState(false);
   const [savingDetails, setSavingDetails] = React.useState(false);
-  const buildDetailsForm = (j: JobWithDriver) => ({
-    sender_name: j.sender_name || '',
-    sender_phone: j.sender_phone || '',
-    recipient_name: j.recipient_name || '',
-    recipient_phone: j.recipient_phone || '',
-    pickup_emirate: j.pickup_emirate || 'Dubai',
-    pickup_location: j.pickup_location || '',
-    delivery_emirate: j.delivery_emirate || 'Abu Dhabi',
-    delivery_location: j.delivery_location || '',
-    item_type: (j.item_type || 'parcel') as ItemType,
-    urgency: (j.urgency || 'immediate') as UrgencyType,
-    price_aed: j.price_aed != null ? String(j.price_aed) : '',
-    special_instructions: j.special_instructions || '',
-  });
+  const buildDetailsForm = (j: JobWithDriver) => {
+    // Sanitize emirate fields - legacy jobs may have concatenated values like "Dubai → Abu Dhabi"
+    const sanitizePickupEmirate = (emirate: string | undefined | null): string => {
+      if (!emirate) return 'Dubai';
+      // If the emirate contains an arrow, extract the first part (pickup origin)
+      if (emirate.includes('→')) {
+        const parts = emirate.split('→').map(p => p.trim());
+        const cleaned = parts[0] || 'Dubai';
+        console.log('[Dashboard] Sanitized pickup emirate:', emirate, '→', cleaned);
+        return cleaned;
+      }
+      return emirate;
+    };
+    
+    const sanitizeDeliveryEmirate = (emirate: string | undefined | null, pickup: string | undefined | null): string => {
+      if (!emirate) return 'Abu Dhabi';
+      // If the emirate contains an arrow, extract the second part (delivery destination)
+      if (emirate.includes('→')) {
+        const parts = emirate.split('→').map(p => p.trim());
+        const cleaned = parts[1] || 'Abu Dhabi';
+        console.log('[Dashboard] Sanitized delivery emirate:', emirate, '→', cleaned);
+        return cleaned;
+      }
+      // If delivery and pickup are the same concatenated string, try to extract second part
+      if (pickup && emirate === pickup && emirate.includes('→')) {
+        const parts = emirate.split('→').map(p => p.trim());
+        const cleaned = parts[1] || 'Abu Dhabi';
+        console.log('[Dashboard] Sanitized delivery emirate (matched pickup):', emirate, '→', cleaned);
+        return cleaned;
+      }
+      return emirate;
+    };
+    
+    const cleanPickup = sanitizePickupEmirate(j.pickup_emirate);
+    const cleanDelivery = sanitizeDeliveryEmirate(j.delivery_emirate, j.pickup_emirate);
+    
+    return {
+      sender_name: j.sender_name || '',
+      sender_phone: j.sender_phone || '',
+      recipient_name: j.recipient_name || '',
+      recipient_phone: j.recipient_phone || '',
+      pickup_emirate: cleanPickup,
+      pickup_location: j.pickup_location || '',
+      delivery_emirate: cleanDelivery,
+      delivery_location: j.delivery_location || '',
+      item_type: (j.item_type || 'parcel') as ItemType,
+      urgency: (j.urgency || 'immediate') as UrgencyType,
+      price_aed: j.price_aed != null ? String(j.price_aed) : '',
+      special_instructions: j.special_instructions || '',
+    };
+  };
   const [detailsForm, setDetailsForm] = React.useState(buildDetailsForm(job));
 
   // Keep targetStatus in sync when job updates
@@ -1850,13 +1901,13 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
     if (!editingDetails) {
       setDetailsForm(buildDetailsForm(job));
     }
-  }, [job.status, job.operator_notes, job.sender_name, job.sender_phone, job.recipient_name, job.recipient_phone, job.pickup_emirate, job.pickup_location, job.delivery_emirate, job.delivery_location, job.item_type, job.urgency, job.price_aed, job.special_instructions]);
+  }, [job.status, job.operator_notes, job.sender_name, job.sender_phone, job.recipient_name, job.recipient_phone, job.pickup_emirate, job.pickup_location, job.delivery_emirate, job.delivery_location, job.item_type, job.urgency, job.price_aed, job.special_instructions, editingDetails, job]);
 
   const handleSaveDetails = async () => {
     setSavingDetails(true);
     try {
       const priceVal = detailsForm.price_aed.trim() === '' ? null : Number(detailsForm.price_aed);
-      await updateJob(job.id!, {
+      const updates = {
         sender_name: detailsForm.sender_name,
         sender_phone: detailsForm.sender_phone,
         recipient_name: detailsForm.recipient_name,
@@ -1869,12 +1920,22 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
         urgency: detailsForm.urgency,
         price_aed: priceVal !== null && !isNaN(priceVal) ? priceVal : null,
         special_instructions: detailsForm.special_instructions,
-      });
+      };
+      
+      console.log('[Dashboard] Saving job details:', updates);
+      const result = await updateJob(job.id!, updates);
+      console.log('[Dashboard] Job updated, result:', result);
+      
+      // Exit editing mode BEFORE refreshing so the useEffect can update the form
       setEditingDetails(false);
+      
+      // Refetch to get updated data and trigger parent refresh
+      await onUpdate();
+      
       setOverrideMessage('Job details updated.');
       setTimeout(() => setOverrideMessage(null), 2500);
-      onUpdate();
     } catch (err: any) {
+      console.error('[Dashboard] Failed to update job details:', err);
       alert(`Failed to update job details: ${err.message || err}`);
     } finally {
       setSavingDetails(false);
@@ -1980,7 +2041,7 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
     }
   };
 
-  const dispatchWhatsApp = (type: 'sender' | 'driver' | 'recipient') => {
+  const dispatchWhatsApp = async (type: 'sender' | 'driver' | 'recipient') => {
     let message = '';
     let phone = '';
     const cocDomain = (import.meta.env.VITE_COC_URL || 'https://nokael.ae').replace(/\/$/, '');
@@ -2004,7 +2065,8 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
     if (type === 'driver') updatePayload.driver_notified = true;
     if (type === 'recipient') updatePayload.recipient_notified = true;
     
-    updateJob(job.id!, updatePayload).then(onUpdate);
+    await updateJob(job.id!, updatePayload);
+    await onUpdate();
   };
 
   const currentStageIndex = STAGE_ORDER.indexOf(job.status as any);
@@ -2162,12 +2224,12 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
           {/* Left Column: Job Details & Mission Control */}
           <div className="md:w-1/2 p-6 sm:p-8 border-r border-brand-border overflow-y-auto no-scrollbar space-y-6">
             
-            {/* Command Centre Manual Override Panel */}
-            <div className="p-5 bg-brand-surface/60 border border-brand-neon/30 rounded-3xl space-y-4">
+            {/* Emergency Controls - Use when customer/driver isn't responding */}
+            <div className="p-5 bg-brand-surface/60 border border-yellow-500/30 rounded-3xl space-y-4">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                  <Sliders className="w-4 h-4 text-brand-neon" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-brand-text">Manual Level Override</h3>
+                  <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-brand-text">Emergency Status Control</h3>
                 </div>
                 {canAdvance && (
                   <button
@@ -2176,29 +2238,43 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
                     className="px-3 py-1.5 bg-brand-neon text-brand-bg rounded-xl text-xs font-bold hover:opacity-90 active:scale-95 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(57,255,20,0.25)]"
                   >
                     <FastForward className="w-3.5 h-3.5" />
-                    Advance to L{currentStageIndex + 2}
+                    Move to Next Stage
                   </button>
                 )}
               </div>
 
-              <p className="text-xs text-brand-muted leading-relaxed">
-                If the client or pilot never accessed the digital COC link/OTP, manually force the job through its delivery lifecycle.
-              </p>
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-2">
+                <HelpCircle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-brand-text leading-relaxed">
+                  <strong className="text-yellow-500">Use this only if:</strong> Customer or driver is unresponsive and you need to manually advance the job. This bypasses the normal verification system.
+                </p>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div>
-                  <label className="block text-[11px] font-semibold text-brand-muted uppercase mb-1.5">Target Job Level</label>
+                  <label className="block text-[11px] font-semibold text-brand-muted uppercase mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <span>Jump Job To</span>
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-brand-neon/10 border border-brand-neon/30 text-[9px] font-bold text-brand-neon">
+                        {(() => {
+                          const stages = ['pending', 'client_pickup', 'driver_pickup', 'driver_delivery', 'completed', 'cancelled'];
+                          const current = stages.indexOf(job.status);
+                          return current >= 0 ? current + 1 : '?';
+                        })()}
+                      </span>
+                    </div>
+                  </label>
                   <select
                     value={targetStatus}
                     onChange={(e) => setTargetStatus(e.target.value as JobStatus)}
                     className="w-full bg-brand-input border border-brand-input-border rounded-xl px-3 py-2 text-xs font-medium text-brand-text focus:border-brand-neon outline-none"
                   >
-                    <option value="pending">L1: Pending Dispatch</option>
-                    <option value="client_pickup">L2: Sender Handover</option>
-                    <option value="driver_pickup">L3: Driver In-Transit</option>
-                    <option value="driver_delivery">L4: Destination Arrival</option>
-                    <option value="completed">L5: Delivered & Verified</option>
-                    <option value="cancelled">L6: Failed / Cancelled</option>
+                    <option value="pending">1️⃣ Pending - Waiting for driver</option>
+                    <option value="client_pickup">2️⃣ Pickup - Driver collecting from sender</option>
+                    <option value="driver_pickup">3️⃣ In Transit - Driver has package</option>
+                    <option value="driver_delivery">4️⃣ Arrived - Driver at recipient</option>
+                    <option value="completed">5️⃣ Delivered - Job complete ✅</option>
+                    <option value="cancelled">❌ Cancelled - Job failed</option>
                   </select>
                 </div>
 
@@ -2210,46 +2286,48 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
                       "w-full py-2 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5",
                       targetStatus === job.status 
                         ? "bg-brand-input text-brand-muted border border-brand-border cursor-not-allowed" 
-                        : "bg-brand-neon/20 hover:bg-brand-neon/30 text-brand-neon border border-brand-neon/50 active:scale-95"
+                        : "bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-500 border border-yellow-500/50 active:scale-95 shadow-[0_0_8px_rgba(234,179,8,0.15)]"
                     )}
                   >
-                    {isApplyingOverride ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckSquare className="w-3.5 h-3.5" />}
-                    Apply Level Override
+                    {isApplyingOverride ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                    Force Update Status
                   </button>
                 </div>
               </div>
 
-              {/* Auto-fill COC Timestamps Checkbox */}
-              <label className="flex items-center gap-2 text-xs text-brand-text cursor-pointer select-none pt-1">
+              {/* Auto-fill Verification Timestamps Checkbox */}
+              <label className="flex items-center gap-2 text-xs text-brand-text cursor-pointer select-none pt-1 bg-brand-input/50 border border-brand-border rounded-xl p-3">
                 <input
                   type="checkbox"
                   checked={autoTimestampCoc}
                   onChange={(e) => setAutoTimestampCoc(e.target.checked)}
                   className="rounded border-brand-border text-brand-neon focus:ring-0 w-3.5 h-3.5"
                 />
-                <span>Auto-stamp missing Chain of Custody (COC) timestamps for prior levels</span>
+                <span>✓ Automatically mark all previous steps as verified (recommended)</span>
               </label>
 
               {/* Operator Notes Field */}
               <div>
-                <label className="block text-[11px] font-semibold text-brand-muted uppercase mb-1">Dispatcher / Audit Notes</label>
+                <label className="block text-[11px] font-semibold text-brand-muted uppercase mb-1">
+                  Reason for Manual Update <span className="text-yellow-500">(Required)</span>
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={operatorNotes}
                     onChange={(e) => setOperatorNotes(e.target.value)}
-                    placeholder="e.g., Client confirmed handover by phone - manual override"
+                    placeholder="e.g., Customer confirmed delivery by phone"
                     className="flex-1 bg-brand-input border border-brand-input-border rounded-xl px-3 py-1.5 text-xs text-brand-text placeholder:text-brand-muted/50 focus:border-brand-neon outline-none"
                   />
                   <button
                     onClick={async () => {
                       try {
                         await updateJob(job.id!, { operator_notes: operatorNotes });
-                        setOverrideMessage('Notes saved.');
+                        setOverrideMessage('Note saved.');
                         setTimeout(() => setOverrideMessage(null), 2000);
                         onUpdate();
                       } catch (err: any) {
-                        alert(`Failed to save notes: ${err.message || err}`);
+                        alert(`Failed to save note: ${err.message || err}`);
                       }
                     }}
                     className="px-3 py-1.5 bg-brand-input hover:bg-brand-surface border border-brand-border text-brand-text rounded-xl text-xs font-semibold"
@@ -2257,18 +2335,25 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
                     Save
                   </button>
                 </div>
+                <p className="text-[10px] text-brand-muted mt-1 flex items-center gap-1">
+                  <Shield className="w-3 h-3" />
+                  This note is saved to the job audit log for compliance
+                </p>
               </div>
 
               {/* Mark as Failed Trigger */}
               {job.status !== 'cancelled' && (
-                <div className="pt-2 border-t border-brand-border/60 flex justify-between items-center">
-                  <span className="text-[11px] text-brand-muted">Mission exception or failed drop?</span>
+                <div className="pt-2 border-t border-brand-border/60 flex justify-between items-center bg-red-500/5 border border-red-500/20 rounded-xl p-3">
+                  <div className="flex items-center gap-2">
+                    <Ban className="w-4 h-4 text-red-400" />
+                    <span className="text-xs text-brand-text font-medium">Job can't be completed?</span>
+                  </div>
                   <button
                     onClick={() => setShowFailModal(true)}
-                    className="text-xs font-semibold text-red-400 hover:text-red-300 hover:underline flex items-center gap-1"
+                    className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-xs font-semibold flex items-center gap-1 border border-red-500/40 transition-all"
                   >
-                    <Ban className="w-3.5 h-3.5" />
-                    Declare Job Failed / Cancel
+                    <XCircle className="w-3.5 h-3.5" />
+                    Cancel Job
                   </button>
                 </div>
               )}
@@ -2510,7 +2595,8 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
                       try {
                         await assignDriverToJob(job.id!, val === 'unassigned' ? null : val);
                         setReassigning(false);
-                        onUpdate();
+                        // Refetch jobs to get updated driver info
+                        await onUpdate();
                       } catch (err: any) {
                         alert(`Failed to assign driver: ${err.message || err}`);
                       } finally {
@@ -2561,60 +2647,67 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
 
           </div>
 
-          {/* Right Column: Chain of Custody (COC) Timeline & Force Controls */}
+          {/* Right Column: Delivery Verification Steps */}
           <div className="md:w-1/2 p-6 sm:p-8 bg-brand-surface/30 flex flex-col justify-between overflow-y-auto no-scrollbar space-y-6">
             <div>
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h3 className="text-base font-display font-bold tracking-tight text-brand-text">Chain of Custody (COC)</h3>
-                  <p className="text-xs text-brand-muted">Individual step validation and emergency override stamps</p>
+                  <h3 className="text-base font-display font-bold tracking-tight text-brand-text">Delivery Verification Steps</h3>
+                  <p className="text-xs text-brand-muted">Track each handoff from sender → driver → recipient</p>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-brand-muted font-mono bg-brand-input px-2.5 py-1 rounded-lg border border-brand-border">
                   <Shield className="w-3.5 h-3.5 text-brand-neon" />
-                  <span>OTP Protected</span>
+                  <span>OTP Secured</span>
                 </div>
               </div>
 
-              {/* COC Steps List */}
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 mb-4 flex items-start gap-2">
+                <HelpCircle className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                <div className="text-[11px] text-brand-text leading-relaxed">
+                  <strong className="text-blue-400">How this works:</strong> Each step requires either an OTP code or your manual verification. Use "Override Step" only if the person isn't responding but you've confirmed by phone.
+                </div>
+              </div>
+
+              {/* Verification Steps List */}
               <div className="space-y-4 relative">
                 <div className="absolute left-[19px] top-6 bottom-6 w-0.5 bg-brand-border" />
                 
                 {[
                   { 
-                    label: 'Sender Handover', 
+                    label: '1. Sender Handed Package to Driver', 
                     stepKey: 'client_pickup_at' as const,
                     status: job.client_pickup_at, 
                     tokenKey: 'token_client_pickup', 
                     icon: Package,
                     otp: job.otp_sender,
-                    desc: 'Sender signs or gives OTP to pilot'
+                    desc: 'Sender confirms driver collected the package'
                   },
                   { 
-                    label: 'Driver Pickup Confirmed', 
+                    label: '2. Driver Confirmed Pickup', 
                     stepKey: 'driver_pickup_at' as const,
                     status: job.driver_pickup_at, 
                     tokenKey: 'token_driver_pickup', 
                     icon: Truck,
                     otp: job.otp_driver_pickup,
-                    desc: 'Pilot confirms possession on highway'
+                    desc: 'Driver confirms they have the package and are on the way'
                   },
                   { 
-                    label: 'In-Transit / Destination Arrival', 
+                    label: '3. Driver Arrived at Destination', 
                     stepKey: 'driver_delivery_at' as const,
                     status: job.driver_delivery_at, 
                     tokenKey: 'token_driver_delivery', 
                     icon: Navigation,
                     otp: job.otp_driver_delivery,
-                    desc: 'Pilot validates arrival at recipient hub'
+                    desc: 'Driver confirms arrival at recipient location'
                   },
                   { 
-                    label: 'Final Receipt & Signature', 
+                    label: '4. Recipient Received Package', 
                     stepKey: 'client_delivery_at' as const,
                     status: job.client_delivery_at, 
                     tokenKey: 'token_client_delivery', 
                     icon: CheckCircle2,
                     otp: job.otp_recipient,
-                    desc: 'Recipient confirms sealed delivery'
+                    desc: 'Recipient confirms they received the package'
                   }
                 ].map((step, i) => {
                   const cocDomain = (import.meta.env.VITE_COC_URL || 'https://nokael.ae').replace(/\/$/, '');
@@ -2649,45 +2742,45 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
 
                         <p className="text-[11px] text-brand-muted font-medium mb-2">
                           {isConfirmed 
-                            ? 'Verified & Sealed in Chain of Custody'
-                            : `Awaiting verification · OTP: ${step.otp || 'N/A'}`
+                            ? '✓ Verified & Complete'
+                            : `⏳ Waiting · Security Code: ${step.otp || 'Not set'}`
                           }
                         </p>
 
-                        {/* Per-step audit note — appended to the job's operator_notes log, not a shared/overwritten field */}
+                        {/* Per-step audit note */}
                         <div className="pt-1">
                           <input
                             type="text"
                             value={stepNotes[step.stepKey] || ''}
                             onChange={(e) => setStepNotes(prev => ({ ...prev, [step.stepKey]: e.target.value }))}
-                            placeholder="Optional note for this step..."
+                            placeholder="Add note if manually verifying (optional)..."
                             className="w-full bg-brand-input border border-brand-input-border rounded-lg px-2.5 py-1.5 text-[11px] text-brand-text placeholder:text-brand-muted/50 focus:border-brand-neon outline-none"
                           />
                         </div>
 
-                        {/* Force Pass / Undo & Link Actions */}
-                        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-brand-border/60">
+                        {/* Override Step / Undo & Link Actions */}
+                        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-brand-border/60 mt-2">
                           <button
                             onClick={() => handleToggleCocStep(step.stepKey, isConfirmed, step.label, stepNotes[step.stepKey])}
                             disabled={isBusy}
                             className={cn(
-                              "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold tracking-wide uppercase transition-all",
+                              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold tracking-wide transition-all",
                               isConfirmed
                                 ? "bg-brand-input hover:bg-brand-surface text-brand-muted hover:text-brand-text border border-brand-border"
-                                : "bg-brand-neon/15 hover:bg-brand-neon/25 text-brand-neon border border-brand-neon/40 shadow-[0_0_8px_rgba(57,255,20,0.15)]"
+                                : "bg-yellow-500/15 hover:bg-yellow-500/25 text-yellow-500 border border-yellow-500/40 shadow-[0_0_8px_rgba(234,179,8,0.15)]"
                             )}
                           >
                             {isBusy ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             ) : isConfirmed ? (
                               <>
-                                <Undo2 className="w-3 h-3" />
-                                Undo Step
+                                <Undo2 className="w-3.5 h-3.5" />
+                                Undo
                               </>
                             ) : (
                               <>
-                                <FastForward className="w-3 h-3" />
-                                Force Pass
+                                <CheckSquare className="w-3.5 h-3.5" />
+                                Override Step
                               </>
                             )}
                           </button>
@@ -2700,18 +2793,20 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
                                   setCopiedStep(step.tokenKey);
                                   setTimeout(() => setCopiedStep(null), 2000);
                                 }}
-                                className="inline-flex items-center gap-1 px-2 py-1 bg-brand-input hover:bg-brand-surface rounded-lg border border-brand-border text-[10px] font-semibold text-brand-muted hover:text-brand-text uppercase transition-all"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-brand-input hover:bg-brand-surface rounded-lg border border-brand-border text-[11px] font-semibold text-brand-muted hover:text-brand-text transition-all"
+                                title="Copy verification link to send via WhatsApp"
                               >
-                                <Copy className="w-2.5 h-2.5" />
-                                {copiedStep === step.tokenKey ? 'Copied' : 'Copy'}
+                                <Copy className="w-3 h-3" />
+                                {copiedStep === step.tokenKey ? 'Copied!' : 'Copy Link'}
                               </button>
                               <a
                                 href={stepUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 px-2 py-1 bg-brand-input hover:bg-brand-surface rounded-lg border border-brand-border text-[10px] font-semibold text-brand-muted hover:text-brand-text uppercase transition-all"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-brand-input hover:bg-brand-surface rounded-lg border border-brand-border text-[11px] font-semibold text-brand-muted hover:text-brand-text transition-all"
+                                title="Open verification page in new tab"
                               >
-                                <ExternalLink className="w-2.5 h-2.5" />
+                                <ExternalLink className="w-3 h-3" />
                                 Open
                               </a>
                             </>
@@ -2724,7 +2819,7 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
               </div>
             </div>
 
-            {/* Bottom Actions: Certificate PDF Export */}
+            {/* Bottom Actions: Download Proof of Delivery */}
             {(job.status === 'completed' || !!job.client_delivery_at) && (
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
@@ -2736,7 +2831,7 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
                   className="btn-primary w-full py-4 text-xs font-bold flex items-center justify-center gap-2.5"
                 >
                   <Download className="w-4 h-4" />
-                  Generate COC Certificate (PDF)
+                  Download Proof of Delivery (PDF)
                 </button>
               </motion.div>
             )}
@@ -2755,17 +2850,17 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
               >
                 <div className="flex items-center gap-3 text-red-400">
                   <div className="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/30">
-                    <Ban className="w-5 h-5" />
+                    <XCircle className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-brand-text">Declare Mission Failure</h3>
-                    <p className="text-xs text-brand-muted">Record reason for audit & dispatch logs</p>
+                    <h3 className="text-base font-bold text-brand-text">Cancel This Job</h3>
+                    <p className="text-xs text-brand-muted">Record why the delivery couldn't be completed</p>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-semibold text-brand-muted uppercase mb-1">Standard Failure Reason</label>
+                    <label className="block text-xs font-semibold text-brand-muted uppercase mb-1">Why is this job being cancelled?</label>
                     <select
                       value={failReason}
                       onChange={(e) => setFailReason(e.target.value)}
@@ -2774,17 +2869,17 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
                       {COMMON_FAILURE_REASONS.map((r) => (
                         <option key={r} value={r}>{r}</option>
                       ))}
-                      <option value="Custom">Custom / Other Reason...</option>
+                      <option value="Custom">Other reason (specify below)</option>
                     </select>
                   </div>
 
                   {failReason === 'Custom' && (
                     <div>
-                      <label className="block text-xs font-semibold text-brand-muted uppercase mb-1">Specify Reason</label>
+                      <label className="block text-xs font-semibold text-brand-muted uppercase mb-1">Explain the reason</label>
                       <textarea
                         value={customFailReason}
                         onChange={(e) => setCustomFailReason(e.target.value)}
-                        placeholder="Provide details about the exception..."
+                        placeholder="Describe what happened..."
                         rows={2}
                         className="w-full bg-brand-input border border-brand-input-border rounded-xl p-3 text-xs text-brand-text outline-none focus:border-red-500"
                       />
