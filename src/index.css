@@ -132,11 +132,14 @@
 
 /* Manifest table — dispatch list view */
 .manifest-row {
-  position: relative;
   transition: background-color 0.15s ease;
 }
 
-.manifest-row::before {
+.manifest-row td:first-child {
+  position: relative;
+}
+
+.manifest-row td:first-child::before {
   content: "";
   position: absolute;
   left: 0;
@@ -148,7 +151,7 @@
   transition: opacity 0.15s ease;
 }
 
-.manifest-row:hover::before {
+.manifest-row:hover td:first-child::before {
   opacity: 1;
 }
 

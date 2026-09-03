@@ -727,8 +727,8 @@ export default function Dashboard() {
                             style={{ '--row-spine': stageColor } as React.CSSProperties}
                             onClick={() => setSelectedJob(job)}
                           >
-                            <td className="pl-6 pr-4 py-4">
-                                <div className="manifest-ref text-sm font-medium text-brand-text mb-1.5">NOK-{job.job_ref?.toString().padStart(4, '0')}</div>
+                            <td className="pl-6 pr-4 py-4 relative">
+                                <div className="manifest-ref text-sm font-medium text-brand-text mb-1.5">{job.job_ref?.toString().padStart(4, '0')}</div>
                                 <div className="flex items-center gap-1.5">
                                   <span className="stage-dot" style={{ '--dot-color': stageColor } as React.CSSProperties} />
                                   <span className="text-xs text-brand-muted capitalize">{job.status?.replace('_', ' ')}</span>
@@ -2913,7 +2913,7 @@ const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDrive
   );
 };
 
-const JobCreateModal = ({ onClose, onSuccess, initialData, drivers }: { onClose: () => void, onSuccess: () => void, initialData?: Partial<Job>, drivers: Driver[] }) => {
+const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => void, initialData?: Partial<Job>, drivers: Driver[] }> = ({ onClose, onSuccess, initialData, drivers }) => {
   const [loading, setLoading] = React.useState(false);
   const [formData, setFormData] = React.useState({
     sender_name: initialData?.sender_name || '',
