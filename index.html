@@ -54,6 +54,41 @@
     <script type="application/ld+json">
       {{STRUCTURED_DATA}}
     </script>
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('nokael-theme');
+          var theme = (saved === 'dark' || saved === 'light')
+            ? saved
+            : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          document.documentElement.classList.remove('light', 'dark');
+          document.documentElement.classList.add(theme);
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+      .initial-splash {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #0B0F14;
+        color: #E6EAF0;
+        font-family: sans-serif;
+        padding: 20px;
+      }
+      .initial-splash .subtext {
+        color: #B3B3B3;
+      }
+      html.light .initial-splash {
+        background: #F8FAFC;
+        color: #0B0F14;
+      }
+      html.light .initial-splash .subtext {
+        color: #64748B;
+      }
+    </style>
   </head>
   <body>
     <!-- Google Tag Manager (noscript) -->
@@ -61,13 +96,13 @@
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
     <div id="root">
-      <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0B0F14;color:#E6EAF0;font-family:sans-serif;padding:20px;">
+      <div class="initial-splash">
         <div style="max-width:800px;text-align:center;">
           <div style="width:80px;height:80px;background:#39FF14;border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 32px;overflow:hidden;">
             <img src="/logo.svg" alt="Nokael" width="60" height="60" style="width:75%;height:75%;object-fit:contain;" />
           </div>
           <h1 style="font-size:42px;margin-bottom:20px;line-height:1.1;letter-spacing:-0.05em;font-weight:bold;">Initialising Dispatch...</h1>
-          <p style="font-size:16px;color:#B3B3B3;letter-spacing:1px;text-transform:uppercase;font-weight:600;">Nokael Logistics Dispatch Active</p>
+          <p class="subtext" style="font-size:16px;letter-spacing:1px;text-transform:uppercase;font-weight:600;">Nokael Logistics Dispatch Active</p>
         </div>
       </div>
     </div>

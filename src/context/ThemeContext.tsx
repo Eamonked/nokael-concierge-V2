@@ -11,19 +11,56 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(() => {
-    const savedTheme = localStorage.getItem('nokael-theme');
-    return (savedTheme as Theme) || 'dark';
+    try {
+      const savedTheme = localStorage.getItem('nokael-theme');
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        return savedTheme;
+      }
+      if (typeof window !== 'undefined' && window.matchMedia) {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+    } catch (e) {
+      // Ignore storage access errors
+    }
+    return 'light';
   });
 
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(theme);
-    localStorage.setItem('nokael-theme', theme);
   }, [theme]);
 
+  // Listen to OS theme changes if user hasn't explicitly set a preference
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    const handleChange = (e: MediaQueryListEvent) => {
+      try {
+        const savedTheme = localStorage.getItem('nokael-theme');
+        if (!savedTheme) {
+          setTheme(e.matches ? 'dark' : 'light');
+        }
+      } catch (err) {
+        // Ignore storage access errors
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
   const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme((prev) => {
+      const nextTheme = prev === 'dark' ? 'light' : 'dark';
+      try {
+        localStorage.setItem('nokael-theme', nextTheme);
+      } catch (e) {
+        // Ignore storage access errors
+      }
+      return nextTheme;
+    });
   };
 
   return (
