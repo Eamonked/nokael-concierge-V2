@@ -124,6 +124,16 @@ export type DriverTier = 'A' | 'B' | 'C' | 'D';
 export type OnboardingStatus = 'pending' | 'approved' | 'rejected';
 export type VerificationStatus = 'pending' | 'verified' | 'rejected';
 
+// The 6-stage pipeline from Nokael_Driver_Onboarding_Tracker.xlsx's
+// "Active Status" column. This is now the source of truth for where a
+// driver sits in onboarding — onboarding_status (above) is kept in sync
+// automatically by a DB trigger purely so old pending/approved/rejected
+// filters keep working without being rewritten.
+export type PipelineStatus = 'Sourced' | 'Screening' | 'Docs Pending' | 'Trial Scheduled' | 'Active' | 'Rejected';
+export type PermitStatus = 'Pending' | 'Received' | 'Verified' | 'Failed';
+export type TrialOutcome = 'Pass' | 'Fail' | 'Not Yet Run';
+export type Emirate = 'Dubai' | 'Abu Dhabi';
+
 // ==========================================
 // Quote Requests
 // ==========================================
@@ -412,6 +422,11 @@ export interface Job {
   // Lifecycle status
   status: JobStatus;
   cancellation_reason?: string | null;
+  // 'driver_only' (default): 2-step, driver confirms both pickup (otp_sender)
+  // and delivery (otp_recipient) in NDP1 — no confirm.nokael.com portal step.
+  // 'four_step': legacy — sender + driver + driver + recipient, portal steps
+  // required. Set explicitly at job-creation time; not editable afterward.
+  confirmation_mode?: 'four_step' | 'driver_only';
 
   // Confirmation tokens
   token_client_pickup?: string;
@@ -1180,7 +1195,9 @@ export interface Driver {
   // Document status
   eid_front_url?: string;
   eid_back_url?: string;
-  eid_verified?: boolean;
+  eid_verified?: boolean;       // "Emirates ID Verified" in the tracker
+  license_verified?: boolean;   // "License Verified"
+  vehicle_reg_verified?: boolean; // "Vehicle Reg. Verified"
 
   // Operational state
   active?: boolean;
@@ -1193,10 +1210,24 @@ export interface Driver {
   reliability_score?: number;
 
   // Admin
-  onboarding_status?: OnboardingStatus;
+  onboarding_status?: OnboardingStatus; // legacy, auto-synced from pipeline_status
   tier?: DriverTier;
   internal_notes?: string;
   last_active_at?: string;
+
+  // Onboarding pipeline — mirrors Nokael_Driver_Onboarding_Tracker.xlsx
+  emirate?: Emirate | null;
+  source_channel?: string | null;
+  pipeline_status?: PipelineStatus;
+  screening_call_date?: string | null;
+  mohre_permit_status?: PermitStatus;
+  mohre_permit_expiry?: string | null;
+  pcc_status?: PermitStatus;
+  pcc_expiry?: string | null;
+  trial_job_date?: string | null;
+  trial_outcome?: TrialOutcome;
+  pin_generated?: boolean;
+  onboarded_date?: string | null;
 
   // Session expiry (read-only from client; set via createDriverSession RPC)
   session_expires_at?: string;
@@ -1270,6 +1301,25 @@ export const uploadDriverDocument = async (data: DriverDocument): Promise<void> 
   // this row for the dashboard even though the public insert succeeded.
   const payload: DriverDocument = { ...data, organization_id: NOKAEL_ORG_ID };
   const { error } = await supabase.from('driver_documents').insert([payload]);
+  if (error) throw error;
+};
+
+/**
+ * Approve/reject an individual uploaded document (Emirates ID, license,
+ * registration, vehicle photo) — distinct from the driver-level
+ * eid_verified / license_verified / vehicle_reg_verified checks, which
+ * track the underlying fact being true, not whether this specific file
+ * upload has been reviewed.
+ */
+export const updateDriverDocumentVerification = async (
+  documentId: string,
+  status: VerificationStatus
+): Promise<void> => {
+  if (!supabase) throw new Error('Supabase not configured');
+  const { error } = await supabase
+    .from('driver_documents')
+    .update({ verification_status: status })
+    .eq('id', documentId);
   if (error) throw error;
 };
 

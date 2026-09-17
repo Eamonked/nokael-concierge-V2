@@ -400,7 +400,13 @@ export default function Dashboard() {
                           d.phone.toLowerCase().includes(searchLower) ||
                           (d.base_location || '').toLowerCase().includes(searchLower) ||
                           (d.vehicle_type || '').toLowerCase().includes(searchLower);
-    const matchesStatus = filterStatus === 'all' || d.onboarding_status === filterStatus;
+    // filterStatus is shared with the Quotes tab's own filter and defaults
+    // to 'active' (lowercase) there — that value isn't one of this tab's
+    // six stage names, so treat anything unrecognized here as "all" rather
+    // than showing an unexpectedly empty table on first visit.
+    const DRIVER_STAGE_VALUES = ['Sourced', 'Screening', 'Docs Pending', 'Trial Scheduled', 'Active', 'Rejected'];
+    const effectiveDriverFilter = DRIVER_STAGE_VALUES.includes(filterStatus) ? filterStatus : 'all';
+    const matchesStatus = effectiveDriverFilter === 'all' || (d.pipeline_status || 'Sourced') === effectiveDriverFilter;
     const matchesVehicle = filterVehicle === 'all' || d.vehicle_type === filterVehicle;
     return matchesSearch && matchesStatus && matchesVehicle;
   });
@@ -414,7 +420,7 @@ export default function Dashboard() {
 
   const statusSortWeight: Record<string, number> = { available: 0, on_job: 1, offline: 2 };
   const approvedDrivers = drivers
-    .filter(d => d.onboarding_status === 'approved')
+    .filter(d => (d.pipeline_status || 'Sourced') === 'Active')
     .slice()
     .sort((a, b) => {
       const statusDiff = (statusSortWeight[a.status || 'offline'] ?? 2) - (statusSortWeight[b.status || 'offline'] ?? 2);
@@ -422,12 +428,26 @@ export default function Dashboard() {
       return (a.tier || 'D').localeCompare(b.tier || 'D');
     });
 
+  // Target-vs-actual, mirroring the "Summary" tab of
+  // Nokael_Driver_Onboarding_Tracker.xlsx (10 Dubai + 5 Abu Dhabi = 15).
+  const DRIVER_TARGETS: Record<'Dubai' | 'Abu Dhabi', number> = { 'Dubai': 10, 'Abu Dhabi': 5 };
+  const activeDrivers = drivers.filter(d => (d.pipeline_status || 'Sourced') === 'Active');
+  const driverPoolSummary = {
+    dubaiActive: activeDrivers.filter(d => d.emirate === 'Dubai').length,
+    abuDhabiActive: activeDrivers.filter(d => d.emirate === 'Abu Dhabi').length,
+    dubaiTarget: DRIVER_TARGETS['Dubai'],
+    abuDhabiTarget: DRIVER_TARGETS['Abu Dhabi'],
+    totalActive: activeDrivers.length,
+    totalTarget: DRIVER_TARGETS['Dubai'] + DRIVER_TARGETS['Abu Dhabi'],
+    inPipeline: drivers.filter(d => !['Active', 'Rejected'].includes(d.pipeline_status || 'Sourced')).length,
+  };
+
   const stats = {
     total: requests.length,
     pending: requests.filter(r => r.status === 'pending').length,
     completed: requests.filter(r => r.status === 'completed').length,
     drivers: drivers.length,
-    pendingDrivers: drivers.filter(d => d.onboarding_status === 'pending').length,
+    pendingDrivers: drivers.filter(d => !['Active', 'Rejected'].includes(d.pipeline_status || 'Sourced')).length,
     business: businessInquiries.length,
     pendingBusiness: businessInquiries.filter(b => b.status === 'pending').length,
   };
@@ -1084,7 +1104,39 @@ export default function Dashboard() {
         ) : activeTab === 'team' ? (
           <TeamPanel orgId={orgId} currentRole={currentRole} />
         ) : (
-          <div className="dispatch-card overflow-hidden p-0">
+          <>
+            {/* Driver Pool Summary - matching Excel tracker targets */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="dispatch-card p-4">
+                <div className="text-xs uppercase tracking-wide text-brand-muted font-medium mb-2">Dubai Active</div>
+                <div className="text-2xl font-bold text-brand-text">
+                  {driverPoolSummary.dubaiActive}
+                  <span className="text-sm text-brand-muted font-normal">/{driverPoolSummary.dubaiTarget}</span>
+                </div>
+              </div>
+              <div className="dispatch-card p-4">
+                <div className="text-xs uppercase tracking-wide text-brand-muted font-medium mb-2">Abu Dhabi Active</div>
+                <div className="text-2xl font-bold text-brand-text">
+                  {driverPoolSummary.abuDhabiActive}
+                  <span className="text-sm text-brand-muted font-normal">/{driverPoolSummary.abuDhabiTarget}</span>
+                </div>
+              </div>
+              <div className="dispatch-card p-4">
+                <div className="text-xs uppercase tracking-wide text-brand-muted font-medium mb-2">Total Active</div>
+                <div className="text-2xl font-bold text-brand-neon">
+                  {driverPoolSummary.totalActive}
+                  <span className="text-sm text-brand-muted font-normal">/{driverPoolSummary.totalTarget}</span>
+                </div>
+              </div>
+              <div className="dispatch-card p-4">
+                <div className="text-xs uppercase tracking-wide text-brand-muted font-medium mb-2">In Pipeline</div>
+                <div className="text-2xl font-bold text-blue-400">
+                  {driverPoolSummary.inPipeline}
+                </div>
+              </div>
+            </div>
+            
+            <div className="dispatch-card overflow-hidden p-0">
             <div className="p-5 border-b border-brand-border flex flex-col md:flex-row justify-end items-center gap-3">
               <div className="relative w-full md:w-64">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
@@ -1101,13 +1153,16 @@ export default function Dashboard() {
               </div>
               <select 
                 className="bg-brand-input border border-brand-input-border rounded-xl px-4 py-2.5 text-xs font-medium outline-none focus:border-brand-neon/50 w-full md:w-auto"
-                value={filterStatus}
+                value={['Sourced', 'Screening', 'Docs Pending', 'Trial Scheduled', 'Active', 'Rejected'].includes(filterStatus) ? filterStatus : 'all'}
                 onChange={e => setFilterStatus(e.target.value)}
               >
-                <option value="all">All status</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
+                <option value="all">All stages</option>
+                <option value="Sourced">Sourced</option>
+                <option value="Screening">Screening</option>
+                <option value="Docs Pending">Docs Pending</option>
+                <option value="Trial Scheduled">Trial Scheduled</option>
+                <option value="Active">Active</option>
+                <option value="Rejected">Rejected</option>
               </select>
               <select 
                 className="bg-brand-input border border-brand-input-border rounded-xl px-4 py-2.5 text-xs font-medium outline-none focus:border-brand-neon/50 w-full md:w-auto"
@@ -1170,19 +1225,31 @@ export default function Dashboard() {
                         })()}
                       </td>
                       <td className="px-6 py-4">
-                        <select 
-                          value={driver.onboarding_status}
-                          onChange={(e) => handleDriverStatusUpdate(driver.id!, { onboarding_status: e.target.value as any })}
-                          className={`text-[11px] font-medium uppercase tracking-wide px-4 py-2 rounded-lg border outline-none transition-all ${
-                            driver.onboarding_status === 'approved' ? 'bg-brand-neon/5 border-brand-neon/20 text-brand-neon' :
-                            driver.onboarding_status === 'rejected' ? 'bg-red-500/5 border-red-500/20 text-red-500' :
-                            'bg-yellow-500/5 border-yellow-500/20 text-yellow-500'
-                          }`}
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="approved">Approved</option>
-                          <option value="rejected">Rejected</option>
-                        </select>
+                        {(() => {
+                          const stage = driver.pipeline_status || 'Sourced';
+                          const stageStyles: Record<string, string> = {
+                            'Sourced': 'bg-slate-500/5 border-slate-500/20 text-slate-400',
+                            'Screening': 'bg-blue-500/5 border-blue-500/20 text-blue-400',
+                            'Docs Pending': 'bg-yellow-500/5 border-yellow-500/20 text-yellow-500',
+                            'Trial Scheduled': 'bg-purple-500/5 border-purple-500/20 text-purple-400',
+                            'Active': 'bg-brand-neon/5 border-brand-neon/20 text-brand-neon',
+                            'Rejected': 'bg-red-500/5 border-red-500/20 text-red-500',
+                          };
+                          return (
+                            <select 
+                              value={stage}
+                              onChange={(e) => handleDriverStatusUpdate(driver.id!, { pipeline_status: e.target.value as any })}
+                              className={`text-[11px] font-medium tracking-wide px-3 py-2 rounded-lg border outline-none transition-all ${stageStyles[stage] || stageStyles['Sourced']}`}
+                            >
+                              <option value="Sourced">Sourced</option>
+                              <option value="Screening">Screening</option>
+                              <option value="Docs Pending">Docs Pending</option>
+                              <option value="Trial Scheduled">Trial Scheduled</option>
+                              <option value="Active">Active</option>
+                              <option value="Rejected">Rejected</option>
+                            </select>
+                          );
+                        })()}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button 
@@ -1198,6 +1265,7 @@ export default function Dashboard() {
               </table>
             </div>
           </div>
+          </>
         )}
       </div>
       </div>
@@ -2928,7 +2996,11 @@ const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => void, ini
     urgency: initialData?.urgency || 'immediate' as UrgencyType,
     driver_id: initialData?.driver_id || '',
     notes: (initialData as any)?.notes || initialData?.special_instructions || '',
-    quote_id: initialData?.quote_id || null
+    quote_id: initialData?.quote_id || null,
+    // 'driver_only' (2-step, driver-confirmed) is the default going forward.
+    // 'four_step' brings back the confirm.nokael.com sender/recipient portal
+    // steps for jobs that specifically need them.
+    confirmation_mode: (initialData?.confirmation_mode || 'driver_only') as 'four_step' | 'driver_only'
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -2960,6 +3032,7 @@ const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => void, ini
         special_instructions: formData.notes,
         operator_notes: formData.notes,
         quote_id: formData.quote_id,
+        confirmation_mode: formData.confirmation_mode,
         ...tokens,
         otp_sender: genOtp(),
         otp_driver_pickup: otpVal,
@@ -3110,6 +3183,28 @@ const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => void, ini
                       );
                     })}
                   </select>
+               </div>
+            </div>
+
+            <div className="space-y-4">
+               <p className="text-xs font-medium text-brand-muted">Chain-of-Custody Confirmation</p>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, confirmation_mode: 'driver_only' })}
+                    className={`text-left p-5 rounded-2xl border transition-all ${formData.confirmation_mode === 'driver_only' ? 'border-brand-neon bg-brand-neon/10' : 'border-brand-input-border bg-brand-input'}`}
+                  >
+                     <p className="text-sm font-semibold text-brand-text mb-1">2-Step · Driver-Confirmed</p>
+                     <p className="text-xs text-brand-muted leading-relaxed">Driver enters both OTPs in the app (pickup + delivery). No sender/recipient portal step. Default.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, confirmation_mode: 'four_step' })}
+                    className={`text-left p-5 rounded-2xl border transition-all ${formData.confirmation_mode === 'four_step' ? 'border-brand-neon bg-brand-neon/10' : 'border-brand-input-border bg-brand-input'}`}
+                  >
+                     <p className="text-sm font-semibold text-brand-text mb-1">4-Step · Sender + Driver + Recipient</p>
+                     <p className="text-xs text-brand-muted leading-relaxed">Sender and recipient each confirm via confirm.nokael.com in addition to the driver. Use for high-value or client-mandated chain-of-custody.</p>
+                  </button>
                </div>
             </div>
 
