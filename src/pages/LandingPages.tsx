@@ -76,7 +76,7 @@ export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, in
               <div className="inline-flex items-center gap-3 px-4 py-2 rounded-lg bg-brand-input border border-brand-input-border text-brand-neon text-[10px] uppercase tracking-[0.3em] font-bold">
                 <div className="w-1.5 h-1.5 rounded-full bg-brand-neon animate-pulse" />
                 <span>{city ? t('chrome.dispatchSectorTemplate', { city: cityLabel }) : t('chrome.industryTemplate', { industry: industryLabel })}</span>
-                <span className="opacity-40 ml-2">| {t('chrome.liveActive')}</span>
+                <span className="opacity-40 ms-2">| {t('chrome.liveActive')}</span>
               </div>
               
             </div>
@@ -96,16 +96,16 @@ export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, in
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => trackWhatsAppClick(`landing_hero_${city || industry || 'general_uae'}`)}
-                className="btn-primary w-full sm:w-auto px-10 py-6 group scale-105 origin-left"
+                className="btn-primary w-full sm:w-auto px-10 py-6 group scale-105 origin-left rtl:origin-right"
               >
-                <div className="flex items-center gap-3 text-left">
+                <div className="flex items-center gap-3 text-start">
                    <MessageSquare className="w-6 h-6" />
                    <div>
                      <span className="block text-[10px] font-black uppercase tracking-widest opacity-60">{t('chrome.ctaEyebrow')}</span>
                      <span className="text-lg">{t('chrome.ctaLabel')}</span>
                    </div>
                 </div>
-                <ArrowRight className="w-5 h-5 ml-4 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-5 h-5 ms-4 rtl:-scale-x-100 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
               </a>
               
               <a

@@ -4,26 +4,29 @@ import { Phone, MessageSquare, Menu, X, Zap, Navigation as NavIcon } from 'lucid
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useTranslation } from 'react-i18next';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 import { ThemeToggle } from './ThemeToggle';
+import { LanguageToggle } from './LanguageToggle';
 import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE } from '../constants';
 import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
 
 const TopBar = () => {
+  const { t } = useTranslation('common');
   return (
     <div className="bg-brand-neon text-brand-bg py-2.5 px-4 relative z-[60]">
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-xs font-bold">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-brand-bg" />
-            Urgent Dispatch Active
+            {t('topBar.urgentDispatch')}
           </span>
           <span className="hidden md:inline opacity-60">|</span>
-          <span className="hidden md:inline">Dubai ↔ Abu Dhabi • 90-120 min delivery</span>
+          <span className="hidden md:inline">{t('topBar.corridor')}</span>
         </div>
         <div className="flex items-center gap-6">
           <a href={`tel:${PHONE_NUMBER}`} onClick={() => trackPhoneClick('top_bar')} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -32,7 +35,7 @@ const TopBar = () => {
           </a>
           <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer" onClick={() => trackWhatsAppClick('top_bar')} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <MessageSquare className="w-3.5 h-3.5 fill-brand-bg" />
-            <span>WhatsApp</span>
+            <span>{t('topBar.whatsapp')}</span>
           </a>
         </div>
       </div>
@@ -41,6 +44,7 @@ const TopBar = () => {
 };
 
 export const Navigation = () => {
+  const { t } = useTranslation('common');
   const [isOpen, setIsOpen] = React.useState(false);
   const location = useLocation();
 
@@ -67,7 +71,7 @@ export const Navigation = () => {
                   location.pathname === "/services" ? "text-brand-neon" : "text-brand-muted"
                 )}
               >
-                Routes
+                {t('nav.routes')}
               </Link>
               <Link
                 to="/about"
@@ -76,7 +80,7 @@ export const Navigation = () => {
                   location.pathname === "/about" ? "text-brand-neon" : "text-brand-muted"
                 )}
               >
-                About
+                {t('nav.about')}
               </Link>
               <Link
                 to="/get-quote"
@@ -85,7 +89,7 @@ export const Navigation = () => {
                   location.pathname === "/get-quote" ? "text-brand-neon" : "text-brand-muted"
                 )}
               >
-                Book Now
+                {t('nav.bookNow')}
               </Link>
               <Link
                 to="/track"
@@ -94,27 +98,29 @@ export const Navigation = () => {
                   location.pathname === "/track" ? "text-brand-neon" : "text-brand-muted"
                 )}
               >
-                Track
+                {t('nav.track')}
               </Link>
             </div>
 
             <div className="hidden md:flex items-center gap-4 border-l border-brand-border pl-8">
+              <LanguageToggle />
               <ThemeToggle />
               <Link
                 to="/get-quote"
                 className="px-6 py-2.5 bg-brand-neon text-brand-bg font-bold rounded-xl text-sm hover:opacity-90 transition-all shadow-lg shadow-brand-neon/20"
               >
-                Book Now
+                {t('nav.bookNow')}
               </Link>
             </div>
 
             {/* Mobile Toggle */}
           <div className="flex items-center gap-4 md:hidden">
+            <LanguageToggle />
             <ThemeToggle />
             <button
                className="p-2 text-brand-muted hover:text-brand-text transition-colors"
                onClick={() => setIsOpen(!isOpen)}
-               aria-label="Toggle Menu"
+               aria-label={t('nav.toggleMenu')}
                aria-expanded={isOpen}
              >
                {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -138,28 +144,28 @@ export const Navigation = () => {
                 onClick={() => setIsOpen(false)}
                 className="block text-2xl font-display font-medium tracking-tight hover:text-brand-neon transition-colors"
               >
-                Routes
+                {t('nav.routes')}
               </Link>
               <Link
                 to="/about"
                 onClick={() => setIsOpen(false)}
                 className="block text-2xl font-display font-medium tracking-tight hover:text-brand-neon transition-colors"
               >
-                About
+                {t('nav.about')}
               </Link>
               <Link
                 to="/get-quote"
                 onClick={() => setIsOpen(false)}
                 className="block text-2xl font-display font-medium tracking-tight hover:text-brand-neon transition-colors"
               >
-                Book Now
+                {t('nav.bookNow')}
               </Link>
               <Link
                 to="/track"
                 onClick={() => setIsOpen(false)}
                 className="block text-2xl font-display font-medium tracking-tight hover:text-brand-neon transition-colors"
               >
-                Track
+                {t('nav.track')}
               </Link>
               <div className="pt-6 grid grid-cols-1 gap-4">
                 <a
@@ -170,7 +176,7 @@ export const Navigation = () => {
                   className="btn-primary w-full"
                 >
                   <MessageSquare className="w-4 h-4" />
-                  <span>WhatsApp</span>
+                  <span>{t('nav.whatsapp')}</span>
                 </a>
                 <a
                   href={`tel:${PHONE_NUMBER}`}
@@ -178,7 +184,7 @@ export const Navigation = () => {
                   className="btn-secondary w-full"
                 >
                   <Phone className="w-4 h-4" />
-                  <span>Call Now</span>
+                  <span>{t('nav.callNow')}</span>
                 </a>
               </div>
             </div>
@@ -190,6 +196,7 @@ export const Navigation = () => {
 };
 
 export const Footer = () => {
+  const { t } = useTranslation('common');
   return (
     <footer className="bg-brand-bg border-t border-brand-border pt-24 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -204,45 +211,45 @@ export const Footer = () => {
               </span>
             </Link>
             <p className="text-brand-muted max-w-sm leading-relaxed mb-10 text-sm">
-              Same-day delivery between Dubai and Abu Dhabi. One driver, straight to the destination, no sorting hubs.
+              {t('footer.tagline')}
             </p>
             <div className="flex items-center gap-3 px-3 py-2 rounded-full bg-brand-surface border border-brand-border inline-flex">
               <div className="w-2 h-2 rounded-full bg-brand-neon" />
-              <span className="text-xs font-semibold text-brand-text">Operational</span>
+              <span className="text-xs font-semibold text-brand-text">{t('footer.operational')}</span>
             </div>
           </div>
           
           <div className="md:col-span-3">
-            <h2 className="text-brand-text font-bold text-xs uppercase tracking-wider mb-8">Quick Links</h2>
+            <h2 className="text-brand-text font-bold text-xs uppercase tracking-wider mb-8">{t('footer.quickLinks')}</h2>
             <ul className="space-y-4 text-sm text-brand-muted">
               <li>
-                <Link to="/urgent-delivery-dubai" className="hover:text-brand-neon transition-colors">Dubai Same-Day</Link>
+                <Link to="/urgent-delivery-dubai" className="hover:text-brand-neon transition-colors">{t('footer.dubaiSameDay')}</Link>
               </li>
               <li>
-                <Link to="/urgent-delivery-abu-dhabi" className="hover:text-brand-neon transition-colors">Abu Dhabi Urgent</Link>
+                <Link to="/urgent-delivery-abu-dhabi" className="hover:text-brand-neon transition-colors">{t('footer.abuDhabiUrgent')}</Link>
               </li>
               <li>
-                <Link to="/services" className="hover:text-brand-neon transition-colors">All Routes</Link>
+                <Link to="/services" className="hover:text-brand-neon transition-colors">{t('footer.allRoutes')}</Link>
               </li>
               <li>
-                <Link to="/document-delivery-uae" className="hover:text-brand-neon transition-colors">Document Delivery</Link>
+                <Link to="/document-delivery-uae" className="hover:text-brand-neon transition-colors">{t('footer.documentDelivery')}</Link>
               </li>
               <li>
-                <Link to="/spare-parts-delivery-uae" className="hover:text-brand-neon transition-colors">Parts Delivery</Link>
+                <Link to="/spare-parts-delivery-uae" className="hover:text-brand-neon transition-colors">{t('footer.partsDelivery')}</Link>
               </li>
               <li>
-                <Link to="/about" className="hover:text-brand-neon transition-colors">About</Link>
+                <Link to="/about" className="hover:text-brand-neon transition-colors">{t('footer.about')}</Link>
               </li>
             </ul>
           </div>
 
           <div className="md:col-span-4">
-            <h2 className="text-brand-text font-bold text-xs uppercase tracking-wider mb-8">Contact</h2>
+            <h2 className="text-brand-text font-bold text-xs uppercase tracking-wider mb-8">{t('footer.contact')}</h2>
             <ul className="space-y-4 text-sm text-brand-muted">
-              <li><Link to="/track" className="hover:text-brand-neon transition-colors">Track Order</Link></li>
-              <li><Link to="/get-quote" className="hover:text-brand-neon transition-colors">Get Quote</Link></li>
-              <li><Link to="/business-account" className="hover:text-brand-neon transition-colors">Business Accounts</Link></li>
-              <li><Link to="/apply-driver" className="hover:text-brand-neon transition-colors">Driver Application</Link></li>
+              <li><Link to="/track" className="hover:text-brand-neon transition-colors">{t('footer.trackOrder')}</Link></li>
+              <li><Link to="/get-quote" className="hover:text-brand-neon transition-colors">{t('footer.getQuote')}</Link></li>
+              <li><Link to="/business-account" className="hover:text-brand-neon transition-colors">{t('footer.businessAccounts')}</Link></li>
+              <li><Link to="/apply-driver" className="hover:text-brand-neon transition-colors">{t('footer.driverApplication')}</Link></li>
               <li>
                 <a 
                   href={`https://wa.me/${WHATSAPP_NUMBER}`} 
@@ -252,7 +259,7 @@ export const Footer = () => {
                   className="hover:text-brand-neon transition-colors inline-flex items-center gap-2"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
-                  <span>WhatsApp</span>
+                  <span>{t('footer.whatsapp')}</span>
                 </a>
               </li>
               <li>
@@ -270,11 +277,11 @@ export const Footer = () => {
         </div>
         
         <div className="pt-12 border-t border-brand-border flex flex-col md:flex-row justify-between items-center gap-6 text-xs text-brand-muted font-medium">
-          <p>© 2026 Nokael Dash Logistics</p>
+          <p>{t('footer.copyright', { year: new Date().getFullYear() })}</p>
           <div className="flex gap-8">
-            <Link to="/privacy" className="hover:text-brand-text transition-colors">Privacy</Link>
-            <Link to="/terms" className="hover:text-brand-text transition-colors">Terms</Link>
-            <p>Pickup typically 30-60 min</p>
+            <Link to="/privacy" className="hover:text-brand-text transition-colors">{t('footer.privacy')}</Link>
+            <Link to="/terms" className="hover:text-brand-text transition-colors">{t('footer.terms')}</Link>
+            <p>{t('footer.pickupNote')}</p>
           </div>
         </div>
       </div>

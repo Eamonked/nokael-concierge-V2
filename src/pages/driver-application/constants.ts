@@ -19,10 +19,12 @@ export const VEHICLE_TYPES = [
   { value: '3-Ton Pickup', i18nKey: 'pickup3Ton' },
 ];
 
-// ⚠ Pending WhatsApp-language-style decision — these labels are concatenated directly
-// into Driver.availability_hours (e.g. "Mon, Tue, Wed | 08:00 - 20:00"), which is stored
-// and read by ops as plain text. Translating them would change stored data, not just
-// display, so left as fixed English until that call is made (see plan doc, WhatsApp note).
+// These labels are concatenated directly into Driver.availability_hours
+// (e.g. "Mon, Tue, Wed | 08:00 - 20:00"), which is stored and read by ops as
+// plain text — translating them would change stored data, not just display.
+// Decision (A) "keep fixed" applies here too, consistent with every other
+// ops/dispatch-facing string in the app (see Phase 7 of the customer-facing
+// i18n plan): stays fixed English, not wired to t().
 export const DAYS_OF_WEEK = [
   { id: 'mon', label: 'Mon' },
   { id: 'tue', label: 'Tue' },

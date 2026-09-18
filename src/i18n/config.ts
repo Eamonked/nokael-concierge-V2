@@ -21,6 +21,10 @@ import servicesEn from './locales/en/services.json';
 import servicesAr from './locales/ar/services.json';
 import aboutEn from './locales/en/about.json';
 import aboutAr from './locales/ar/about.json';
+import thankyouEn from './locales/en/thankyou.json';
+import thankyouAr from './locales/ar/thankyou.json';
+import legalEn from './locales/en/legal.json';
+import legalAr from './locales/ar/legal.json';
 
 i18next.use(initReactI18next).init({
   resources: {
@@ -35,6 +39,8 @@ i18next.use(initReactI18next).init({
       landingPages: landingPagesEn,
       services: servicesEn,
       about: aboutEn,
+      thankyou: thankyouEn,
+      legal: legalEn,
     },
     ar: {
       common: commonAr,
@@ -47,6 +53,8 @@ i18next.use(initReactI18next).init({
       landingPages: landingPagesAr,
       services: servicesAr,
       about: aboutAr,
+      thankyou: thankyouAr,
+      legal: legalAr,
     },
   },
   lng: localStorage.getItem('nokael_lang') ?? 'en',

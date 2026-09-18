@@ -1,6 +1,48 @@
 {
-  "whatsapp": {
-    "defaultMessage": "مرحباً نوكايل، أحتاج إلى توصيل عاجل.\nمكان الاستلام:\nمكان التسليم:\nالغرض:\nالموعد النهائي للتسليم:\nلغرض العمل أم شخصي:",
-    "businessAccountMessage": "مرحباً، أرغب في فتح حساب أعمال مع نوكايل.\nاسم الشركة:\nنوع التوصيل المعتاد:\nالمسار المعتاد:\nعدد عمليات التوصيل الشهرية التقديري:\nالشخص المسؤول عن التواصل:"
+  "topBar": {
+    "urgentDispatch": "التوصيل العاجل نشط",
+    "corridor": "دبي ↔ أبوظبي • التوصيل خلال 90-120 دقيقة",
+    "whatsapp": "واتساب"
+  },
+  "nav": {
+    "routes": "المسارات",
+    "about": "من نحن",
+    "bookNow": "احجز الآن",
+    "track": "تتبع",
+    "toggleMenu": "فتح القائمة",
+    "whatsapp": "واتساب",
+    "callNow": "اتصل الآن"
+  },
+  "footer": {
+    "tagline": "توصيل في نفس اليوم بين دبي وأبوظبي. سائق واحد، مباشرة إلى الوجهة، دون مراكز فرز.",
+    "operational": "جاهز للعمل",
+    "quickLinks": "روابط سريعة",
+    "dubaiSameDay": "دبي - نفس اليوم",
+    "abuDhabiUrgent": "أبوظبي - عاجل",
+    "allRoutes": "جميع المسارات",
+    "documentDelivery": "توصيل المستندات",
+    "partsDelivery": "توصيل قطع الغيار",
+    "about": "من نحن",
+    "contact": "تواصل معنا",
+    "trackOrder": "تتبع الطلب",
+    "getQuote": "احصل على عرض سعر",
+    "businessAccounts": "حسابات الأعمال",
+    "driverApplication": "طلب انضمام سائق",
+    "whatsapp": "واتساب",
+    "copyright": "© {{year}} نوكائل داش للخدمات اللوجستية",
+    "privacy": "الخصوصية",
+    "terms": "الشروط",
+    "pickupNote": "الاستلام عادة خلال 30-60 دقيقة"
+  },
+  "languageSwitcher": {
+    "switchToArabic": "العربية",
+    "switchToEnglish": "English"
+  },
+  "stickyCta": {
+    "whatsappDispatch": "توصيل عبر واتساب",
+    "quoteInUnder2Min": "عرض السعر خلال أقل من دقيقتين",
+    "callDispatch": "اتصل بالتوصيل",
+    "requestViaWhatsapp": "اطلب عبر واتساب",
+    "requestDispatchViaWhatsapp": "اطلب التوصيل عبر واتساب"
   }
 }

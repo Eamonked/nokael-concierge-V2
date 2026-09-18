@@ -25,6 +25,13 @@ import { WHATSAPP_NUMBER } from './constants';
 import { MessageSquare } from 'lucide-react';
 import { SEO_METADATA, DEFAULT_METADATA } from '../seo/metadata';
 import i18n from './i18n/config';
+import titlesEn from './i18n/locales/en/titles.json';
+import titlesAr from './i18n/locales/ar/titles.json';
+
+const TITLES_BY_LANG: Record<string, Record<string, string>> = {
+  en: titlesEn,
+  ar: titlesAr,
+};
 
 // Loading Fallback
 const PageLoader = () => (
@@ -108,25 +115,32 @@ function ErrorFallback({ error }: { error: Error }) {
   );
 }
 
-// Manages browser tab titles in the SPA
+// Manages browser tab titles in the SPA, kept in sync with the active i18n language
 function TitleManager() {
   const { pathname } = useLocation();
-  
+
   useEffect(() => {
-    // Standardize path: remove trailing slash
-    const urlPath = pathname === "/" ? "/" : pathname.replace(/\/$/, "");
-    const metadata = SEO_METADATA[urlPath] || DEFAULT_METADATA;
-    
-    if (metadata?.title) {
-      document.title = metadata.title;
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[SEO] Title updated to: ${metadata.title} for path: ${urlPath}`);
-      }
-    } else {
-      if (process.env.NODE_ENV === 'development') {
+    const applyTitle = (lng: string) => {
+      // Standardize path: remove trailing slash
+      const urlPath = pathname === "/" ? "/" : pathname.replace(/\/$/, "");
+      const titles = TITLES_BY_LANG[lng] ?? titlesEn;
+      const title = titles[urlPath] ?? SEO_METADATA[urlPath]?.title ?? DEFAULT_METADATA.title;
+
+      if (title) {
+        document.title = title;
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[SEO] Title updated to: ${title} for path: ${urlPath} (${lng})`);
+        }
+      } else if (process.env.NODE_ENV === 'development') {
         console.warn(`[SEO] No title found for path: ${urlPath}`);
       }
-    }
+    };
+
+    applyTitle(i18n.language);
+    i18n.on('languageChanged', applyTitle);
+    return () => {
+      i18n.off('languageChanged', applyTitle);
+    };
   }, [pathname]);
 
   return null;

@@ -1,9 +1,17 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Shield, Lock, Scale } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
-const LegalLayout = ({ children, title, icon: Icon }: { children: React.ReactNode, title: string, icon: any }) => (
-  <div className="bg-brand-bg min-h-screen py-32">
+// Deliberately excluded from the site's bilingual i18n coverage (Phase 13, option A):
+// Terms & Privacy stay English-only regardless of site language, rather than being
+// machine-translated inline. Both language versions of the site link to this same
+// English page. dir="ltr" is forced below so the English prose doesn't inherit
+// the document's RTL direction when the site language is Arabic.
+const LegalLayout = ({ children, title, icon: Icon }: { children: React.ReactNode, title: string, icon: any }) => {
+  const { t } = useTranslation('legal');
+  return (
+  <div dir="ltr" className="bg-brand-bg min-h-screen py-32">
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -15,6 +23,7 @@ const LegalLayout = ({ children, title, icon: Icon }: { children: React.ReactNod
         </div>
         <h1 className="text-4xl md:text-6xl font-display font-medium tracking-tighter text-brand-text mb-4">{title}</h1>
         <p className="text-brand-muted text-sm uppercase tracking-widest font-bold">Last Updated: April 2024</p>
+        <p className="text-brand-muted text-xs mt-3">{t('englishOnlyNotice')}</p>
       </motion.div>
       
       <div className="prose prose-invert prose-brand max-w-none">
@@ -24,7 +33,8 @@ const LegalLayout = ({ children, title, icon: Icon }: { children: React.ReactNod
       </div>
     </div>
   </div>
-);
+  );
+};
 
 export const TermsAndConditions = () => (
   <LegalLayout title="Terms & Conditions" icon={Scale}>

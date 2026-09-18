@@ -3,16 +3,19 @@ import { motion } from 'motion/react';
 import { MessageSquare, ArrowRight, Zap, Shield, MapPin, Clock, CheckCircle2, ChevronRight, Phone, X, Navigation, Package, Truck, Star, Building2, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE, PRICE_TIER_SAME_DAY, PRICE_TIER_DEDICATED } from '../constants';
+import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE, PRICE_TIER_SAME_DAY, PRICE_TIER_DEDICATED, DEFAULT_WA_MESSAGE } from '../constants';
 import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
 import { cn } from '../lib/utils';
 
 const Hero = () => {
-  const { t } = useTranslation(['home', 'common']);
-  // Decision (B) — the pre-filled WhatsApp body follows the site language, so
-  // it comes from common:whatsapp.defaultMessage rather than the fixed
-  // DEFAULT_WA_MESSAGE constant. See Phase 7 of the customer-facing i18n plan.
-  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(t('common:whatsapp.defaultMessage'))}`;
+  const { t } = useTranslation('home');
+  // This message goes to Nokael's own dispatch number, not the customer —
+  // decision (A) "keep fixed" applies (see Phase 7 of the customer-facing
+  // i18n plan), so this stays the plain DEFAULT_WA_MESSAGE constant, not
+  // wired to t(). (Was briefly localized under a mistaken decision (B) here;
+  // every other WhatsApp-to-dispatch link in the app uses (A) — see Track.tsx,
+  // useQuoteForm.ts, useBusinessInquiryForm.ts.)
+  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(DEFAULT_WA_MESSAGE)}`;
 
 
   return (
@@ -73,16 +76,16 @@ const Hero = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => trackWhatsAppClick('hero')}
-                className="btn-primary px-10 py-6 group scale-105 origin-left"
+                className="btn-primary px-10 py-6 group scale-105 origin-left rtl:origin-right"
               >
                 <div className="flex items-center gap-3">
                   <MessageSquare className="w-6 h-6" />
-                  <div className="text-left">
+                  <div className="text-start">
                     <span className="block text-[10px] font-black uppercase tracking-widest opacity-80">{t('hero.ctaEyebrow')}</span>
                     <span className="text-lg">{t('hero.ctaLabel')}</span>
                   </div>
                 </div>
-                <ArrowRight className="w-5 h-5 ml-4 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-5 h-5 ms-4 rtl:-scale-x-100 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
               </a>
               
               <a
@@ -266,9 +269,12 @@ const SupportingSection = () => {
 };
 
 const ServiceCards = () => {
-  const { t } = useTranslation(['home', 'common']);
-  // Decision (B) — pre-filled WhatsApp body follows the site language.
-  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(t('common:whatsapp.defaultMessage'))}`;
+  const { t } = useTranslation('home');
+  // This message goes to Nokael's own dispatch number, not the customer —
+  // decision (A) "keep fixed" applies (see Phase 7 of the customer-facing
+  // i18n plan), so this stays the plain DEFAULT_WA_MESSAGE constant, not
+  // wired to t().
+  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(DEFAULT_WA_MESSAGE)}`;
 
   // `analyticsId` is deliberately a fixed English slug: it used to be derived
   // from the (now translated) card title, which would have split the existing
@@ -527,9 +533,12 @@ const TrustGrounded = () => {
 };
 
 const FinalAction = () => {
-  const { t } = useTranslation(['home', 'common']);
-  // Decision (B) — pre-filled WhatsApp body follows the site language.
-  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(t('common:whatsapp.defaultMessage'))}`;
+  const { t } = useTranslation('home');
+  // This message goes to Nokael's own dispatch number, not the customer —
+  // decision (A) "keep fixed" applies (see Phase 7 of the customer-facing
+  // i18n plan), so this stays the plain DEFAULT_WA_MESSAGE constant, not
+  // wired to t().
+  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(DEFAULT_WA_MESSAGE)}`;
 
   return (
     <section className="py-32 md:py-40 bg-brand-bg relative overflow-hidden">

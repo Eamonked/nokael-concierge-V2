@@ -2,10 +2,12 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageSquare, Phone, Zap, ArrowRight } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { WHATSAPP_NUMBER, PHONE_NUMBER } from '../constants';
 import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
 
 export const StickyCTA = () => {
+  const { t } = useTranslation('common');
   const [isVisible, setIsVisible] = React.useState(false);
   const [isHovered, setIsHovered] = React.useState(false);
   const { pathname } = useLocation();
@@ -55,7 +57,7 @@ export const StickyCTA = () => {
                     <MessageSquare className="w-4 h-4 fill-current group-hover:opacity-0 transition-opacity duration-300" />
                     <Zap className="w-4 h-4 absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 fill-current" />
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">WhatsApp Dispatch</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">{t('stickyCta.whatsappDispatch')}</span>
                   
                   <AnimatePresence>
                     {isHovered && (
@@ -65,7 +67,7 @@ export const StickyCTA = () => {
                         exit={{ width: 0, opacity: 0 }}
                         className="overflow-hidden whitespace-nowrap border-l border-brand-bg/20 pl-3 ml-1"
                       >
-                        <span className="text-[9px] font-bold uppercase tracking-widest opacity-80">Quote in &lt;2 min</span>
+                        <span className="text-[9px] font-bold uppercase tracking-widest opacity-80">{t('stickyCta.quoteInUnder2Min')}</span>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -94,7 +96,7 @@ export const StickyCTA = () => {
                    href={`tel:${PHONE_NUMBER}`}
                    onClick={() => trackPhoneClick('sticky_mobile_bar')}
                    className="w-12 h-12 flex items-center justify-center bg-brand-input text-brand-text rounded-xl border border-brand-input-border active:scale-95 transition-transform"
-                   aria-label="Call Dispatch"
+                   aria-label={t('stickyCta.callDispatch')}
                  >
                    <Phone className="w-4 h-4" />
                  </a>
@@ -104,10 +106,10 @@ export const StickyCTA = () => {
                    rel="noopener noreferrer"
                    onClick={() => trackWhatsAppClick('sticky_mobile_bar')}
                    className="flex-1 h-12 flex items-center justify-center gap-3 bg-brand-neon text-brand-bg rounded-xl font-black uppercase tracking-widest text-[9px] active:scale-[0.98] transition-transform shadow-[0_10px_30px_rgba(57,255,20,0.2)]"
-                   aria-label="Request Dispatch via WhatsApp"
+                   aria-label={t('stickyCta.requestDispatchViaWhatsapp')}
                  >
                    <MessageSquare className="w-4 h-4 fill-current" />
-                   <span>Request via WhatsApp</span>
+                   <span>{t('stickyCta.requestViaWhatsapp')}</span>
                  </a>
               </div>
             </motion.div>

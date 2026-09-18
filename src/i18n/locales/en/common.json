@@ -1,6 +1,48 @@
 {
-  "whatsapp": {
-    "defaultMessage": "Hi Nokael, I need an urgent delivery.\nPickup:\nDropoff:\nItem:\nDelivery deadline:\nBusiness or personal:",
-    "businessAccountMessage": "Hi, I’d like to open a business account with Nokael.\nCompany name:\nTypical delivery type:\nTypical route:\nEstimated monthly delivery volume:\nBest contact person:"
+  "topBar": {
+    "urgentDispatch": "Urgent Dispatch Active",
+    "corridor": "Dubai ↔ Abu Dhabi • 90-120 min delivery",
+    "whatsapp": "WhatsApp"
+  },
+  "nav": {
+    "routes": "Routes",
+    "about": "About",
+    "bookNow": "Book Now",
+    "track": "Track",
+    "toggleMenu": "Toggle Menu",
+    "whatsapp": "WhatsApp",
+    "callNow": "Call Now"
+  },
+  "footer": {
+    "tagline": "Same-day delivery between Dubai and Abu Dhabi. One driver, straight to the destination, no sorting hubs.",
+    "operational": "Operational",
+    "quickLinks": "Quick Links",
+    "dubaiSameDay": "Dubai Same-Day",
+    "abuDhabiUrgent": "Abu Dhabi Urgent",
+    "allRoutes": "All Routes",
+    "documentDelivery": "Document Delivery",
+    "partsDelivery": "Parts Delivery",
+    "about": "About",
+    "contact": "Contact",
+    "trackOrder": "Track Order",
+    "getQuote": "Get Quote",
+    "businessAccounts": "Business Accounts",
+    "driverApplication": "Driver Application",
+    "whatsapp": "WhatsApp",
+    "copyright": "© {{year}} Nokael Dash Logistics",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "pickupNote": "Pickup typically 30-60 min"
+  },
+  "languageSwitcher": {
+    "switchToArabic": "العربية",
+    "switchToEnglish": "English"
+  },
+  "stickyCta": {
+    "whatsappDispatch": "WhatsApp Dispatch",
+    "quoteInUnder2Min": "Quote in <2 min",
+    "callDispatch": "Call Dispatch",
+    "requestViaWhatsapp": "Request via WhatsApp",
+    "requestDispatchViaWhatsapp": "Request Dispatch via WhatsApp"
   }
 }

@@ -57,8 +57,9 @@ export function useDriverDocuments(driverId: string | null, navigate: NavigateFu
   const allUploaded = Object.values(uploads).every(u => (u as any).status === 'success');
 
   const completeApplication = (formData: Partial<Driver>) => {
-    // ⚠ Pending WhatsApp-language decision (A/B) — left as a plain template literal.
-    // Do not wire to t() until that decision is made (see Phase 5, step 5.4).
+    // This message goes to Nokael's own dispatch number, not the customer —
+    // decision (A) "keep fixed" applies (see Phase 7 of the customer-facing
+    // i18n plan), so this stays a plain template literal, not wired to t().
     const message = encodeURIComponent(`Hi Nokael, I've just submitted my driver application (Name: ${formData.full_name}).`);
     navigate(`/thank-you?wa=${message}`, {
       state: {

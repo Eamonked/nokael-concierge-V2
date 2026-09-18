@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { CheckCircle2, Loader2, MessageSquare } from 'lucide-react';
 import { useSearchParams, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { trackFormSubmission, trackWhatsAppClick } from '../lib/analytics';
 import { WHATSAPP_NUMBER } from '../constants';
 
@@ -29,6 +30,7 @@ import { WHATSAPP_NUMBER } from '../constants';
  *  Both options can run simultaneously for redundancy.
  */
 export default function ThankYou() {
+  const { t } = useTranslation('thankyou');
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const [countdown, setCountdown] = React.useState(3);
@@ -67,11 +69,11 @@ export default function ThankYou() {
         </div>
 
         <h2 className="text-3xl font-display font-medium tracking-tighter mb-4">
-          Request Logged.
+          {t('requestLogged')}
         </h2>
 
         <p className="text-brand-muted mb-10 leading-relaxed text-sm">
-          Your dispatch request has been entered into the system. A dispatcher is waiting to receive your details on WhatsApp.
+          {t('confirmation')}
         </p>
 
         {/* Action Button */}
@@ -83,11 +85,11 @@ export default function ThankYou() {
           className="btn-primary w-full py-5 text-sm group"
         >
           <MessageSquare className="w-4 h-4 fill-brand-bg group-hover:scale-110 transition-transform" />
-          <span>Connect with Dispatcher</span>
+          <span>{t('connectWithDispatcher')}</span>
         </a>
 
         <p className="mt-8 text-[9px] text-brand-muted uppercase tracking-[0.3em] font-bold leading-relaxed">
-          Open WhatsApp to complete the booking.
+          {t('footerNote')}
         </p>
       </motion.div>
     </div>
