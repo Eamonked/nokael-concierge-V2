@@ -1,1 +1,73 @@
-{}
+{
+  "title": "طلب عرض سعر",
+  "subtitle": "أرسل المسار ونوع الشحنة والموعد النهائي. سنؤكد لك أسرع خيار متاح.",
+  "stepper": {
+    "stepLabel": "الخطوة {{step}} / {{total}} — {{label}}",
+    "estFrom": "بدءًا من {{price}} درهم تقريبًا",
+    "labels": {
+      "route": "المسار",
+      "item": "الشحنة",
+      "urgency": "الأولوية",
+      "contact": "التواصل"
+    }
+  },
+  "step1": {
+    "pickupTitle": "الاستلام",
+    "deliveryTitle": "التسليم",
+    "emirateLabel": "الإمارة",
+    "specificLocationLabel": "الموقع التفصيلي",
+    "pickupPlaceholder": "مثال: JLT، مجمع A، برج 1",
+    "deliveryPlaceholder": "مثال: جزيرة الريم، برج البوابة"
+  },
+  "step2": {
+    "itemTypes": {
+      "document": { "label": "مستند", "desc": "مستندات قانونية، مناقصات، جوازات سفر" },
+      "parcel": { "label": "طرد", "desc": "أغراض شخصية أو تجارية" },
+      "spare_part": { "label": "قطعة غيار", "desc": "صناعية أو تخص السيارات" },
+      "other": { "label": "أخرى", "desc": "خدمات لوجستية مخصصة" }
+    }
+  },
+  "step3": {
+    "urgencyLevels": {
+      "immediate": { "label": "إرسال فوري", "desc": "تعيين السائق خلال 2-5 دقائق" },
+      "today": { "label": "خلال نفس اليوم", "desc": "التسليم بنهاية اليوم" },
+      "scheduled": { "label": "مجدول", "desc": "الحجز المسبق لوقت محدد" }
+    },
+    "estimateNote": "التقدير يبدأ من {{price}} درهم لهذا الاختيار"
+  },
+  "step4": {
+    "businessLabel": "أعمال",
+    "personalLabel": "شخصي",
+    "fullNameLabel": "الاسم الكامل",
+    "namePlaceholder": "اسمك",
+    "companyLabel": "اسم الشركة (اختياري)",
+    "companyPlaceholder": "اسم شركتك",
+    "corporateCodeLabel": "رمز الحساب التجاري",
+    "corporateCodeHint": "فقط إذا كان لديك حساب أعمال مع نوكاييل بالفعل — اتركه فارغًا غير ذلك.",
+    "corporateCodePlaceholder": "مثال: NOK-9241",
+    "phoneLabel": "رقم الهاتف",
+    "whatsappOptIn": "أرغب في استلام عرض السعر عبر واتساب",
+    "repeatBusiness": "هل هذه حاجة عمل متكررة؟"
+  },
+  "sidebar": {
+    "systemContext": "معلومات النظام",
+    "directAssignmentTitle": "تعيين مباشر",
+    "directAssignmentDesc": "يذهب طلبك مباشرة إلى السائق على هذا المسار. بدون وسطاء.",
+    "liveGpsTitle": "تتبع مباشر",
+    "liveGpsDesc": "بمجرد التأكيد، ستحصل على موقع مباشر لسائقك.",
+    "urgentSupport": "دعم عاجل",
+    "chatWithDispatch": "تحدث مع قسم التوزيع"
+  },
+  "buttons": {
+    "back": "رجوع",
+    "continue": "متابعة",
+    "getMyQuote": "احصل على عرض السعر"
+  },
+  "footer": {
+    "pricingNote": "نفس اليوم {{sameDay}} درهم • مخصص {{dedicated}} درهم • الرد خلال ~5 دقائق"
+  },
+  "errors": {
+    "dispatchErrorTitle": "خطأ في الإرسال",
+    "submitFailed": "حدث خطأ أثناء إرسال طلبك. يرجى التحقق من إعدادات Supabase."
+  }
+}

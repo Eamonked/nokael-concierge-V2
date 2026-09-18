@@ -1,1 +1,65 @@
-{}
+{
+  "hero": {
+    "badge": "انضم إلى شبكة التوزيع",
+    "titleLine": "انضم إلى",
+    "titleHighlight": "أسطولنا المتميز.",
+    "subtitle": "اختبر أعلى حجم من الخدمات اللوجستية على مسارات الإمارات. نحن ندير المهام، وأنت تدير القيادة. إرسال مباشر للسائق، دون أي تأخير في المحاور."
+  },
+  "stepper": {
+    "personalInfo": "المعلومات الشخصية",
+    "documents": "المستندات",
+    "complete": "اكتمل"
+  },
+  "step1": {
+    "fullNameLabel": "الاسم الكامل",
+    "fullNamePlaceholder": "كما هو مذكور في الهوية الإماراتية",
+    "emailLabel": "البريد الإلكتروني",
+    "emailPlaceholder": "logistics@nokael.com",
+    "phoneLabel": "رقم الهاتف",
+    "phonePlaceholder": "+971",
+    "whatsappLabel": "رقم الواتساب",
+    "whatsappPlaceholder": "+971",
+    "baseLocationLabel": "موقع الإقامة (المنطقة/المدينة)",
+    "baseLocationPlaceholder": "مثال: البرشاء، دبي",
+    "vehicleCategoryLabel": "فئة المركبة",
+    "vehicleTypes": {
+      "sedan": "سيدان",
+      "executiveSuv": "دفع رباعي فاخر",
+      "panelVan": "فان مقفل",
+      "motorcycle": "دراجة نارية (رخصة R)",
+      "pickup3Ton": "بيك أب 3 طن"
+    },
+    "availabilityTitle": "نافذة التوفر",
+    "availabilitySubtitle": "اختر أيام وساعات عملك النشطة",
+    "startShiftLabel": "بداية الدوام",
+    "endShiftLabel": "نهاية الدوام",
+    "interEmirateTitle": "التوصيل بين الإمارات",
+    "interEmirateDesc": "هل أنت مرتاح للقيادة بين دبي وأبوظبي والإمارات الشمالية؟",
+    "yes": "نعم",
+    "no": "لا",
+    "continueButton": "متابعة إلى رفع المستندات"
+  },
+  "step2": {
+    "documentTypes": {
+      "emiratesId": { "label": "الهوية الإماراتية (الوجهان)", "description": "مسح أو صورة عالية الدقة" },
+      "license": { "label": "رخصة القيادة", "description": "رخصة قيادة إماراتية سارية" },
+      "registration": { "label": "تسجيل المركبة (الملكية)", "description": "بطاقة التسجيل الحالية" },
+      "vehiclePhoto": { "label": "صورة المركبة (رؤية واضحة)", "description": "أظهر الجانب الأمامي والجانبي" }
+    },
+    "verified": "تم التحقق",
+    "uploading": "جارٍ الرفع...",
+    "replaceFile": "استبدال الملف",
+    "uploadFile": "رفع الملف",
+    "backButton": "رجوع",
+    "completeButton": "إكمال الطلب"
+  },
+  "step3": {
+    "title": "تم تقديم الطلب",
+    "description": "شكرًا لتقديمك للانضمام إلى نوكاييل. سيقوم فريقنا بمراجعة مستنداتك والتواصل معك خلال 24-48 ساعة للخطوات التالية.",
+    "returnHome": "العودة للرئيسية"
+  },
+  "errors": {
+    "submitFailed": "فشل تقديم الطلب. يرجى المحاولة مرة أخرى.",
+    "uploadFailedPrefix": "فشل الرفع: "
+  }
+}

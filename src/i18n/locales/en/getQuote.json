@@ -1,1 +1,73 @@
-{}
+{
+  "title": "Request a Quote",
+  "subtitle": "Send the route, item type, and deadline. We’ll confirm the fastest available option.",
+  "stepper": {
+    "stepLabel": "Step {{step}} / {{total}} — {{label}}",
+    "estFrom": "Est. from AED {{price}}",
+    "labels": {
+      "route": "Route",
+      "item": "Item",
+      "urgency": "Urgency",
+      "contact": "Contact"
+    }
+  },
+  "step1": {
+    "pickupTitle": "Pickup",
+    "deliveryTitle": "Delivery",
+    "emirateLabel": "Emirate",
+    "specificLocationLabel": "Specific Location",
+    "pickupPlaceholder": "e.g. JLT Cluster A, Tower 1",
+    "deliveryPlaceholder": "e.g. Al Reem Island, Gate Tower"
+  },
+  "step2": {
+    "itemTypes": {
+      "document": { "label": "Document", "desc": "Legal, Tenders, Passports" },
+      "parcel": { "label": "Parcel", "desc": "Personal or Business items" },
+      "spare_part": { "label": "Spare Part", "desc": "Industrial or Automotive" },
+      "other": { "label": "Other", "desc": "Custom logistics" }
+    }
+  },
+  "step3": {
+    "urgencyLevels": {
+      "immediate": { "label": "Immediate Dispatch", "desc": "Driver assigned in 2-5 mins" },
+      "today": { "label": "Same Day", "desc": "Delivery by end of day" },
+      "scheduled": { "label": "Scheduled", "desc": "Pre-book for specific time" }
+    },
+    "estimateNote": "Estimated from AED {{price}} for this selection"
+  },
+  "step4": {
+    "businessLabel": "Business",
+    "personalLabel": "Personal",
+    "fullNameLabel": "Full Name",
+    "namePlaceholder": "Your Name",
+    "companyLabel": "Company Name (Optional)",
+    "companyPlaceholder": "Your Company",
+    "corporateCodeLabel": "Corporate Ref Code",
+    "corporateCodeHint": "Only if you already have a Nokael business account — leave blank otherwise.",
+    "corporateCodePlaceholder": "e.g. NOK-9241",
+    "phoneLabel": "Phone Number",
+    "whatsappOptIn": "I want to receive the quote on WhatsApp",
+    "repeatBusiness": "Is this a repeat business need?"
+  },
+  "sidebar": {
+    "systemContext": "System Context",
+    "directAssignmentTitle": "Direct Assignment",
+    "directAssignmentDesc": "Your request goes directly to the driver on the corridor. No third parties.",
+    "liveGpsTitle": "Live GPS",
+    "liveGpsDesc": "Once confirmed, you'll receive a live location pin of your driver.",
+    "urgentSupport": "Urgent Support",
+    "chatWithDispatch": "Chat with Dispatch"
+  },
+  "buttons": {
+    "back": "Back",
+    "continue": "Continue",
+    "getMyQuote": "Get My Quote"
+  },
+  "footer": {
+    "pricingNote": "Same-Day AED {{sameDay}} • Dedicated AED {{dedicated}} • Response in ~5 mins"
+  },
+  "errors": {
+    "dispatchErrorTitle": "Dispatch Error",
+    "submitFailed": "There was an error submitting your request. Please check your Supabase configuration."
+  }
+}

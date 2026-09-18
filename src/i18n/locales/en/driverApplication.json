@@ -1,1 +1,65 @@
-{}
+{
+  "hero": {
+    "badge": "Join the Dispatch Network",
+    "titleLine": "Join our",
+    "titleHighlight": "Elite Fleet.",
+    "subtitle": "Experience the highest volume corridor logistics in the UAE. We manage the jobs, you manage the drive. Direct driver dispatch, zero hub delays."
+  },
+  "stepper": {
+    "personalInfo": "Personal Info",
+    "documents": "Documents",
+    "complete": "Complete"
+  },
+  "step1": {
+    "fullNameLabel": "Full Name",
+    "fullNamePlaceholder": "As per Emirates ID",
+    "emailLabel": "Email Address",
+    "emailPlaceholder": "logistics@nokael.com",
+    "phoneLabel": "Phone Number",
+    "phonePlaceholder": "+971",
+    "whatsappLabel": "WhatsApp Number",
+    "whatsappPlaceholder": "+971",
+    "baseLocationLabel": "Base Location (Area/City)",
+    "baseLocationPlaceholder": "e.g. Al Barsha, Dubai",
+    "vehicleCategoryLabel": "Vehicle Category",
+    "vehicleTypes": {
+      "sedan": "Sedan",
+      "executiveSuv": "Executive SUV",
+      "panelVan": "Panel Van",
+      "motorcycle": "Motorcycle (License R)",
+      "pickup3Ton": "3-Ton Pickup"
+    },
+    "availabilityTitle": "Availability Window",
+    "availabilitySubtitle": "Select your active dispatch days and hours",
+    "startShiftLabel": "Start Shift",
+    "endShiftLabel": "End Shift",
+    "interEmirateTitle": "Inter-Emirate Dispatch",
+    "interEmirateDesc": "Are you comfortable driving between Dubai, Abu Dhabi, and Northern Emirates?",
+    "yes": "Yes",
+    "no": "No",
+    "continueButton": "Continue to Document Upload"
+  },
+  "step2": {
+    "documentTypes": {
+      "emiratesId": { "label": "Emirates ID (Front & Back)", "description": "High resolution scan or photo" },
+      "license": { "label": "Driving License", "description": "Valid UAE driving license" },
+      "registration": { "label": "Vehicle Registration (Mulkiya)", "description": "Current registration card" },
+      "vehiclePhoto": { "label": "Vehicle Photo (Clear view)", "description": "Show front and side profile" }
+    },
+    "verified": "Verified",
+    "uploading": "Uploading...",
+    "replaceFile": "Replace File",
+    "uploadFile": "Upload File",
+    "backButton": "Back",
+    "completeButton": "Complete Application"
+  },
+  "step3": {
+    "title": "Application Submitted",
+    "description": "Thank you for applying to join Nokael. Our team will review your documents and contact you within 24-48 hours for the next steps.",
+    "returnHome": "Return Home"
+  },
+  "errors": {
+    "submitFailed": "Failed to submit application. Please try again.",
+    "uploadFailedPrefix": "Upload failed: "
+  }
+}
