@@ -24,6 +24,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { WHATSAPP_NUMBER } from './constants';
 import { MessageSquare } from 'lucide-react';
 import { SEO_METADATA, DEFAULT_METADATA } from '../seo/metadata';
+import i18n from './i18n/config';
 
 // Loading Fallback
 const PageLoader = () => (
@@ -57,6 +58,22 @@ function UTMCapture() {
   useEffect(() => {
     captureUTMs();
   }, [search]); // re-run if query string changes (e.g. paid click → same-tab navigation)
+  return null;
+}
+
+// Keeps the document's text direction in sync with the active i18n language,
+// so Arabic renders RTL and everything else falls back to LTR.
+function LanguageDirectionManager() {
+  useEffect(() => {
+    const applyDirection = (lng: string) => {
+      document.documentElement.dir = lng === 'ar' ? 'rtl' : 'ltr';
+    };
+    applyDirection(i18n.language);
+    i18n.on('languageChanged', applyDirection);
+    return () => {
+      i18n.off('languageChanged', applyDirection);
+    };
+  }, []);
   return null;
 }
 
@@ -118,6 +135,7 @@ function TitleManager() {
 export default function App() {
   return (
     <Router>
+      <LanguageDirectionManager />
       <ScrollToTop />
       <UTMCapture />
       <PageViewTracker />

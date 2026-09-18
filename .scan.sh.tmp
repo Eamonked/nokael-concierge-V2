@@ -1,0 +1,10 @@
+#!/bin/bash
+cd /Volumes/Stash/Nokael_Ops/nokael-concierge-V2/src/pages
+for f in *.tsx; do
+  lines=$(wc -l < "$f")
+  types=$(grep -cE '^(interface|type) ' "$f")
+  supabase=$(grep -c 'supabase\.' "$f")
+  usestate=$(grep -c 'useState' "$f")
+  useeffect=$(grep -c 'useEffect' "$f")
+  printf '%-30s lines=%-5s types=%-3s supabase=%-3s useState=%-3s useEffect=%-3s\n' "$f" "$lines" "$types" "$supabase" "$usestate" "$useeffect"
+done
