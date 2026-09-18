@@ -1,0 +1,69 @@
+{
+  "hero": {
+    "eyebrow": "The Nokael Mission",
+    "titleLine1": "Logistics at the",
+    "titleLine2": "Speed of Trust.",
+    "intro": "We didn't build a courier company. We built a way to get one driver, one item, moving the moment you call."
+  },
+  "stats": {
+    "efficiency": {
+      "label": "Efficiency",
+      "value": "0 Hubs",
+      "subtext": "Your items go directly from pickup to destination. No warehouses, no sorting delays."
+    },
+    "response": {
+      "label": "Response",
+      "value": "< 5 Mins",
+      "subtext": "Average time to assign a dedicated driver to your request once confirmed via WhatsApp."
+    },
+    "velocity": {
+      "label": "Velocity",
+      "value": "90 Mins",
+      "subtext": "Target door-to-door transit time for core Dubai ↔ Abu Dhabi corridors."
+    }
+  },
+  "philosophy": {
+    "headingLine1": "The Anti-Courier",
+    "headingLine2": "Operational Model.",
+    "points": {
+      "0": {
+        "title": "No Waiting Around",
+        "body": "Traditional couriers make your package wait for the next truck. We don't. The moment we pick up, the driver is already heading to your destination."
+      },
+      "1": {
+        "title": "One Driver, One Job",
+        "body": "Every \"Urgent\" booking gets a dedicated driver. They are not juggling 50 other deliveries. Their only mission is your item."
+      },
+      "2": {
+        "title": "Ironclad Accountability",
+        "body": "We track every movement via GPS and send real-time updates on WhatsApp. You always know exactly where your item is."
+      }
+    },
+    "checklist": {
+      "heading": "The Basics, Covered",
+      "items": {
+        "0": "UAE Licensed Logistics Operator",
+        "1": "Fully Insured Transit",
+        "2": "Vetted Professional Drivers",
+        "3": "24/7 Dispatch Control"
+      },
+      "quote": "\"Built for the legal firms, industrial sites, and business operators who value time as their most expensive asset.\""
+    }
+  },
+  "industries": {
+    "heading": "Who We Work With",
+    "subheading": "Industries where a late delivery costs real money",
+    "items": {
+      "0": { "title": "Legal & Finance", "desc": "Original contracts and tenders for DIFC, ADGM, and government offices." },
+      "1": { "title": "Industrial & Parts", "desc": "Aviation, machinery, and automotive parts required to restore operations." },
+      "2": { "title": "Medical Logistics", "desc": "Sensitive samples and time-critical medical supplies across emirates." },
+      "3": { "title": "Personal Urgency", "desc": "Emergency passports, forgotten keys, and high-value personal assets." }
+    }
+  },
+  "finalAction": {
+    "heading": "Every minute matters. Send it.",
+    "subheading": "For businesses that can't afford a late delivery.",
+    "ctaWhatsapp": "WhatsApp Dispatch",
+    "ctaQuote": "Request Quote"
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "breadcrumb": {
+    "home": "Home",
+    "services": "Services"
+  },
+
+  "chrome": {
+    "dispatchSectorTemplate": "Dispatch Sector: {{city}}",
+    "industryTemplate": "Industry: {{industry}}",
+    "liveActive": "Live Active",
+    "tagline": "Dedicated driver. No sorting hubs. Direct delivery.",
+    "ctaEyebrow": "Instant Dispatch",
+    "ctaLabel": "WhatsApp Dispatch",
+    "callCenterTemplate": "Call Center: {{phone}}",
+    "startingFrom": "Starting From",
+    "priceTemplate": "AED {{price}}",
+    "responseTime": "Response Time",
+    "responseTimeValue": "2-5 Mins",
+    "status": "Status",
+    "statusActive": "Active",
+    "defaultCityLabel": "Dubai"
+  },
+
+  "trustBar": {
+    "trustedFor": "Trusted for:",
+    "legalFinance": "Legal & Finance",
+    "governmentFilings": "Government Filings",
+    "industrialParts": "Industrial Parts",
+    "supplyChain": "Supply Chain"
+  },
+
+  "operationalOverview": "Operational Overview",
+
+  "sla": {
+    "title": "Service Level Agreement (SLA)",
+    "guaranteedDispatch": {
+      "title": "Guaranteed Dispatch",
+      "desc": "Driver assigned within 5 minutes of confirmation. Immediate pickup within 30-60 minutes across major hubs."
+    },
+    "directPointToPoint": {
+      "title": "Direct Point-to-Point",
+      "desc": "No sorting hubs, no warehouses, no shared loads. Your item stays with one driver from pickup to dropoff."
+    },
+    "fullInsurance": {
+      "title": "Full Insurance",
+      "desc": "Comprehensive transit insurance for all business documents and industrial spare parts up to AED 50,000."
+    },
+    "realTimeProof": {
+      "title": "Real-time Proof",
+      "desc": "Instant proof of delivery (POD) sent via WhatsApp with recipient signature and timestamp."
+    }
+  },
+
+  "quickFacts": {
+    "0": { "title": "Fast Dispatch", "desc": "Typically 30-60 min pickup" },
+    "1": { "title": "Direct Route", "desc": "No warehouses or sorting" },
+    "2": { "title": "Secure Handling", "desc": "Chain of custody delivery" },
+    "3": { "title": "24/7 Response", "desc": "Emergency dispatch team" }
+  },
+
+  "whatClientsUseThisFor": {
+    "heading": "What Clients Use This For",
+    "body": "Same-day contracts and tenders into government offices. Spare parts moved straight from supplier to a site that's down. Documents that need to be in someone's hands — not a mailbox — by a specific hour."
+  },
+
+  "corridorPerformance": {
+    "heading": "Corridor Performance",
+    "liveNote": "Live Corridor Data • Subject to Traffic",
+    "destinations": {
+      "0": { "to": "Abu Dhabi", "time": "90-120 min" },
+      "1": { "to": "Sharjah", "time": "45-60 min" },
+      "2": { "to": "Fujairah", "time": "120-150 min" },
+      "3": { "to": "Ras Al Khaimah", "time": "90-120 min" }
+    }
+  },
+
+  "needItNow": {
+    "heading": "Need it Now?",
+    "body": "Our dispatchers are standing by to assign a dedicated driver to your request. No waiting for the next truck.",
+    "cta": "Instant Dispatch"
+  },
+
+  "otherServices": {
+    "label": "Other Services",
+    "items": {
+      "0": { "name": "Document Delivery" },
+      "1": { "name": "Spare Parts" },
+      "2": { "name": "Dubai Dispatch" },
+      "3": { "name": "Abu Dhabi Dispatch" }
+    }
+  },
+
+  "dubai": {
+    "title": "Dubai Dispatch.",
+    "subtitle": "Fast inter-emirate transport starting from Dubai. Pickup typically within 30–60 minutes for immediate dispatch to Abu Dhabi, Sharjah, and beyond.",
+    "cityLabel": "Dubai",
+    "content": {
+      "0": "Dubai is the heart of UAE commerce, and when logistics fail, business stops. Nokael moves urgent items out of Dubai to other emirates — one driver, no hubs, no sorting delays.",
+      "1": "Our drivers are strategically positioned across Dubai—from Downtown and DIFC to Jebel Ali and Dubai Marina—to ensure rapid response times. We don't use sorting hubs; your item goes from the pickup point directly to the delivery destination.",
+      "2": "Whether it's a critical document for a government office in Abu Dhabi or a forgotten passport for a flight in Sharjah, our Dubai dispatch team is ready 24/7."
+    }
+  },
+
+  "abuDhabi": {
+    "title": "Abu Dhabi Dispatch.",
+    "subtitle": "Premium inter-emirate logistics from the capital. Dedicated drivers for direct transport to Dubai and the Northern Emirates.",
+    "cityLabel": "Abu Dhabi",
+    "content": {
+      "0": "Abu Dhabi requires a higher level of logistics precision. Nokael serves the capital's most demanding delivery needs with dedicated transport for government, corporate, and private clients.",
+      "1": "Our Abu Dhabi dispatch network covers the entire city, including Al Reem Island, Khalifa City, and the Industrial areas. We specialize in the Abu Dhabi ↔ Dubai corridor, offering the fastest possible transit times between the two major hubs.",
+      "2": "With Nokael, you get a dedicated driver who understands the urgency of your mission. No shared loads, no delays, just direct inter-emirate delivery."
+    }
+  },
+
+  "document": {
+    "title": "Document & Legal.",
+    "subtitle": "Secure, hand-to-hand transport for sensitive documents, contracts, and legal tenders across all emirates.",
+    "industryLabel": "Legal & Corporate",
+    "content": {
+      "0": "In the legal and corporate world, some documents are too important for standard courier services. Nokael provides a premium document dispatch service that prioritizes security and chain of custody.",
+      "1": "Our drivers handle your sensitive materials with the utmost care, providing hand-to-hand delivery from the sender directly to the recipient. We understand the critical nature of legal deadlines and government tender submissions.",
+      "2": "Every document delivery includes real-time tracking and immediate proof of delivery via WhatsApp, giving you total peace of mind for your most important assets."
+    }
+  },
+
+  "spareParts": {
+    "title": "Spare Parts Logistics.",
+    "subtitle": "Emergency transport for critical machinery, automotive, and industrial parts. Direct from supplier to site.",
+    "industryLabel": "Industrial & Automotive",
+    "content": {
+      "0": "When machinery breaks down or a vehicle is off the road, every minute costs money. Nokael provides emergency spare parts logistics for the industrial and automotive sectors across the UAE.",
+      "1": "We specialize in the rapid transport of critical components that are too urgent for traditional freight. Our drivers can pick up directly from suppliers or warehouses and deliver straight to the site where the part is needed.",
+      "2": "From heavy industrial components to delicate electronic parts, we get your operations back on track as quickly as possible."
+    }
+  }
+}

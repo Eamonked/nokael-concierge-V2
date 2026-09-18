@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Shield, Zap, Navigation, Truck, Package, Clock, CheckCircle2, Building2, UserCheck, MessageSquare } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { WHATSAPP_NUMBER } from '../constants';
 import { trackWhatsAppClick } from '../lib/analytics';
 
@@ -13,7 +14,15 @@ const StatCard = ({ label, value, subtext }: { label: string; value: string; sub
 );
 
 export default function About() {
+  const { t } = useTranslation('about');
   const waUrl = `https://wa.me/${WHATSAPP_NUMBER}`;
+
+  const industries = [
+    { title: t('industries.items.0.title'), icon: Building2, desc: t('industries.items.0.desc') },
+    { title: t('industries.items.1.title'), icon: Package, desc: t('industries.items.1.desc') },
+    { title: t('industries.items.2.title'), icon: Shield, desc: t('industries.items.2.desc') },
+    { title: t('industries.items.3.title'), icon: Clock, desc: t('industries.items.3.desc') }
+  ];
 
   return (
     <div className="bg-brand-bg">
@@ -26,14 +35,14 @@ export default function About() {
             className="asymmetric-grid items-end"
           >
             <div className="max-w-3xl">
-              <p className="text-brand-neon font-bold uppercase tracking-[0.4em] text-[10px] mb-6">The Nokael Mission</p>
+              <p className="text-brand-neon font-bold uppercase tracking-[0.4em] text-[10px] mb-6">{t('hero.eyebrow')}</p>
               <h1 className="text-5xl md:text-8xl font-display font-medium tracking-tighter mb-10 leading-[0.85] text-brand-text">
-                Logistics at the 
+                {t('hero.titleLine1')}
                 <br />
-                <span className="text-brand-neon italic">Speed of Trust.</span>
+                <span className="text-brand-neon italic">{t('hero.titleLine2')}</span>
               </h1>
               <p className="text-xl md:text-2xl text-brand-muted font-medium leading-relaxed max-w-xl">
-                We didn’t build a courier company. We built a way to get one driver, one item, moving the moment you call.
+                {t('hero.intro')}
               </p>
             </div>
           </motion.div>
@@ -48,19 +57,19 @@ export default function About() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard 
-              label="Efficiency" 
-              value="0 Hubs" 
-              subtext="Your items go directly from pickup to destination. No warehouses, no sorting delays."
+              label={t('stats.efficiency.label')} 
+              value={t('stats.efficiency.value')} 
+              subtext={t('stats.efficiency.subtext')}
             />
             <StatCard 
-              label="Response" 
-              value="< 5 Mins" 
-              subtext="Average time to assign a dedicated driver to your request once confirmed via WhatsApp."
+              label={t('stats.response.label')} 
+              value={t('stats.response.value')} 
+              subtext={t('stats.response.subtext')}
             />
             <StatCard 
-              label="Velocity" 
-              value="90 Mins" 
-              subtext="Target door-to-door transit time for core Dubai ↔ Abu Dhabi corridors."
+              label={t('stats.velocity.label')} 
+              value={t('stats.velocity.value')} 
+              subtext={t('stats.velocity.subtext')}
             />
           </div>
         </div>
@@ -72,8 +81,8 @@ export default function About() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
             <div className="lg:col-span-7">
               <h2 className="text-4xl md:text-6xl font-display font-medium tracking-tighter mb-12 text-brand-text">
-                The Anti-Courier <br />
-                <span className="text-brand-muted">Operational Model.</span>
+                {t('philosophy.headingLine1')} <br />
+                <span className="text-brand-muted">{t('philosophy.headingLine2')}</span>
               </h2>
               
               <div className="space-y-12">
@@ -82,9 +91,9 @@ export default function About() {
                     <Navigation className="w-6 h-6 text-brand-neon" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold mb-4 text-brand-text">No Waiting Around</h3>
+                    <h3 className="text-xl font-bold mb-4 text-brand-text">{t('philosophy.points.0.title')}</h3>
                     <p className="text-brand-muted leading-relaxed max-w-lg">
-                      Traditional couriers make your package wait for the next truck. We don't. The moment we pick up, the driver is already heading to your destination.
+                      {t('philosophy.points.0.body')}
                     </p>
                   </div>
                 </div>
@@ -94,9 +103,9 @@ export default function About() {
                     <Truck className="w-6 h-6 text-brand-blue" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold mb-4 text-brand-text">One Driver, One Job</h3>
+                    <h3 className="text-xl font-bold mb-4 text-brand-text">{t('philosophy.points.1.title')}</h3>
                     <p className="text-brand-muted leading-relaxed max-w-lg">
-                      Every "Urgent" booking gets a dedicated driver. They are not juggling 50 other deliveries. Their only mission is your item.
+                      {t('philosophy.points.1.body')}
                     </p>
                   </div>
                 </div>
@@ -106,9 +115,9 @@ export default function About() {
                     <Shield className="w-6 h-6 text-brand-text" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold mb-4 text-brand-text">Ironclad Accountability</h3>
+                    <h3 className="text-xl font-bold mb-4 text-brand-text">{t('philosophy.points.2.title')}</h3>
                     <p className="text-brand-muted leading-relaxed max-w-lg">
-                      We track every movement via GPS and send real-time updates on WhatsApp. You always know exactly where your item is.
+                      {t('philosophy.points.2.body')}
                     </p>
                   </div>
                 </div>
@@ -118,37 +127,37 @@ export default function About() {
             <div className="lg:col-span-5">
               <div className="dispatch-card scale-105 p-10 bg-brand-bg relative z-10 overflow-hidden">
                 <div className="relative z-10">
-                  <h3 className="text-xs font-black uppercase tracking-[0.3em] text-brand-neon mb-8">The Basics, Covered</h3>
+                  <h3 className="text-xs font-black uppercase tracking-[0.3em] text-brand-neon mb-8">{t('philosophy.checklist.heading')}</h3>
                   <div className="space-y-6">
                     <div className="flex items-center gap-4">
                       <div className="w-8 h-8 rounded-lg bg-brand-input flex items-center justify-center text-brand-neon">
                         <CheckCircle2 className="w-4 h-4" />
                       </div>
-                      <span className="text-[11px] font-bold uppercase tracking-widest text-brand-text">UAE Licensed Logistics Operator</span>
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-brand-text">{t('philosophy.checklist.items.0')}</span>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="w-8 h-8 rounded-lg bg-brand-input flex items-center justify-center text-brand-neon">
                         <CheckCircle2 className="w-4 h-4" />
                       </div>
-                      <span className="text-[11px] font-bold uppercase tracking-widest text-brand-text">Fully Insured Transit</span>
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-brand-text">{t('philosophy.checklist.items.1')}</span>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="w-8 h-8 rounded-lg bg-brand-input flex items-center justify-center text-brand-neon">
                         <CheckCircle2 className="w-4 h-4" />
                       </div>
-                      <span className="text-[11px] font-bold uppercase tracking-widest text-brand-text">Vetted Professional Drivers</span>
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-brand-text">{t('philosophy.checklist.items.2')}</span>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="w-8 h-8 rounded-lg bg-brand-input flex items-center justify-center text-brand-neon">
                         <CheckCircle2 className="w-4 h-4" />
                       </div>
-                      <span className="text-[11px] font-bold uppercase tracking-widest text-brand-text">24/7 Dispatch Control</span>
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-brand-text">{t('philosophy.checklist.items.3')}</span>
                     </div>
                   </div>
                   
                   <div className="mt-12 pt-12 border-t border-brand-border">
                     <p className="text-xs text-brand-muted italic leading-relaxed">
-                      "Built for the legal firms, industrial sites, and business operators who value time as their most expensive asset."
+                      {t('philosophy.checklist.quote')}
                     </p>
                   </div>
                 </div>
@@ -165,17 +174,12 @@ export default function About() {
       <section className="py-24 bg-brand-bg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-display font-medium tracking-tighter mb-4 text-brand-text">Who We Work With</h2>
-            <p className="text-brand-muted uppercase tracking-widest text-[10px] font-bold">Industries where a late delivery costs real money</p>
+            <h2 className="text-4xl md:text-5xl font-display font-medium tracking-tighter mb-4 text-brand-text">{t('industries.heading')}</h2>
+            <p className="text-brand-muted uppercase tracking-widest text-[10px] font-bold">{t('industries.subheading')}</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { title: 'Legal & Finance', icon: Building2, desc: 'Original contracts and tenders for DIFC, ADGM, and government offices.' },
-              { title: 'Industrial & Parts', icon: Package, desc: 'Aviation, machinery, and automotive parts required to restore operations.' },
-              { title: 'Medical Logistics', icon: Shield, desc: 'Sensitive samples and time-critical medical supplies across emirates.' },
-              { title: 'Personal Urgency', icon: Clock, desc: 'Emergency passports, forgotten keys, and high-value personal assets.' }
-            ].map((industry, i) => (
+            {industries.map((industry, i) => (
               <div key={i} className="p-8 rounded-3xl bg-brand-input border border-brand-input-border text-center hover:border-brand-neon/20 transition-all">
                 <div className="w-12 h-12 rounded-2xl bg-brand-surface border border-brand-border flex items-center justify-center mx-auto mb-6 text-brand-neon">
                   <industry.icon className="w-6 h-6" />
@@ -191,9 +195,9 @@ export default function About() {
       {/* Call to Action */}
       <section className="py-40 bg-brand-bg text-center relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <h2 className="text-6xl md:text-8xl font-display font-medium tracking-tighter mb-12 text-brand-text">Every minute matters. Send it.</h2>
+          <h2 className="text-6xl md:text-8xl font-display font-medium tracking-tighter mb-12 text-brand-text">{t('finalAction.heading')}</h2>
           <p className="text-xl text-brand-muted mb-16 max-w-2xl mx-auto font-medium">
-            For businesses that can't afford a late delivery.
+            {t('finalAction.subheading')}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <a 
@@ -204,13 +208,13 @@ export default function About() {
               className="btn-primary px-12 py-6 text-lg"
             >
               <MessageSquare className="w-6 h-6" />
-              <span>WhatsApp Dispatch</span>
+              <span>{t('finalAction.ctaWhatsapp')}</span>
             </a>
             <a 
               href="/get-quote"
               className="btn-secondary px-12 py-6 text-lg"
             >
-              <span>Request Quote</span>
+              <span>{t('finalAction.ctaQuote')}</span>
             </a>
           </div>
         </div>

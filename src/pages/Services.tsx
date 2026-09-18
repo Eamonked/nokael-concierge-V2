@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Shield, Zap, MapPin, Clock, CheckCircle2, ArrowRight, Package, Truck, Navigation, FileText, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { WHATSAPP_NUMBER } from '../constants';
 import { trackWhatsAppClick } from '../lib/analytics';
 import { clsx, type ClassValue } from 'clsx';
@@ -11,7 +12,7 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const ServiceCard = ({ title, desc, icon: Icon, features, link, index }: any) => (
+const ServiceCard = ({ title, desc, icon: Icon, features, link, index, learnMoreLabel }: any) => (
   <div className={cn(
     "dispatch-card group",
     index % 2 === 1 ? "md:mt-12" : ""
@@ -33,49 +34,36 @@ const ServiceCard = ({ title, desc, icon: Icon, features, link, index }: any) =>
       to={link} 
       className="inline-flex items-center gap-2 text-brand-neon font-bold uppercase tracking-[0.2em] text-[10px] group-hover:gap-4 transition-all"
     >
-      <span>Learn more</span>
+      <span>{learnMoreLabel}</span>
       <ArrowRight className="w-3 h-3" />
     </Link>
   </div>
 );
 
 export default function Services() {
+  const { t } = useTranslation('services');
+
   const services = [
     {
-      title: 'Urgent Inter-Emirate',
-      desc: 'Direct pickup and delivery between any two points in the UAE. No sorting hubs. No delays.',
+      title: t('services.0.title'),
+      desc: t('services.0.desc'),
       icon: Navigation,
       link: '/urgent-delivery-dubai',
-      features: [
-        '30-60 min pickup',
-        'Direct corridor route',
-        'Live WhatsApp tracking',
-        'Dedicated driver'
-      ]
+      features: t('services.0.features', { returnObjects: true }) as string[]
     },
     {
-      title: 'Document & Legal',
-      desc: 'Secure transport for sensitive contracts, legal tenders, and original documents requiring chain of custody.',
+      title: t('services.1.title'),
+      desc: t('services.1.desc'),
       icon: FileText,
       link: '/document-delivery-uae',
-      features: [
-        'Hand-to-hand delivery',
-        'Confidential handling',
-        'Immediate delivery proof',
-        'Tamper-evident'
-      ]
+      features: t('services.1.features', { returnObjects: true }) as string[]
     },
     {
-      title: 'Spare Parts Logistics',
-      desc: 'Emergency transport for critical machinery parts, automotive components, and industrial hardware.',
+      title: t('services.2.title'),
+      desc: t('services.2.desc'),
       icon: Settings,
       link: '/spare-parts-delivery-uae',
-      features: [
-        'Heavy handling',
-        'Supplier-to-site',
-        '24/7 emergency dispatch',
-        'UAE-wide access'
-      ]
+      features: t('services.2.features', { returnObjects: true }) as string[]
     }
   ];
 
@@ -86,13 +74,13 @@ export default function Services() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="asymmetric-grid items-end">
             <div className="max-w-2xl">
-              <p className="text-brand-neon font-bold uppercase tracking-[0.4em] text-[10px] mb-6">What We Do</p>
+              <p className="text-brand-neon font-bold uppercase tracking-[0.4em] text-[10px] mb-6">{t('hero.eyebrow')}</p>
               <h1 className="text-5xl md:text-8xl font-display font-medium tracking-tighter mb-8 leading-[0.85]">
-                When It Can't<br />
-                Wait.
+                {t('hero.titleLine1')}<br />
+                {t('hero.titleLine2')}
               </h1>
               <p className="text-lg text-brand-muted leading-relaxed max-w-lg">
-                A tender due in an hour. A part that's shut down a line. We get one driver on it, direct, until it's delivered.
+                {t('hero.intro')}
               </p>
             </div>
           </div>
@@ -102,9 +90,9 @@ export default function Services() {
       {/* Services Grid */}
       <section className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="sr-only">Our Specialized Logistics Services</h2>
+          <h2 className="sr-only">{t('gridHeading')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {services.map((s, i) => <ServiceCard key={i} {...s} index={i} />)}
+            {services.map((s, i) => <ServiceCard key={i} {...s} index={i} learnMoreLabel={t('learnMore')} />)}
           </div>
         </div>
       </section>
@@ -114,28 +102,28 @@ export default function Services() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
             <div className="lg:col-span-4">
-              <h2 className="text-3xl font-display font-medium tracking-tighter mb-8">UAE Express Logistics Expertise</h2>
+              <h2 className="text-3xl font-display font-medium tracking-tighter mb-8">{t('expertise.heading')}</h2>
               <p className="text-brand-muted text-sm leading-relaxed mb-8">
-                Traditional courier services rely on sorting hubs and shared vehicle loads. We bypass the traditional warehouse model entirely.
+                {t('expertise.intro')}
               </p>
               <div className="p-6 rounded-2xl border border-brand-neon/20 bg-brand-neon/5">
                 <p className="text-xs italic text-brand-text leading-relaxed">
-                  "One driver, one item, one direct route."
+                  {t('expertise.quote')}
                 </p>
               </div>
             </div>
             
             <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-12">
               <div className="space-y-6">
-                <h3 className="text-xs font-bold text-brand-text uppercase tracking-[0.2em]">Urgent Delivery UAE</h3>
+                <h3 className="text-xs font-bold text-brand-text uppercase tracking-[0.2em]">{t('expertise.sections.0.title')}</h3>
                 <p className="text-xs text-brand-muted leading-relaxed">
-                  Whether you're in Dubai, Abu Dhabi, or the Northern Emirates, a dedicated driver is assigned to your job the moment you book — usually moving within the hour.
+                  {t('expertise.sections.0.body')}
                 </p>
               </div>
               <div className="space-y-6">
-                <h3 className="text-xs font-bold text-brand-text uppercase tracking-[0.2em]">Inter-Emirate Corridors</h3>
+                <h3 className="text-xs font-bold text-brand-text uppercase tracking-[0.2em]">{t('expertise.sections.1.title')}</h3>
                 <p className="text-xs text-brand-muted leading-relaxed">
-                  Our routes cover the entire UAE, with a primary focus on the high-traffic corridors such as Dubai to Abu Dhabi, Sharjah to Dubai, and Ras Al Khaimah to Abu Dhabi. We understand that "urgent" means now, not tomorrow.
+                  {t('expertise.sections.1.body')}
                 </p>
               </div>
             </div>
@@ -146,13 +134,13 @@ export default function Services() {
       {/* Final Action */}
       <section className="py-40 text-center relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <h2 className="text-5xl md:text-8xl font-display font-medium tracking-tighter mb-12">Send it today.</h2>
+          <h2 className="text-5xl md:text-8xl font-display font-medium tracking-tighter mb-12">{t('finalAction.heading')}</h2>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <Link
               to="/get-quote"
               className="btn-primary px-12 py-5"
             >
-              Get Instant Quote
+              {t('finalAction.ctaQuote')}
             </Link>
             <a
               href={`https://wa.me/${WHATSAPP_NUMBER}`}
@@ -161,7 +149,7 @@ export default function Services() {
               onClick={() => trackWhatsAppClick('services_footer')}
               className="btn-secondary px-12 py-5"
             >
-              WhatsApp Dispatch
+              {t('finalAction.ctaWhatsapp')}
             </a>
           </div>
         </div>

@@ -15,6 +15,12 @@ import notFoundEn from './locales/en/notFound.json';
 import notFoundAr from './locales/ar/notFound.json';
 import homeEn from './locales/en/home.json';
 import homeAr from './locales/ar/home.json';
+import landingPagesEn from './locales/en/landingPages.json';
+import landingPagesAr from './locales/ar/landingPages.json';
+import servicesEn from './locales/en/services.json';
+import servicesAr from './locales/ar/services.json';
+import aboutEn from './locales/en/about.json';
+import aboutAr from './locales/ar/about.json';
 
 i18next.use(initReactI18next).init({
   resources: {
@@ -26,6 +32,9 @@ i18next.use(initReactI18next).init({
       tracking: trackingEn,
       notFound: notFoundEn,
       home: homeEn,
+      landingPages: landingPagesEn,
+      services: servicesEn,
+      about: aboutEn,
     },
     ar: {
       common: commonAr,
@@ -35,6 +44,9 @@ i18next.use(initReactI18next).init({
       tracking: trackingAr,
       notFound: notFoundAr,
       home: homeAr,
+      landingPages: landingPagesAr,
+      services: servicesAr,
+      about: aboutAr,
     },
   },
   lng: localStorage.getItem('nokael_lang') ?? 'en',

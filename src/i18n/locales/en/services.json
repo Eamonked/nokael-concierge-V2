@@ -1,0 +1,62 @@
+{
+  "hero": {
+    "eyebrow": "What We Do",
+    "titleLine1": "When It Can't",
+    "titleLine2": "Wait.",
+    "intro": "A tender due in an hour. A part that's shut down a line. We get one driver on it, direct, until it's delivered."
+  },
+  "gridHeading": "Our Specialized Logistics Services",
+  "services": {
+    "0": {
+      "title": "Urgent Inter-Emirate",
+      "desc": "Direct pickup and delivery between any two points in the UAE. No sorting hubs. No delays.",
+      "features": [
+        "30-60 min pickup",
+        "Direct corridor route",
+        "Live WhatsApp tracking",
+        "Dedicated driver"
+      ]
+    },
+    "1": {
+      "title": "Document & Legal",
+      "desc": "Secure transport for sensitive contracts, legal tenders, and original documents requiring chain of custody.",
+      "features": [
+        "Hand-to-hand delivery",
+        "Confidential handling",
+        "Immediate delivery proof",
+        "Tamper-evident"
+      ]
+    },
+    "2": {
+      "title": "Spare Parts Logistics",
+      "desc": "Emergency transport for critical machinery parts, automotive components, and industrial hardware.",
+      "features": [
+        "Heavy handling",
+        "Supplier-to-site",
+        "24/7 emergency dispatch",
+        "UAE-wide access"
+      ]
+    }
+  },
+  "learnMore": "Learn more",
+  "expertise": {
+    "heading": "UAE Express Logistics Expertise",
+    "intro": "Traditional courier services rely on sorting hubs and shared vehicle loads. We bypass the traditional warehouse model entirely.",
+    "quote": "\"One driver, one item, one direct route.\"",
+    "sections": {
+      "0": {
+        "title": "Urgent Delivery UAE",
+        "body": "Whether you're in Dubai, Abu Dhabi, or the Northern Emirates, a dedicated driver is assigned to your job the moment you book — usually moving within the hour."
+      },
+      "1": {
+        "title": "Inter-Emirate Corridors",
+        "body": "Our routes cover the entire UAE, with a primary focus on the high-traffic corridors such as Dubai to Abu Dhabi, Sharjah to Dubai, and Ras Al Khaimah to Abu Dhabi. We understand that \"urgent\" means now, not tomorrow."
+      }
+    }
+  },
+  "finalAction": {
+    "heading": "Send it today.",
+    "ctaQuote": "Get Instant Quote",
+    "ctaWhatsapp": "WhatsApp Dispatch"
+  }
+}
