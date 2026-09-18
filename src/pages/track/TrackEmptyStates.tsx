@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { AlertCircle, Loader2, MessageSquare } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { WHATSAPP_NUMBER } from '../../constants';
 import { trackWhatsAppClick } from '../../lib/analytics';
 
@@ -8,6 +9,7 @@ interface TrackSearchingStateProps {
 }
 
 export function TrackSearchingState({ queryInput }: TrackSearchingStateProps) {
+  const { t } = useTranslation('tracking');
   return (
     <motion.div
       key="searching"
@@ -23,10 +25,10 @@ export function TrackSearchingState({ queryInput }: TrackSearchingStateProps) {
         </div>
       </div>
       <p className="text-sm font-bold uppercase tracking-[0.25em] text-brand-text mb-2">
-        Querying Live Dispatch System...
+        {t('emptyStates.searching.headline')}
       </p>
       <p className="text-xs text-brand-muted max-w-sm mx-auto">
-        Retrieving dispatch status and Chain of Custody records for ID <b>{queryInput}</b>.
+        {t('emptyStates.searching.subtext')} <b>{queryInput}</b>.
       </p>
     </motion.div>
   );
@@ -38,6 +40,7 @@ interface TrackNotFoundStateProps {
 }
 
 export function TrackNotFoundState({ queryInput, waSupportText }: TrackNotFoundStateProps) {
+  const { t } = useTranslation('tracking');
   return (
     <motion.div
       key="not_found"
@@ -50,10 +53,10 @@ export function TrackNotFoundState({ queryInput, waSupportText }: TrackNotFoundS
         <AlertCircle className="w-8 h-8 text-red-400" />
       </div>
       <h3 className="text-xl font-display font-medium mb-2 text-brand-text">
-        Dispatch Record Not Found
+        {t('emptyStates.notFound.headline')}
       </h3>
       <p className="text-brand-muted text-sm mb-6 max-w-md mx-auto leading-relaxed">
-        We could not locate an active job or quote matching <b>"{queryInput}"</b>. Please double-check your tracking ID or contact central dispatch for direct assistance.
+        {t('emptyStates.notFound.body', { id: queryInput })}
       </p>
       <div className="flex flex-wrap items-center justify-center gap-4">
         <a
@@ -64,7 +67,7 @@ export function TrackNotFoundState({ queryInput, waSupportText }: TrackNotFoundS
           className="btn-primary py-3 px-6 text-xs uppercase tracking-wider font-bold"
         >
           <MessageSquare className="w-4 h-4" />
-          <span>Verify with Dispatch Desk</span>
+          <span>{t('emptyStates.notFound.verifyButton')}</span>
         </a>
       </div>
     </motion.div>

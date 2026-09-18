@@ -85,9 +85,10 @@ export function useQuoteForm(formTopRef: React.RefObject<HTMLDivElement>) {
 
       await submitQuoteRequest(enrichedData);
 
-      // Build the pre-filled WhatsApp message
-      // ⚠ Pending WhatsApp-language decision (A/B) — left as a plain template literal.
-      // Do not wire to t() until that decision is made (see Phase 5, step 5.4).
+      // Build the pre-filled WhatsApp message.
+      // This message goes to Nokael's own dispatch number, not the customer —
+      // decision (A) "keep fixed" applies (see Phase 7 of the customer-facing
+      // i18n plan), so this stays a plain template literal, not wired to t().
       const message = encodeURIComponent(
         `Hi Nokael, I need a quote for a ${formData.item_type} delivery from ${formData.pickup_location}, ${pickupEmirate} to ${formData.delivery_location}, ${deliveryEmirate}. Urgency: ${formData.urgency}. My name is ${formData.name}.`
       );

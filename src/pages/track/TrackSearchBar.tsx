@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react';
 import { Search, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 
 interface TrackSearchBarProps {
   queryInput: string;
@@ -11,6 +12,7 @@ interface TrackSearchBarProps {
 }
 
 export default function TrackSearchBar({ queryInput, setQueryInput, isSearching, onSubmit, lastRefreshedAt }: TrackSearchBarProps) {
+  const { t } = useTranslation('tracking');
   return (
     <form onSubmit={onSubmit} className="mb-10" autoComplete="off">
       <div className="relative group shadow-2xl shadow-black/20">
@@ -26,7 +28,7 @@ export default function TrackSearchBar({ queryInput, setQueryInput, isSearching,
           data-lpignore="true"
           data-1p-ignore="true"
           data-form-type="other"
-          placeholder="Enter exact Job Ref (e.g. NOK-1024, NK-8492)"
+          placeholder={t('searchBar.placeholder')}
           className="w-full bg-brand-input border border-brand-input-border rounded-2xl py-5 pl-14 pr-32 text-base sm:text-lg text-brand-text placeholder:text-brand-muted/50 focus:outline-none focus:border-brand-neon/60 focus:ring-1 focus:ring-brand-neon/30 transition-all font-display tracking-tight"
           value={queryInput}
           onChange={(e) => setQueryInput(e.target.value)}
@@ -39,18 +41,18 @@ export default function TrackSearchBar({ queryInput, setQueryInput, isSearching,
           {isSearching ? (
             <span className="flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Locating</span>
+              <span>{t('searchBar.buttonLocating')}</span>
             </span>
           ) : (
-            'Track'
+            t('searchBar.buttonTrack')
           )}
         </button>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 mt-3 px-2 text-[11px] text-brand-muted">
-        <span>Exact match required — enter your exact <b>Job Ref</b> (e.g. NOK-1024, NK-8492) or token</span>
+        <span>{t('searchBar.hintExact')} <b>{t('searchBar.hintRef')}</b> {t('searchBar.hintExample')}</span>
         {lastRefreshedAt && (
           <span className="text-brand-muted/70">
-            Synced {formatDistanceToNow(lastRefreshedAt, { addSuffix: true })}
+            {t('searchBar.syncedLabel', { ago: formatDistanceToNow(lastRefreshedAt, { addSuffix: true }) })}
           </span>
         )}
       </div>

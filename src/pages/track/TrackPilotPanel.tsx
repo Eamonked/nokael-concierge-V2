@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { WHATSAPP_NUMBER } from '../../constants';
 import { trackWhatsAppClick } from '../../lib/analytics';
 import type { JobWithDriver } from '../../lib/supabase';
@@ -21,6 +22,7 @@ interface TrackPilotPanelProps {
 }
 
 export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackPilotPanelProps) {
+  const { t } = useTranslation('tracking');
   const hasDriver = !!(activeJob.driver || activeJob.driver_id);
   const isCancelled = activeJob.status === 'cancelled';
   const isCompleted = activeJob.status === 'completed';
@@ -29,19 +31,24 @@ export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackP
   const isAtDelivery = activeJob.status === 'driver_delivery';
 
   // Dynamic Badge
-  let badge = { text: 'Awaiting Allocation', bg: 'bg-brand-input', textCol: 'text-brand-muted', border: 'border-brand-input-border' };
+  let badge = {
+    text: t('pilotPanel.badge.awaiting'),
+    bg: 'bg-brand-input',
+    textCol: 'text-brand-muted',
+    border: 'border-brand-input-border',
+  };
   if (isCancelled) {
-    badge = { text: 'Mission Cancelled', bg: 'bg-red-500/10', textCol: 'text-red-400', border: 'border-red-500/30' };
+    badge = { text: t('pilotPanel.badge.cancelled'), bg: 'bg-red-500/10', textCol: 'text-red-400', border: 'border-red-500/30' };
   } else if (isCompleted) {
-    badge = { text: 'Custody Verified', bg: 'bg-emerald-500/10', textCol: 'text-emerald-400', border: 'border-emerald-500/30' };
+    badge = { text: t('pilotPanel.badge.verified'), bg: 'bg-emerald-500/10', textCol: 'text-emerald-400', border: 'border-emerald-500/30' };
   } else if (isInTransit) {
-    badge = { text: 'In Corridor Transit', bg: 'bg-brand-neon/10', textCol: 'text-brand-neon', border: 'border-brand-neon/30' };
+    badge = { text: t('pilotPanel.badge.inTransit'), bg: 'bg-brand-neon/10', textCol: 'text-brand-neon', border: 'border-brand-neon/30' };
   } else if (isAtDelivery) {
-    badge = { text: 'At Destination', bg: 'bg-purple-500/10', textCol: 'text-purple-400', border: 'border-purple-500/30' };
+    badge = { text: t('pilotPanel.badge.atDestination'), bg: 'bg-purple-500/10', textCol: 'text-purple-400', border: 'border-purple-500/30' };
   } else if (isAtPickup) {
-    badge = { text: 'At Sender Location', bg: 'bg-blue-500/10', textCol: 'text-blue-400', border: 'border-blue-500/30' };
+    badge = { text: t('pilotPanel.badge.atSender'), bg: 'bg-blue-500/10', textCol: 'text-blue-400', border: 'border-blue-500/30' };
   } else if (hasDriver) {
-    badge = { text: 'Pilot Mobilized', bg: 'bg-yellow-500/10', textCol: 'text-yellow-400', border: 'border-yellow-500/30' };
+    badge = { text: t('pilotPanel.badge.mobilized'), bg: 'bg-yellow-500/10', textCol: 'text-yellow-400', border: 'border-yellow-500/30' };
   }
 
   // Dynamic Pilot/Desk Information
@@ -50,39 +57,47 @@ export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackP
   // guessable job ref (no auth, no token). Personally-identifying pilot
   // details and live GPS only ever appear in the token-gated Chain of
   // Custody confirmation portal.
-  let title = 'Nokael Central Operations';
-  let subtitle = '24/7 Monitoring Desk · Allocating Nearest Pilot';
+  let title = t('pilotPanel.profile.opsTitle');
+  let subtitle = t('pilotPanel.profile.opsSubtitle');
   let iconElement = <Zap className="w-6 h-6 animate-pulse" />;
   let iconBg = 'bg-brand-input border-brand-input-border text-brand-neon';
 
   if (isCancelled) {
-    title = 'Nokael Operations Control';
-    subtitle = activeJob.cancellation_reason ? `Terminated: ${activeJob.cancellation_reason}` : 'Mission Cancelled · Operations Terminated';
+    title = t('pilotPanel.profile.cancelledTitle');
+    subtitle = activeJob.cancellation_reason
+      ? `${t('pilotPanel.profile.cancelledSubtitlePrefix')} ${activeJob.cancellation_reason}`
+      : t('pilotPanel.profile.cancelledSubtitleFallback');
     iconElement = <XCircle className="w-6 h-6" />;
     iconBg = 'bg-red-500/10 border-red-500/30 text-red-400';
   } else if (isCompleted) {
-    title = 'Nokael Executive Pilot';
-    subtitle = activeJob.driver?.vehicle_type ? `${activeJob.driver.vehicle_type} · Dedicated Delivery Verified` : 'Dedicated Fleet · Delivered Successfully';
+    title = t('pilotPanel.profile.completedTitle');
+    subtitle = activeJob.driver?.vehicle_type
+      ? `${activeJob.driver.vehicle_type} ${t('pilotPanel.profile.completedSubtitleSuffix')}`
+      : t('pilotPanel.profile.completedSubtitleFallback');
     iconElement = <ShieldCheck className="w-6 h-6" />;
     iconBg = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
   } else if (isInTransit) {
-    title = 'Assigned Dedicated Pilot';
-    subtitle = activeJob.driver?.vehicle_type ? `${activeJob.driver.vehicle_type} · Non-Stop Highway Transit` : 'Dedicated Corridor Pilot · Active Transit';
+    title = t('pilotPanel.profile.transitTitle');
+    subtitle = activeJob.driver?.vehicle_type
+      ? `${activeJob.driver.vehicle_type} ${t('pilotPanel.profile.transitSubtitleSuffix')}`
+      : t('pilotPanel.profile.transitSubtitleFallback');
     iconElement = <Truck className="w-6 h-6" />;
     iconBg = 'bg-brand-neon/10 border-brand-neon/40 text-brand-neon shadow-[0_0_15px_rgba(57,255,20,0.2)]';
   } else if (isAtDelivery) {
-    title = 'Assigned Dedicated Pilot';
-    subtitle = `Pilot Arrived at ${activeJob.delivery_emirate} · Initiating Handover`;
+    title = t('pilotPanel.profile.deliveryTitle');
+    subtitle = t('pilotPanel.profile.deliverySubtitleTemplate', { emirate: activeJob.delivery_emirate });
     iconElement = <MapPin className="w-6 h-6" />;
     iconBg = 'bg-purple-500/10 border-purple-500/30 text-purple-400';
   } else if (isAtPickup) {
-    title = 'Assigned Dedicated Pilot';
-    subtitle = `Pilot at Pickup Location (${activeJob.pickup_emirate}) · Securing Package`;
+    title = t('pilotPanel.profile.pickupTitle');
+    subtitle = t('pilotPanel.profile.pickupSubtitleTemplate', { emirate: activeJob.pickup_emirate });
     iconElement = <User className="w-6 h-6" />;
     iconBg = 'bg-blue-500/10 border-blue-500/30 text-blue-400';
   } else if (hasDriver) {
-    title = 'Assigned Pilot';
-    subtitle = activeJob.driver?.vehicle_type ? `${activeJob.driver.vehicle_type} · En Route to Pickup` : 'Dedicated Pilot · En Route to Pickup';
+    title = t('pilotPanel.profile.assignedTitle');
+    subtitle = activeJob.driver?.vehicle_type
+      ? `${activeJob.driver.vehicle_type} ${t('pilotPanel.profile.assignedSubtitleSuffix')}`
+      : t('pilotPanel.profile.assignedSubtitleFallback');
     iconElement = <Truck className="w-6 h-6" />;
     iconBg = 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400';
   }
@@ -111,7 +126,7 @@ export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackP
       {/* Header with Dynamic Badge */}
       <div className="flex items-center justify-between">
         <p className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-muted">
-          Assigned Pilot & Custody
+          {t('pilotPanel.sectionLabel')}
         </p>
         <span className={cn("px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border", badge.bg, badge.textCol, badge.border)}>
           {badge.text}
@@ -132,7 +147,7 @@ export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackP
           </p>
           {isCancelled && activeJob.cancelled_at && (
             <p className="text-[10px] text-red-400/80 font-mono mt-0.5">
-              Terminated on {format(new Date(activeJob.cancelled_at), 'dd MMM yyyy, hh:mm a')}
+              {t('pilotPanel.terminatedOn', { date: format(new Date(activeJob.cancelled_at), 'dd MMM yyyy, hh:mm a') })}
             </p>
           )}
         </div>
@@ -142,26 +157,26 @@ export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackP
       <div className="pt-3 border-t border-brand-border/60 flex items-center justify-between text-xs">
         <div className="flex items-center gap-2">
           <ItemIcon className={cn("w-4 h-4", itemMeta.color)} />
-          <span className="font-medium text-brand-text">{itemMeta.label}</span>
+          <span className="font-medium text-brand-text">{t(itemMeta.labelKey)}</span>
         </div>
         <div>
           {isCancelled ? (
             <span className="text-[10px] text-red-400 uppercase tracking-wider font-bold">
-              Custody Halted
+              {t('pilotPanel.custody.halted')}
             </span>
           ) : isCompleted ? (
             <span className="text-[10px] text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1">
               <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-              Handover Signed
+              {t('pilotPanel.custody.handoverSigned')}
             </span>
           ) : isInTransit ? (
             <span className="text-[10px] text-brand-neon uppercase tracking-wider font-bold flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-brand-neon animate-pulse" />
-              Active Custody
+              {t('pilotPanel.custody.activeCustody')}
             </span>
           ) : (
             <span className="text-[10px] text-brand-muted uppercase tracking-wider font-bold">
-              Insured Transit
+              {t('pilotPanel.custody.insuredTransit')}
             </span>
           )}
         </div>
@@ -193,10 +208,10 @@ export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackP
           <MessageSquare className="w-4 h-4" />
           <span>
             {isCancelled
-              ? 'Inquire Regarding Cancellation'
+              ? t('pilotPanel.action.cancelled')
               : isCompleted
-                ? 'Contact Dispatch Desk'
-                : 'Chat with Live Dispatch Desk'}
+                ? t('pilotPanel.action.completed')
+                : t('pilotPanel.action.default')}
           </span>
         </a>
       </div>

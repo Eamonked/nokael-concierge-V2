@@ -1,5 +1,6 @@
 import { Truck, RefreshCw, Copy, Check } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import type { JobWithDriver, TrackingResult } from '../../lib/supabase';
 import type { StatusConfig } from './statusConfig';
@@ -31,6 +32,7 @@ export default function TrackJobResult({
   onCopyLink,
   currentTrackingId,
 }: TrackJobResultProps) {
+  const { t } = useTranslation('tracking');
   return (
     <motion.div
       key={`job-${activeJob.id}`}
@@ -51,12 +53,12 @@ export default function TrackJobResult({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-muted">
-                  Dispatch Reference
+                  {t('jobResult.dispatchRef')}
                 </span>
                 {realtimeConnected && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[9px] font-bold border border-emerald-500/20">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Live Sync
+                    {t('jobResult.liveSync')}
                   </span>
                 )}
               </div>
@@ -72,7 +74,7 @@ export default function TrackJobResult({
               onClick={onRefresh}
               disabled={isRefreshing}
               className="p-2.5 rounded-xl bg-brand-input border border-brand-input-border text-brand-muted hover:text-brand-text hover:border-brand-border transition-all disabled:opacity-50"
-              title="Refresh State"
+              title={t('jobResult.refreshTitle')}
             >
               <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin text-brand-neon")} />
             </button>
@@ -82,7 +84,7 @@ export default function TrackJobResult({
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-input border border-brand-input-border text-xs font-semibold text-brand-text hover:border-brand-neon/40 transition-all"
             >
               {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-brand-muted" />}
-              <span>{copiedLink ? 'Copied' : 'Share Link'}</span>
+              <span>{copiedLink ? t('jobResult.copied') : t('jobResult.copyLink')}</span>
             </button>
           </div>
         </div>

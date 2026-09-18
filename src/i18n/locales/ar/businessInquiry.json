@@ -1,1 +1,57 @@
-{}
+{
+  "sidebar": {
+    "badge": "الخدمات اللوجستية للشركات",
+    "titleLine": "افتح حساب",
+    "titleHighlight": "أعمال",
+    "intro": "وحّد عمليات التوصيل العاجلة لديك. سائقون مخصصون للمكاتب القانونية وموردي المستلزمات الطبية وفرق الشركات عالية التكرار.",
+    "pricingNote": "تسعير مخصص للحساب بناءً على الحجم الشهري — بدون بطاقة أسعار ثابتة.",
+    "benefits": {
+      "zeroSortingHubs": { "title": "بدون مراكز فرز", "desc": "من الاستلام إلى التسليم مباشرة. بدون مستودعات." },
+      "dedicatedFleet": { "title": "أسطول مخصص" },
+      "priorityDispatch": { "title": "إرسال ذو أولوية" },
+      "corporateInvoicing": { "title": "فوترة للشركات" }
+    },
+    "testimonial": "\"تصبح نوكاييل طبقتك اللوجستية غير المرئية. بلا فوضى، فقط تسليم مؤكد.\"",
+    "dispatchLinkLabel": "دعم التوزيع المباشر"
+  },
+  "stepper": {
+    "label": "الطلب",
+    "stepOf": "الخطوة {{step}}/2"
+  },
+  "step1": {
+    "orgLabel": "تفاصيل المؤسسة",
+    "orgPlaceholder": "مثال: التميمي للمحاماة",
+    "managerLabel": "مدير الحساب",
+    "managerPlaceholder": "اسمك",
+    "whatsappLabel": "واتساب",
+    "whatsappPlaceholder": "+971",
+    "emailLabel": "البريد الإلكتروني المهني",
+    "emailPlaceholder": "name@firm.com"
+  },
+  "step2": {
+    "routesLabel": "ممرات الخدمات اللوجستية الأساسية",
+    "routesPlaceholder": "مثال: من مركز دبي المالي العالمي إلى سوق أبوظبي العالمي، من جافزا إلى مدينة خليفة...",
+    "serviceTypeLabel": "نوع الخدمة",
+    "serviceTypePlaceholder": "مثال: مستندات قانونية",
+    "frequencyLabel": "التكرار المقدر",
+    "frequencyPlaceholder": "عدد المهام شهريًا",
+    "invoicingTitle": "الفوترة مطلوبة",
+    "invoicingSubtitle": "شروط الشركات القياسية لمدة 30 يومًا"
+  },
+  "buttons": {
+    "back": "رجوع",
+    "configureLogistics": "تهيئة الخدمات اللوجستية",
+    "establishAccount": "إنشاء الحساب",
+    "transmitting": "جارٍ الإرسال..."
+  },
+  "footer": {
+    "securePortal": "بوابة طلب الشركات الآمنة"
+  },
+  "success": {
+    "title": "تم استلام الطلب",
+    "subtitle": "سيتواصل معك فريق الأعمال لدينا قريبًا."
+  },
+  "errors": {
+    "submitFailed": "حدث خطأ أثناء إرسال طلبك. يرجى المحاولة مرة أخرى أو التواصل معنا عبر واتساب."
+  }
+}

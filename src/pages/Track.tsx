@@ -1,5 +1,6 @@
 import { AnimatePresence } from 'motion/react';
 import { Radio } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useTrackingSearch } from './track/useTrackingSearch';
 import { getJobStatusConfig } from './track/statusConfig';
 import TrackSearchBar from './track/TrackSearchBar';
@@ -8,6 +9,7 @@ import TrackJobResult from './track/TrackJobResult';
 import TrackQuoteResult from './track/TrackQuoteResult';
 
 export default function Track() {
+  const { t } = useTranslation('tracking');
   const {
     queryInput,
     setQueryInput,
@@ -49,14 +51,14 @@ export default function Track() {
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-neon/10 border border-brand-neon/20 mb-4">
             <Radio className="w-3.5 h-3.5 text-brand-neon animate-pulse" />
             <span className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-neon">
-              Live Dispatch Telemetry
+              {t('page.liveBadge')}
             </span>
           </div>
           <h1 className="text-4xl md:text-6xl font-display font-medium tracking-tighter mb-4 text-brand-text">
-            Corridor Tracking
+            {t('page.title')}
           </h1>
           <p className="text-brand-muted text-sm max-w-lg mx-auto leading-relaxed">
-            Enter your Job Ref or Dispatch ID to inspect the exact Job Status and timestamps.
+            {t('page.subtitle')}
           </p>
         </div>
 

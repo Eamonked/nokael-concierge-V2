@@ -1,1 +1,194 @@
-{}
+{
+  "page": {
+    "liveBadge": "Live Dispatch Telemetry",
+    "title": "Corridor Tracking",
+    "subtitle": "Enter your Job Ref or Dispatch ID to inspect the exact Job Status and timestamps."
+  },
+
+  "searchBar": {
+    "placeholder": "Enter exact Job Ref (e.g. NOK-1024, NK-8492)",
+    "hintExact": "Exact match required — enter your exact",
+    "hintRef": "Job Ref",
+    "hintExample": "(e.g. NOK-1024, NK-8492) or token",
+    "buttonLocating": "Locating",
+    "buttonTrack": "Track",
+    "syncedLabel": "Synced {{ago}}"
+  },
+
+  "emptyStates": {
+    "searching": {
+      "headline": "Querying Live Dispatch System...",
+      "subtext": "Retrieving dispatch status and Chain of Custody records for ID"
+    },
+    "notFound": {
+      "headline": "Dispatch Record Not Found",
+      "body": "We could not locate an active job or quote matching \"{{id}}\". Please double-check your tracking ID or contact central dispatch for direct assistance.",
+      "verifyButton": "Verify with Dispatch Desk"
+    }
+  },
+
+  "jobResult": {
+    "dispatchRef": "Dispatch Reference",
+    "liveSync": "Live Sync",
+    "refreshTitle": "Refresh State",
+    "copyLink": "Share Link",
+    "copied": "Copied"
+  },
+
+  "statusBanner": {
+    "cancellationLabel": "Cancellation Reason:"
+  },
+
+  "status": {
+    "pending": {
+      "title": "Job Logged — Awaiting Pilot Assignment",
+      "badge": "Pending",
+      "subtext": "Your job is in the queue. Our dispatch team is identifying the nearest available pilot for this corridor."
+    },
+    "pendingAssigned": {
+      "title": "Pilot Assigned — Departure Imminent",
+      "badge": "Pilot Ready",
+      "subtext": "A dedicated pilot has been assigned and is preparing for immediate departure to your pickup location."
+    },
+    "clientPickup": {
+      "title": "Pilot Arrival — Sender Handover Phase",
+      "badge": "Pilot at Pickup",
+      "subtext": "Your assigned pilot is arriving at the pickup location. Please ensure the consignment is ready for handover."
+    },
+    "driverPickup": {
+      "title": "Package Secured — Non-Stop Corridor Transit",
+      "badge": "In Transit",
+      "subtext": "Your consignment is secured and in active dedicated transit. No intermediate handling — direct point-to-point delivery."
+    },
+    "driverDelivery": {
+      "title": "Pilot at Destination — Initiating Handover",
+      "badge": "At Destination",
+      "subtext": "Your pilot has arrived at the destination. Final recipient verification and delivery handover is now in progress."
+    },
+    "completed": {
+      "title": "Delivery Confirmed — Chain of Custody Complete",
+      "badge": "Delivered",
+      "subtext": "Your consignment was successfully delivered and the complete Chain of Custody has been digitally verified and archived."
+    },
+    "cancelled": {
+      "title": "Mission Interrupted — Operations Cancelled",
+      "badge": "Cancelled",
+      "subtext": "This dispatch operation was cancelled before final delivery. Please contact our operations desk for re-dispatch or parcel recovery."
+    },
+    "default": {
+      "title": "Dispatch Processing",
+      "badge": "Processing",
+      "subtext": "Processing your tracking request. Please wait."
+    }
+  },
+
+  "itemType": {
+    "document": "Document",
+    "sparePart": "Spare Part",
+    "parcel": "Parcel",
+    "default": "Package"
+  },
+
+  "urgency": {
+    "immediate": "Immediate Dispatch",
+    "today": "Same Day",
+    "scheduled": "Scheduled",
+    "default": "Immediate Dispatch"
+  },
+
+  "milestones": {
+    "sectionLabel": "Chain of Custody Milestones",
+    "interruptedBadge": "Execution Interrupted",
+    "cancelledNodeLabel": "Mission Interrupted / Dispatch Cancelled",
+    "cancelledReason": "Reason:",
+    "cancelledFallback": "Dispatch operations terminated before final handover completion.",
+    "aborted": "Aborted",
+    "unfulfilled": "Unfulfilled",
+    "step1": {
+      "label": "1. Corridor Manifest Booked",
+      "desc": "Logged into dispatch queue. Origin:"
+    },
+    "step2": {
+      "label": "2. Pilot Arrival & Sender Handover",
+      "descAssigned": "Assigned pilot arriving at pickup point.",
+      "descPending": "Awaiting pilot dispatch arrival confirmation."
+    },
+    "step3": {
+      "label": "3. Picked Up & In Dedicated Transit",
+      "desc": "Parcel secured. Direct non-stop transit between"
+    },
+    "step3DescAnd": "and",
+    "step4": {
+      "label": "4. Destination Arrival",
+      "descTemplate": "Pilot at {{location}}, {{emirate}}. Initiating recipient verification."
+    },
+    "step5": {
+      "label": "5. Delivered & Handover Confirmed",
+      "descDone": "Final receipt validated. Complete Chain of Custody digitally signed.",
+      "descCancelled": "Delivery handover was not completed due to cancellation.",
+      "descPending": "Final receipt validated. Complete Chain of Custody digitally signed."
+    }
+  },
+
+  "routePanel": {
+    "sectionLabel": "Route Specification",
+    "pickupLabel": "Pickup",
+    "deliveryLabel": "Delivery"
+  },
+
+  "pilotPanel": {
+    "sectionLabel": "Assigned Pilot & Custody",
+    "badge": {
+      "awaiting": "Awaiting Allocation",
+      "cancelled": "Mission Cancelled",
+      "verified": "Custody Verified",
+      "inTransit": "In Corridor Transit",
+      "atDestination": "At Destination",
+      "atSender": "At Sender Location",
+      "mobilized": "Pilot Mobilized"
+    },
+    "profile": {
+      "opsTitle": "Nokael Central Operations",
+      "opsSubtitle": "24/7 Monitoring Desk · Allocating Nearest Pilot",
+      "cancelledTitle": "Nokael Operations Control",
+      "cancelledSubtitleFallback": "Mission Cancelled · Operations Terminated",
+      "cancelledSubtitlePrefix": "Terminated:",
+      "completedTitle": "Nokael Executive Pilot",
+      "completedSubtitleFallback": "Dedicated Fleet · Delivered Successfully",
+      "completedSubtitleSuffix": "· Dedicated Delivery Verified",
+      "transitTitle": "Assigned Dedicated Pilot",
+      "transitSubtitleFallback": "Dedicated Corridor Pilot · Active Transit",
+      "transitSubtitleSuffix": "· Non-Stop Highway Transit",
+      "deliveryTitle": "Assigned Dedicated Pilot",
+      "deliverySubtitleTemplate": "Pilot Arrived at {{emirate}} · Initiating Handover",
+      "pickupTitle": "Assigned Dedicated Pilot",
+      "pickupSubtitleTemplate": "Pilot at Pickup Location ({{emirate}}) · Securing Package",
+      "assignedTitle": "Assigned Pilot",
+      "assignedSubtitleFallback": "Dedicated Pilot · En Route to Pickup",
+      "assignedSubtitleSuffix": "· En Route to Pickup"
+    },
+    "terminatedOn": "Terminated on {{date}}",
+    "custody": {
+      "halted": "Custody Halted",
+      "handoverSigned": "Handover Signed",
+      "activeCustody": "Active Custody",
+      "insuredTransit": "Insured Transit"
+    },
+    "action": {
+      "cancelled": "Inquire Regarding Cancellation",
+      "completed": "Contact Dispatch Desk",
+      "default": "Chat with Live Dispatch Desk"
+    }
+  },
+
+  "quoteResult": {
+    "quoteManifestLabel": "Quote Manifest ID",
+    "statusBadge": "Dispatch Pending Allocation",
+    "cardTitle": "Manifest Under Dispatch Review",
+    "cardBody": "Your quote request has been registered. Our operations control team is coordinating the nearest available driver on the",
+    "cardBodyCorridor": "corridor.",
+    "pickupLabel": "Pickup",
+    "deliveryLabel": "Delivery",
+    "actionButton": "Fast-Track with Operations on WhatsApp"
+  }
+}

@@ -1,5 +1,6 @@
 import { AlertTriangle, Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useTranslation } from 'react-i18next';
 import type { JobWithDriver } from '../../lib/supabase';
 import type { StatusConfig } from './statusConfig';
 import { computeCustodyMilestones } from './custodyMilestones';
@@ -10,6 +11,7 @@ interface TrackMilestoneTimelineProps {
 }
 
 export default function TrackMilestoneTimeline({ activeJob, statusConfig }: TrackMilestoneTimelineProps) {
+  const { t } = useTranslation('tracking');
   const hasDriver = !!(activeJob.driver || activeJob.driver_id);
   const m = computeCustodyMilestones(activeJob);
   const { ts1, ts2, ts3, ts4, ts5, tsCancel, isCancelled, step2Done, step3Done, step4Done, step5Done, lastCompletedStep } = m;
@@ -21,7 +23,7 @@ export default function TrackMilestoneTimeline({ activeJob, statusConfig }: Trac
         <div className="flex items-center gap-2">
           <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
           <p className="text-xs font-black uppercase tracking-wider text-red-400">
-            Mission Interrupted / Dispatch Cancelled
+            {t('milestones.cancelledNodeLabel')}
           </p>
         </div>
         {tsCancel && (
@@ -32,9 +34,9 @@ export default function TrackMilestoneTimeline({ activeJob, statusConfig }: Trac
       </div>
       <p className="text-xs text-red-300/90 leading-relaxed font-medium">
         {activeJob.cancellation_reason ? (
-          <span><b>Reason:</b> {activeJob.cancellation_reason}</span>
+          <span><b>{t('milestones.cancelledReason')}</b> {activeJob.cancellation_reason}</span>
         ) : (
-          'Dispatch operations terminated before final handover completion.'
+          t('milestones.cancelledFallback')
         )}
       </p>
     </div>
@@ -44,12 +46,12 @@ export default function TrackMilestoneTimeline({ activeJob, statusConfig }: Trac
     <div className="space-y-6 mb-8">
       <div className="flex items-center justify-between">
         <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-brand-muted">
-          Chain of Custody Milestones
+          {t('milestones.sectionLabel')}
         </h3>
         {activeJob.status === 'cancelled' && (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-500/10 text-red-400 text-[10px] font-bold border border-red-500/30">
             <AlertTriangle className="w-3 h-3 text-red-400" />
-            Execution Interrupted
+            {t('milestones.interruptedBadge')}
           </span>
         )}
       </div>
@@ -63,13 +65,13 @@ export default function TrackMilestoneTimeline({ activeJob, statusConfig }: Trac
           )} />
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
-              <span>1. Corridor Manifest Booked</span>
+              <span>{t('milestones.step1.label')}</span>
               <Check className="w-3 h-3 text-brand-neon" />
             </p>
             {ts1 && <span className="text-[11px] text-brand-muted font-mono">{ts1.time} · {ts1.date}</span>}
           </div>
           <p className="text-xs text-brand-muted mt-0.5">
-            Logged into dispatch queue. Origin: <b>{activeJob.pickup_emirate}</b>
+            {t('milestones.step1.desc')} <b>{activeJob.pickup_emirate}</b>
           </p>
         </div>
 
@@ -86,18 +88,18 @@ export default function TrackMilestoneTimeline({ activeJob, statusConfig }: Trac
           )} />
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
-              <span>2. Pilot Arrival & Sender Handover</span>
+              <span>{t('milestones.step2.label')}</span>
               {step2Done && <Check className="w-3 h-3 text-brand-neon" />}
               {isCancelled && !step2Done && (
-                <span className="text-[9px] px-1.5 py-0.2 bg-red-500/10 text-red-400 border border-red-500/20 rounded font-mono">Aborted</span>
+                <span className="text-[9px] px-1.5 py-0.2 bg-red-500/10 text-red-400 border border-red-500/20 rounded font-mono">{t('milestones.aborted')}</span>
               )}
             </p>
             {ts2 && <span className="text-[11px] text-brand-muted font-mono">{ts2.time} · {ts2.date}</span>}
           </div>
           <p className="text-xs text-brand-muted mt-0.5">
             {hasDriver
-              ? 'Assigned pilot arriving at pickup point.'
-              : 'Awaiting pilot dispatch arrival confirmation.'}
+              ? t('milestones.step2.descAssigned')
+              : t('milestones.step2.descPending')}
           </p>
         </div>
 
@@ -114,16 +116,16 @@ export default function TrackMilestoneTimeline({ activeJob, statusConfig }: Trac
           )} />
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
-              <span>3. Picked Up & In Dedicated Transit</span>
+              <span>{t('milestones.step3.label')}</span>
               {step3Done && <Check className="w-3 h-3 text-brand-neon" />}
               {isCancelled && !step3Done && (
-                <span className="text-[9px] px-1.5 py-0.2 bg-red-500/10 text-red-400 border border-red-500/20 rounded font-mono">Aborted</span>
+                <span className="text-[9px] px-1.5 py-0.2 bg-red-500/10 text-red-400 border border-red-500/20 rounded font-mono">{t('milestones.aborted')}</span>
               )}
             </p>
             {ts3 && <span className="text-[11px] text-brand-muted font-mono">{ts3.time} · {ts3.date}</span>}
           </div>
           <p className="text-xs text-brand-muted mt-0.5">
-            Parcel secured. Direct non-stop transit between <b>{activeJob.pickup_emirate}</b> and <b>{activeJob.delivery_emirate}</b>.
+            {t('milestones.step3.desc')} <b>{activeJob.pickup_emirate}</b> {t('milestones.step3DescAnd')} <b>{activeJob.delivery_emirate}</b>.
           </p>
         </div>
 
@@ -140,16 +142,16 @@ export default function TrackMilestoneTimeline({ activeJob, statusConfig }: Trac
           )} />
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
-              <span>4. Destination Arrival</span>
+              <span>{t('milestones.step4.label')}</span>
               {step4Done && <Check className="w-3 h-3 text-brand-neon" />}
               {isCancelled && !step4Done && (
-                <span className="text-[9px] px-1.5 py-0.2 bg-red-500/10 text-red-400 border border-red-500/20 rounded font-mono">Aborted</span>
+                <span className="text-[9px] px-1.5 py-0.2 bg-red-500/10 text-red-400 border border-red-500/20 rounded font-mono">{t('milestones.aborted')}</span>
               )}
             </p>
             {ts4 && <span className="text-[11px] text-brand-muted font-mono">{ts4.time} · {ts4.date}</span>}
           </div>
           <p className="text-xs text-brand-muted mt-0.5">
-            Pilot at {activeJob.delivery_location}, {activeJob.delivery_emirate}. Initiating recipient verification.
+            {t('milestones.step4.descTemplate', { location: activeJob.delivery_location, emirate: activeJob.delivery_emirate })}
           </p>
         </div>
 
@@ -166,20 +168,20 @@ export default function TrackMilestoneTimeline({ activeJob, statusConfig }: Trac
           )} />
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
-              <span>5. Delivered & Handover Confirmed</span>
+              <span>{t('milestones.step5.label')}</span>
               {step5Done && <Check className="w-3 h-3 text-emerald-400" />}
               {isCancelled && !step5Done && (
-                <span className="text-[9px] px-1.5 py-0.2 bg-red-500/10 text-red-400 border border-red-500/20 rounded font-mono">Unfulfilled</span>
+                <span className="text-[9px] px-1.5 py-0.2 bg-red-500/10 text-red-400 border border-red-500/20 rounded font-mono">{t('milestones.unfulfilled')}</span>
               )}
             </p>
             {ts5 && <span className="text-[11px] text-emerald-400 font-mono font-bold">{ts5.time} · {ts5.date}</span>}
           </div>
           <p className="text-xs text-brand-muted mt-0.5">
             {step5Done
-              ? 'Final receipt validated. Complete Chain of Custody digitally signed.'
+              ? t('milestones.step5.descDone')
               : isCancelled
-                ? 'Delivery handover was not completed due to cancellation.'
-                : 'Final receipt validated. Complete Chain of Custody digitally signed.'}
+                ? t('milestones.step5.descCancelled')
+                : t('milestones.step5.descPending')}
           </p>
         </div>
       </div>

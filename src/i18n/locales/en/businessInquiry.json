@@ -1,1 +1,57 @@
-{}
+{
+  "sidebar": {
+    "badge": "Enterprise Logistics",
+    "titleLine": "Open a Business",
+    "titleHighlight": "Account",
+    "intro": "Consolidate your urgent dispatch. Dedicated drivers for law firms, medical suppliers, and high-frequency corporate teams.",
+    "pricingNote": "Custom account pricing based on monthly volume — no fixed rate card.",
+    "benefits": {
+      "zeroSortingHubs": { "title": "Zero Sorting Hubs", "desc": "Direct pickup to delivery. No warehouses." },
+      "dedicatedFleet": { "title": "Dedicated Fleet" },
+      "priorityDispatch": { "title": "Priority Dispatch" },
+      "corporateInvoicing": { "title": "Corporate Invoicing" }
+    },
+    "testimonial": "\"Nokael becomes your invisible logistics layer. No chaos, just confirmed delivery.\"",
+    "dispatchLinkLabel": "Direct Dispatch Support"
+  },
+  "stepper": {
+    "label": "Application",
+    "stepOf": "Step {{step}}/2"
+  },
+  "step1": {
+    "orgLabel": "Organization Details",
+    "orgPlaceholder": "e.g. Al Tamimi Legal",
+    "managerLabel": "Account Manager",
+    "managerPlaceholder": "Your Name",
+    "whatsappLabel": "WhatsApp",
+    "whatsappPlaceholder": "+971",
+    "emailLabel": "Professional Email",
+    "emailPlaceholder": "name@firm.com"
+  },
+  "step2": {
+    "routesLabel": "Primary Logistics Corridors",
+    "routesPlaceholder": "e.g. DIFC to ADGM, JAFZA to Khalifa City...",
+    "serviceTypeLabel": "Service Type",
+    "serviceTypePlaceholder": "e.g. Legal Docs",
+    "frequencyLabel": "Est. Frequency",
+    "frequencyPlaceholder": "Jobs per month",
+    "invoicingTitle": "Invoicing Required",
+    "invoicingSubtitle": "Standard 30-day corporate terms"
+  },
+  "buttons": {
+    "back": "Back",
+    "configureLogistics": "Configure Logistics",
+    "establishAccount": "Establish Account",
+    "transmitting": "Transmitting..."
+  },
+  "footer": {
+    "securePortal": "Secure Enterprise Application Portal"
+  },
+  "success": {
+    "title": "Inquiry Received",
+    "subtitle": "Our business team will contact you shortly."
+  },
+  "errors": {
+    "submitFailed": "There was an error submitting your inquiry. Please try again or contact us via WhatsApp."
+  }
+}

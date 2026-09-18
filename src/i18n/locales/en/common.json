@@ -1,1 +1,6 @@
-{}
+{
+  "whatsapp": {
+    "defaultMessage": "Hi Nokael, I need an urgent delivery.\nPickup:\nDropoff:\nItem:\nDelivery deadline:\nBusiness or personal:",
+    "businessAccountMessage": "Hi, I’d like to open a business account with Nokael.\nCompany name:\nTypical delivery type:\nTypical route:\nEstimated monthly delivery volume:\nBest contact person:"
+  }
+}

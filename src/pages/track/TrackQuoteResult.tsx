@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { MessageSquare } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { WHATSAPP_NUMBER } from '../../constants';
 import { trackWhatsAppClick } from '../../lib/analytics';
 import type { QuoteRequest } from '../../lib/supabase';
@@ -9,6 +10,7 @@ interface TrackQuoteResultProps {
 }
 
 export default function TrackQuoteResult({ activeQuote }: TrackQuoteResultProps) {
+  const { t } = useTranslation('tracking');
   return (
     <motion.div
       key={`quote-${activeQuote.id || activeQuote.tracking_id}`}
@@ -21,33 +23,33 @@ export default function TrackQuoteResult({ activeQuote }: TrackQuoteResultProps)
         <div className="flex flex-wrap items-center justify-between gap-4 pb-6 mb-6 border-b border-brand-border/60">
           <div>
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-muted block">
-              Quote Manifest ID
+              {t('quoteResult.quoteManifestLabel')}
             </span>
             <p className="text-2xl font-display font-medium tracking-tight text-brand-text">
               {activeQuote.tracking_id}
             </p>
           </div>
           <span className="px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/30">
-            Dispatch Pending Allocation
+            {t('quoteResult.statusBadge')}
           </span>
         </div>
 
         <div className="p-5 rounded-2xl bg-brand-input/50 border border-brand-input-border mb-6">
           <h3 className="text-base font-display font-medium text-brand-text mb-1">
-            Manifest Under Dispatch Review
+            {t('quoteResult.cardTitle')}
           </h3>
           <p className="text-xs text-brand-muted leading-relaxed">
-            Your quote request has been registered. Our operations control team is coordinating the nearest available driver on the <b>{activeQuote.emirate}</b> corridor.
+            {t('quoteResult.cardBody')} <b>{activeQuote.emirate}</b> {t('quoteResult.cardBodyCorridor')}
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs mb-6">
           <div className="p-4 rounded-xl bg-brand-input/30 border border-brand-input-border">
-            <span className="text-[9px] uppercase tracking-widest font-black text-brand-muted block mb-1">Pickup</span>
+            <span className="text-[9px] uppercase tracking-widest font-black text-brand-muted block mb-1">{t('quoteResult.pickupLabel')}</span>
             <p className="font-semibold text-brand-text">{activeQuote.pickup_location}</p>
           </div>
           <div className="p-4 rounded-xl bg-brand-input/30 border border-brand-input-border">
-            <span className="text-[9px] uppercase tracking-widest font-black text-brand-muted block mb-1">Delivery</span>
+            <span className="text-[9px] uppercase tracking-widest font-black text-brand-muted block mb-1">{t('quoteResult.deliveryLabel')}</span>
             <p className="font-semibold text-brand-text">{activeQuote.delivery_location}</p>
           </div>
         </div>
@@ -63,7 +65,7 @@ export default function TrackQuoteResult({ activeQuote }: TrackQuoteResultProps)
           className="btn-primary w-full py-3.5 text-xs uppercase tracking-wider font-bold"
         >
           <MessageSquare className="w-4 h-4" />
-          <span>Fast-Track with Operations on WhatsApp</span>
+          <span>{t('quoteResult.actionButton')}</span>
         </a>
       </div>
     </motion.div>

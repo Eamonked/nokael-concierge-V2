@@ -1,0 +1,145 @@
+{
+  "hero": {
+    "badge": "Drivers on corridor now",
+    "titleLine1": "Urgent Logistics",
+    "titleLine2": "Dubai → Abu Dhabi",
+    "titleLine3": "in 90–120 Minutes",
+    "subtitleLine1": "One driver. Your item. Straight there.",
+    "subtitleLine2": "No sorting hubs, no shared loads, no waiting.",
+    "ctaEyebrow": "Urgent Pickup",
+    "ctaLabel": "Dispatch via WhatsApp",
+    "callLabel": "Call Now: {{phone}}",
+    "badgeLicensed": "Licensed UAE Operator",
+    "badgeDispatch": "Dispatch in 30 min",
+    "stats": {
+      "avgDispatch": { "label": "Avg. Dispatch", "value": "2–5 min" },
+      "sameDay": { "label": "Same-Day", "priceTemplate": "AED {{price}}" },
+      "dedicated": { "label": "Dedicated", "priceTemplate": "AED {{price}}" },
+      "tracking": { "label": "Tracking", "value": "Live GPS" }
+    },
+    "liveCard": {
+      "label": "Live Dispatch",
+      "active": "ACTIVE",
+      "status": {
+        "delivered": "Delivered",
+        "inTransit": "In transit",
+        "dispatched": "Dispatched"
+      },
+      "jobs": {
+        "0": { "item": "Legal tender" },
+        "1": { "item": "Spare part" },
+        "2": { "item": "Document" }
+      }
+    }
+  },
+
+  "trustBar": {
+    "corridorTime": { "value": "90 min", "label": "Dubai → Abu Dhabi" },
+    "dispatch": { "value": "30 min", "label": "Guaranteed dispatch" },
+    "dedicated": { "value": "100%", "label": "Dedicated driver, no hubs" },
+    "availability": { "value": "24/7", "label": "Dispatch available" }
+  },
+
+  "differentiators": {
+    "eyebrow": "How it works",
+    "heading": "Why it gets there faster",
+    "items": {
+      "0": { "title": "No warehouses", "desc": "Your item never sits waiting. The driver picks it up and goes — nothing in between." },
+      "1": { "title": "One driver, one job", "desc": "They are not running 40 other drops. From the moment we confirm, your item is all they have." },
+      "2": { "title": "We move when you call", "desc": "Not in a batch. Not at the next scheduled run. The driver is assigned inside five minutes." },
+      "3": { "title": "Straight line, every time", "desc": "Dubai to Abu Dhabi is one road. We use it. No detours, no consolidation points." }
+    }
+  },
+
+  "supportingSection": {
+    "eyebrow": "What we move",
+    "headingLine1": "If it can't be late,",
+    "headingLine2": "we carry it.",
+    "intro": "Contracts, parts, samples, passports. Anything that has a hard deadline and cannot go through a sorting hub.",
+    "items": {
+      "0": { "title": "Legal documents", "desc": "Contracts, court filings, title deeds, NOC letters. Hand-delivered, chain of custody intact." },
+      "1": { "title": "Business parcels", "desc": "Product samples, tender packs, branded materials that need to look right on arrival." },
+      "2": { "title": "Spare parts", "desc": "The component that has a machine sitting idle. We get it there while the job still makes sense." },
+      "3": { "title": "Medical items", "desc": "Non-hazardous samples, lab reports, time-sensitive medical paperwork." },
+      "4": { "title": "Financial documents", "desc": "Cheques, bank letters, insurance and finance paperwork with hard submission deadlines." }
+    }
+  },
+
+  "serviceCards": {
+    "eyebrow": "Pricing",
+    "heading": "Simple. No surprises.",
+    "sameDay": {
+      "badge": "MOST POPULAR",
+      "title": "SAME-DAY",
+      "priceTemplate": "AED {{price}}",
+      "subtext": "Driver assigned within the hour",
+      "features": {
+        "0": "90–120 min Dubai ↔ Abu Dhabi",
+        "1": "One driver, your item only — no shared loads",
+        "2": "WhatsApp updates at pickup and delivery",
+        "3": "Fully insured transit",
+        "4": "Pay on confirmation — no account needed",
+        "5": "Best for: same-day documents, parts, parcels"
+      },
+      "cta": "Book Same-Day"
+    },
+    "dedicated": {
+      "badge": "MAXIMUM CERTAINTY",
+      "title": "DEDICATED",
+      "priceTemplate": "AED {{price}}",
+      "subtext": "Your time, locked in advance.",
+      "features": {
+        "0": "Choose exact pickup time — we hold it",
+        "1": "Driver assigned the night before",
+        "2": "Priority over all same-day bookings",
+        "3": "90–120 min Dubai ↔ Abu Dhabi",
+        "4": "WhatsApp updates at every stage",
+        "5": "Best for: tenders, court filings, flights"
+      },
+      "cta": "Book Dedicated"
+    }
+  },
+
+  "businessAccounts": {
+    "badge": "For Businesses",
+    "heading": "Sending more than five runs a month?",
+    "description": "Corporate accounts get fixed rates, monthly invoicing, and a dedicated dispatcher who knows your routes.",
+    "cta": "Corporate Accounts"
+  },
+
+  "corridorStatus": {
+    "eyebrow": "Coverage",
+    "heading": "Where our drivers are",
+    "liveBadge": "Real-time availability",
+    "statusActive": "Active",
+    "corridors": {
+      "0": { "context": "Law firms, banks, financial filings" },
+      "1": { "context": "Offices, retail, same-day commercial" },
+      "2": { "context": "Industrial sites, spare parts, port runs" },
+      "3": { "context": "Regulatory docs, corporate filings" },
+      "4": { "context": "Factories, workshops, equipment parts" },
+      "5": { "context": "Residential and business addresses" }
+    }
+  },
+
+  "trustGrounded": {
+    "headingLine1": "The call you make",
+    "headingLine2": "when nothing else will do.",
+    "quote": "\"Used for urgent personal and business deliveries across UAE. Direct driver assignment, no third parties.\"",
+    "sections": {
+      "0": { "title": "Personal emergencies", "body": "Passport in Dubai, flight from Abu Dhabi in three hours. We have handled this exact situation. Call us." },
+      "1": { "title": "Tenders and filings", "body": "Physical submission deadlines do not move. We have delivered contracts to government offices in Abu Dhabi before the 2 PM cutoff for clients who called at 10." },
+      "2": { "title": "Machinery and parts", "body": "A machine sitting idle costs more per hour than our delivery. We move the part from supplier to site so the job gets finished today." }
+    }
+  },
+
+  "finalAction": {
+    "headingLine1": "Send it now.",
+    "headingLine2": "We'll handle the rest.",
+    "ctaWhatsapp": "WhatsApp Dispatch",
+    "ctaCall": "Call Dispatch",
+    "badgeLicensed": "Licensed UAE operator",
+    "badgeInsured": "Fully insured",
+    "badgeDirectAssignment": "Direct driver assignment"
+  }
+}

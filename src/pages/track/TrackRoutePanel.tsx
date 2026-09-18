@@ -1,4 +1,5 @@
 import { MapPin, Navigation, Building2, Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { JobWithDriver } from '../../lib/supabase';
 import { getUrgencyMeta } from './statusConfig';
 
@@ -7,10 +8,11 @@ interface TrackRoutePanelProps {
 }
 
 export default function TrackRoutePanel({ activeJob }: TrackRoutePanelProps) {
+  const { t } = useTranslation('tracking');
   return (
     <div className="dispatch-card border border-brand-border bg-brand-surface/60 space-y-4">
       <p className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-muted">
-        Route Specification
+        {t('routePanel.sectionLabel')}
       </p>
 
       <div className="space-y-4 text-xs">
@@ -19,7 +21,7 @@ export default function TrackRoutePanel({ activeJob }: TrackRoutePanelProps) {
             <MapPin className="w-3.5 h-3.5" />
           </div>
           <div>
-            <span className="text-[9px] uppercase tracking-widest font-black text-brand-muted block">Pickup ({activeJob.pickup_emirate})</span>
+            <span className="text-[9px] uppercase tracking-widest font-black text-brand-muted block">{t('routePanel.pickupLabel')} ({activeJob.pickup_emirate})</span>
             <p className="font-semibold text-brand-text">{activeJob.pickup_location}</p>
           </div>
         </div>
@@ -29,7 +31,7 @@ export default function TrackRoutePanel({ activeJob }: TrackRoutePanelProps) {
             <Navigation className="w-3.5 h-3.5" />
           </div>
           <div>
-            <span className="text-[9px] uppercase tracking-widest font-black text-brand-muted block">Delivery ({activeJob.delivery_emirate})</span>
+            <span className="text-[9px] uppercase tracking-widest font-black text-brand-muted block">{t('routePanel.deliveryLabel')} ({activeJob.delivery_emirate})</span>
             <p className="font-semibold text-brand-text">{activeJob.delivery_location}</p>
           </div>
         </div>
@@ -44,7 +46,7 @@ export default function TrackRoutePanel({ activeJob }: TrackRoutePanelProps) {
         )}
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-input text-[10px] font-bold text-brand-muted border border-brand-input-border">
           <Clock className="w-3 h-3" />
-          {getUrgencyMeta(activeJob.urgency).label}
+          {t(getUrgencyMeta(activeJob.urgency).labelKey)}
         </span>
       </div>
     </div>

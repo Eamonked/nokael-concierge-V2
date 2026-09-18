@@ -1,0 +1,7 @@
+{
+  "code": "404",
+  "title": "Page Not Found",
+  "explanation": "The page you're looking for doesn't exist. It may have been moved or the link is incorrect.",
+  "goHome": "Go Home",
+  "requestDelivery": "Request Delivery"
+}

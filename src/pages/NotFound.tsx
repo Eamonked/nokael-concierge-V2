@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function NotFound() {
+  const { t } = useTranslation('notFound');
   return (
     <div
       style={{
@@ -23,7 +25,7 @@ export default function NotFound() {
           lineHeight: 1,
         }}
       >
-        404
+        {t('code')}
       </p>
       <h1
         style={{
@@ -33,11 +35,10 @@ export default function NotFound() {
           color: '#1a1a1a',
         }}
       >
-        Page Not Found
+        {t('title')}
       </h1>
       <p style={{ color: '#555', maxWidth: '380px', marginBottom: '32px' }}>
-        The page you're looking for doesn't exist. It may have been moved or the
-        link is incorrect.
+        {t('explanation')}
       </p>
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
         <Link
@@ -52,7 +53,7 @@ export default function NotFound() {
             fontSize: '15px',
           }}
         >
-          Go Home
+          {t('goHome')}
         </Link>
         <Link
           to="/get-quote"
@@ -66,7 +67,7 @@ export default function NotFound() {
             fontSize: '15px',
           }}
         >
-          Request Delivery
+          {t('requestDelivery')}
         </Link>
       </div>
     </div>

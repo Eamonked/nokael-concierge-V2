@@ -11,6 +11,10 @@ import businessInquiryEn from './locales/en/businessInquiry.json';
 import businessInquiryAr from './locales/ar/businessInquiry.json';
 import trackingEn from './locales/en/tracking.json';
 import trackingAr from './locales/ar/tracking.json';
+import notFoundEn from './locales/en/notFound.json';
+import notFoundAr from './locales/ar/notFound.json';
+import homeEn from './locales/en/home.json';
+import homeAr from './locales/ar/home.json';
 
 i18next.use(initReactI18next).init({
   resources: {
@@ -20,6 +24,8 @@ i18next.use(initReactI18next).init({
       driverApplication: driverApplicationEn,
       businessInquiry: businessInquiryEn,
       tracking: trackingEn,
+      notFound: notFoundEn,
+      home: homeEn,
     },
     ar: {
       common: commonAr,
@@ -27,6 +33,8 @@ i18next.use(initReactI18next).init({
       driverApplication: driverApplicationAr,
       businessInquiry: businessInquiryAr,
       tracking: trackingAr,
+      notFound: notFoundAr,
+      home: homeAr,
     },
   },
   lng: localStorage.getItem('nokael_lang') ?? 'en',
