@@ -1,15 +1,18 @@
 import React from 'react';
 import { Trash2, User, Loader2, UserPlus, Crown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { format } from 'date-fns';
 import {
   getTeamMembers, updateTeamMemberRole, removeTeamMember,
   type OrgMember, type OrgRole
 } from '../../lib/team';
-import { ROLE_META } from './constants';
+import { getRoleMeta } from './constants';
 import { InviteModal } from './modals/InviteModal';
 
 export const TeamPanel = ({ orgId, currentRole }: { orgId: string | null; currentRole: OrgRole | null }) => {
+  const { t } = useTranslation('dashboard');
+  const ROLE_META = getRoleMeta(t);
   const [members, setMembers] = React.useState<OrgMember[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -24,7 +27,7 @@ export const TeamPanel = ({ orgId, currentRole }: { orgId: string | null; curren
     setError(null);
     getTeamMembers()
       .then(setMembers)
-      .catch((err: any) => setError(err.message || 'Failed to load team'))
+      .catch((err: any) => setError(err.message || t('team.loadFailed')))
       .finally(() => setLoading(false));
   }, [orgId]);
 
@@ -39,7 +42,7 @@ export const TeamPanel = ({ orgId, currentRole }: { orgId: string | null; curren
       await updateTeamMemberRole(userId, role);
       loadMembers();
     } catch (err: any) {
-      alert(err.message || 'Failed to update role');
+      alert(err.message || t('team.updateRoleFailed'));
     } finally {
       setBusyUserId(null);
     }
@@ -47,13 +50,13 @@ export const TeamPanel = ({ orgId, currentRole }: { orgId: string | null; curren
 
   const handleRemove = async (userId: string, email: string) => {
     if (!orgId) return;
-    if (!window.confirm(`Remove ${email} from this organization?`)) return;
+    if (!window.confirm(t('team.removeConfirm', { email }))) return;
     setBusyUserId(userId);
     try {
       await removeTeamMember(userId);
       loadMembers();
     } catch (err: any) {
-      alert(err.message || 'Failed to remove team member');
+      alert(err.message || t('team.removeFailed'));
     } finally {
       setBusyUserId(null);
     }
@@ -62,7 +65,7 @@ export const TeamPanel = ({ orgId, currentRole }: { orgId: string | null; curren
   if (!orgId) {
     return (
       <div className="dispatch-card p-8 text-center text-brand-muted text-sm">
-        Resolving your organization membership...
+        {t('team.resolvingOrg')}
       </div>
     );
   }
@@ -71,8 +74,8 @@ export const TeamPanel = ({ orgId, currentRole }: { orgId: string | null; curren
     <div className="dispatch-card overflow-hidden p-0">
       <div className="p-5 border-b border-brand-border flex justify-between items-center">
         <div>
-          <h2 className="text-base font-display font-medium tracking-tight">Command Centre access</h2>
-          <p className="text-xs text-brand-muted">Who can log in and what they can do</p>
+          <h2 className="text-base font-display font-medium tracking-tight">{t('team.title')}</h2>
+          <p className="text-xs text-brand-muted">{t('team.subtitle')}</p>
         </div>
         {canManage && (
           <button
@@ -80,7 +83,7 @@ export const TeamPanel = ({ orgId, currentRole }: { orgId: string | null; curren
             className="flex items-center gap-2 bg-brand-neon text-brand-bg px-4 py-2 rounded-xl text-xs font-semibold hover:opacity-90 active:scale-95 transition-all"
           >
             <UserPlus className="w-4 h-4" />
-            Invite
+            {t('team.invite')}
           </button>
         )}
       </div>
@@ -100,10 +103,10 @@ export const TeamPanel = ({ orgId, currentRole }: { orgId: string | null; curren
           <table className="w-full text-left">
             <thead>
               <tr className="bg-brand-input text-[11px] uppercase tracking-wide font-medium text-brand-muted">
-                <th className="px-6 py-3">User</th>
-                <th className="px-6 py-3">Role</th>
-                <th className="px-6 py-3">Member Since</th>
-                {canManage && <th className="px-6 py-3 text-right">Actions</th>}
+                <th className="px-6 py-3">{t('team.table.user')}</th>
+                <th className="px-6 py-3">{t('team.table.role')}</th>
+                <th className="px-6 py-3">{t('team.table.memberSince')}</th>
+                {canManage && <th className="px-6 py-3 text-right">{t('team.table.actions')}</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-brand-border">
@@ -126,10 +129,10 @@ export const TeamPanel = ({ orgId, currentRole }: { orgId: string | null; curren
                           ROLE_META[m.role].color
                         )}
                       >
-                        <option value="owner">Owner</option>
-                        <option value="admin">Admin</option>
-                        <option value="operator">Operator</option>
-                        <option value="viewer">Viewer</option>
+                        <option value="owner">{t('roles.owner')}</option>
+                        <option value="admin">{t('roles.admin')}</option>
+                        <option value="operator">{t('roles.operator')}</option>
+                        <option value="viewer">{t('roles.viewer')}</option>
                       </select>
                     ) : (
                       <span className={cn('px-3 py-1.5 rounded-lg text-[11px] font-medium uppercase tracking-wide border inline-block', ROLE_META[m.role].color)}>
@@ -156,7 +159,7 @@ export const TeamPanel = ({ orgId, currentRole }: { orgId: string | null; curren
             </tbody>
           </table>
           {members.length === 0 && (
-            <div className="p-10 text-center text-brand-muted text-xs">No team members found.</div>
+            <div className="p-10 text-center text-brand-muted text-xs">{t('team.noMembers')}</div>
           )}
         </div>
       )}

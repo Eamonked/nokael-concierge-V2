@@ -112,7 +112,8 @@ export type JobStatus =
   | 'driver_pickup'
   | 'driver_delivery'
   | 'completed'
-  | 'cancelled';
+  | 'cancelled'
+  | 'returned';
 
 export type ItemType = 'document' | 'parcel' | 'spare_part' | 'other';
 export type UrgencyType = 'immediate' | 'today' | 'scheduled';
@@ -422,6 +423,11 @@ export interface Job {
   // Lifecycle status
   status: JobStatus;
   cancellation_reason?: string | null;
+  // Set by the driver app's "Return package" action (driver_return_job).
+  // 'returned' is terminal: only reachable after pickup is confirmed, and a job
+  // never leaves it. Dispatch does not set it from the dashboard.
+  returned_at?: string | null;
+  return_reason?: string | null;
   // 'driver_only' (default): 2-step, driver confirms both pickup (otp_sender)
   // and delivery (otp_recipient) in NDP1 — no confirm.nokael.com portal step.
   // 'four_step': legacy — sender + driver + driver + recipient, portal steps
@@ -529,6 +535,21 @@ export const createJob = async (jobData: Partial<Job>): Promise<Job> => {
 };
 
 /**
+ * 6-digit hand-off code (100000–999999) from the browser CSPRNG.
+ * These codes are the security check for pickup/delivery, so they must not come
+ * from Math.random(). Rejection sampling keeps the distribution uniform (no modulo bias).
+ */
+export const generateOtp = (): string => {
+  const RANGE = 900000;
+  const limit = 0x100000000 - (0x100000000 % RANGE);
+  const buf = new Uint32Array(1);
+  do {
+    crypto.getRandomValues(buf);
+  } while (buf[0] >= limit);
+  return String(100000 + (buf[0] % RANGE));
+};
+
+/**
  * Convert a quote into a job.
  * Driver is NOT assigned here — call assignDriverToJob() separately.
  * Quote status is automatically set to 'completed'.
@@ -540,7 +561,7 @@ export const createJobFromQuote = async (
   if (!supabase) throw new Error('Supabase not configured');
   if (!quote.id) throw new Error('Quote must have an ID to create a job');
 
-  const genOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
+  const genOtp = generateOtp;
   const driverOtp = genOtp();
 
   const jobPayload: Partial<Job> = {
@@ -999,7 +1020,8 @@ export const overrideCocStep = async (
   jobId: string,
   stepKey: 'client_pickup_at' | 'driver_pickup_at' | 'driver_delivery_at' | 'client_delivery_at',
   confirmed: boolean,
-  operatorNotes?: string
+  operatorNotes?: string,
+  confirmationMode?: Job['confirmation_mode']
 ): Promise<Job> => {
   if (!supabase) throw new Error('Supabase not configured');
   const now = new Date().toISOString();
@@ -1020,7 +1042,11 @@ export const overrideCocStep = async (
   if (confirmed) {
     if (stepKey === 'client_pickup_at') updates.status = 'client_pickup';
     else if (stepKey === 'driver_pickup_at') updates.status = 'driver_pickup';
-    else if (stepKey === 'driver_delivery_at') updates.status = 'driver_delivery';
+    else if (stepKey === 'driver_delivery_at') {
+      // driver_only has no recipient step after this one: the job completes the
+      // moment the delivery code is accepted. four_step waits for the recipient.
+      updates.status = confirmationMode === 'driver_only' ? 'completed' : 'driver_delivery';
+    }
     else if (stepKey === 'client_delivery_at') updates.status = 'completed';
   }
 

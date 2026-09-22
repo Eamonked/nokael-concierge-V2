@@ -28,8 +28,13 @@ export function computeCustodyMilestones(activeJob: JobWithDriver) {
   const ts4 = formatTimestamp(activeJob.driver_delivery_at || activeJob.driver_arrived_delivery_at || activeJob.driver_delivery_confirmed_at);
   const ts5 = formatTimestamp(activeJob.client_delivery_at || activeJob.client_delivery_confirmed_at);
   const tsCancel = formatTimestamp(activeJob.cancelled_at || (activeJob.status === 'cancelled' ? activeJob.updated_at : null));
+  const tsReturn = formatTimestamp(activeJob.returned_at || (activeJob.status === 'returned' ? activeJob.updated_at : null));
 
   const isCancelled = activeJob.status === 'cancelled';
+  const isReturned = activeJob.status === 'returned';
+  // Either way the journey stopped before final delivery.
+  const isInterrupted = isCancelled || isReturned;
+  const tsInterrupt = isReturned ? tsReturn : tsCancel;
 
   const step2Done = Boolean(ts2) || ['client_pickup', 'driver_pickup', 'driver_delivery', 'completed'].includes(activeJob.status) || Boolean(ts3) || Boolean(ts4) || Boolean(ts5);
   const step3Done = Boolean(ts3) || ['driver_pickup', 'driver_delivery', 'completed'].includes(activeJob.status) || Boolean(ts4) || Boolean(ts5);
@@ -43,5 +48,5 @@ export function computeCustodyMilestones(activeJob: JobWithDriver) {
   else if (step2Done) lastCompletedStep = 2;
   else lastCompletedStep = 1;
 
-  return { ts1, ts2, ts3, ts4, ts5, tsCancel, isCancelled, step2Done, step3Done, step4Done, step5Done, lastCompletedStep };
+  return { ts1, ts2, ts3, ts4, ts5, tsCancel, tsReturn, tsInterrupt, isCancelled, isReturned, isInterrupted, step2Done, step3Done, step4Done, step5Done, lastCompletedStep };
 }

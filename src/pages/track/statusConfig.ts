@@ -103,6 +103,16 @@ export const getJobStatusConfig = (status: JobStatus, hasDriver: boolean): Statu
         dotColor: 'bg-red-500',
         stepIndex: -1,
       };
+    case 'returned':
+      return {
+        titleKey: 'status.returned.title',
+        badgeKey: 'status.returned.badge',
+        subtextKey: 'status.returned.subtext',
+        badgeBg: 'bg-amber-500/10 border-amber-500/30',
+        badgeText: 'text-amber-400',
+        dotColor: 'bg-amber-500',
+        stepIndex: -1,
+      };
     default:
       return {
         titleKey: 'status.default.title',

@@ -1,10 +1,20 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Zap, User, Navigation, X, MapPin, Loader2 } from 'lucide-react';
-import { supabase, createJob, type Driver, type Job, type ItemType, type UrgencyType } from '../../../lib/supabase';
+import { useTranslation } from 'react-i18next';
+import { supabase, createJob, generateOtp, type Driver, type Job, type ItemType, type UrgencyType, type ServiceTier } from '../../../lib/supabase';
 import { sendTelegramNotification, formatJobAssignmentNotification } from '../../../lib/notifications';
 
+// Scheduled pickups are entered and displayed in UAE time (GST, UTC+4, no DST),
+// whatever timezone the operator's browser is in.
+const GST_OFFSET_MS = 4 * 60 * 60 * 1000;
+const isoToGstInput = (iso?: string | null): string =>
+  iso ? new Date(new Date(iso).getTime() + GST_OFFSET_MS).toISOString().slice(0, 16) : '';
+const gstInputToIso = (v: string): string | null =>
+  v ? new Date(`${v}:00+04:00`).toISOString() : null;
+
 export const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => void, initialData?: Partial<Job>, drivers: Driver[] }> = ({ onClose, onSuccess, initialData, drivers }) => {
+  const { t } = useTranslation('dashboard');
   const [loading, setLoading] = React.useState(false);
   const [formData, setFormData] = React.useState({
     sender_name: initialData?.sender_name || '',
@@ -18,7 +28,12 @@ export const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => vo
     item_type: initialData?.item_type || 'parcel' as ItemType,
     urgency: initialData?.urgency || 'immediate' as UrgencyType,
     driver_id: initialData?.driver_id || '',
-    notes: (initialData as any)?.notes || initialData?.special_instructions || '',
+    // Driver-visible (sent via WhatsApp) and internal (audit log only) are separate fields.
+    special_instructions: (initialData as any)?.notes || initialData?.special_instructions || '',
+    operator_notes: initialData?.operator_notes || '',
+    scheduled_pickup_at: isoToGstInput(initialData?.scheduled_pickup_at),
+    company_name: initialData?.company_name || '',
+    service_tier: (initialData?.service_tier || 'standard') as ServiceTier,
     quote_id: initialData?.quote_id || null,
     // 'driver_only' (2-step, driver-confirmed) is the default going forward.
     // 'four_step' brings back the confirm.nokael.com sender/recipient portal
@@ -28,10 +43,14 @@ export const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => vo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.urgency === 'scheduled' && !formData.scheduled_pickup_at) {
+      alert(t('jobCreateModal.scheduledPickupHint'));
+      return;
+    }
     setLoading(true);
     
     try {
-      const genOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
+      const genOtp = generateOtp;
       const tokens = {
         token_client_pickup: crypto.randomUUID(),
         token_driver_pickup: crypto.randomUUID(),
@@ -52,8 +71,11 @@ export const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => vo
         item_type: formData.item_type,
         urgency: formData.urgency,
         driver_id: formData.driver_id || null,
-        special_instructions: formData.notes,
-        operator_notes: formData.notes,
+        special_instructions: formData.special_instructions.trim() || null,
+        operator_notes: formData.operator_notes.trim() || null,
+        scheduled_pickup_at: formData.urgency === 'scheduled' ? gstInputToIso(formData.scheduled_pickup_at) : null,
+        company_name: formData.company_name.trim() || null,
+        service_tier: formData.service_tier,
         quote_id: formData.quote_id,
         confirmation_mode: formData.confirmation_mode,
         ...tokens,
@@ -91,7 +113,7 @@ export const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => vo
       onClose();
     } catch (err) {
       console.error('Error creating job:', err);
-      alert('Failed to create job');
+      alert(t('jobCreateModal.createFailedAlert'));
     } finally {
       setLoading(false);
     }
@@ -114,8 +136,8 @@ export const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => vo
       >
         <div className="p-6 border-b border-brand-border flex justify-between items-center bg-brand-surface/20">
            <div>
-              <h2 className="text-2xl font-display font-medium tracking-tighter mb-1">Manual Job Intake.</h2>
-              <p className="text-xs text-brand-muted uppercase tracking-wide font-medium font-mono">Operator manual dispatch override</p>
+              <h2 className="text-2xl font-display font-medium tracking-tighter mb-1">{t('jobCreateModal.title')}</h2>
+              <p className="text-xs text-brand-muted uppercase tracking-wide font-medium font-mono">{t('jobCreateModal.subtitle')}</p>
            </div>
            <button onClick={onClose} className="p-2 bg-brand-input rounded-full text-brand-muted hover:text-brand-text transition-colors">
               <X className="w-6 h-6" />
@@ -127,21 +149,21 @@ export const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => vo
                <div className="space-y-6">
                  <h3 className="text-xs font-medium text-brand-neon flex items-center gap-2">
                    <User className="w-3 h-3" />
-                   Sender Information
+                   {t('jobCreateModal.senderInfo')}
                  </h3>
                  <div className="space-y-4">
-                   <input required value={formData.sender_name} onChange={e => setFormData({...formData, sender_name: e.target.value})} type="text" placeholder="Full Name / Company" className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
-                   <input required value={formData.sender_phone} onChange={e => setFormData({...formData, sender_phone: e.target.value})} type="tel" placeholder="WhatsApp Number" className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
+                   <input required value={formData.sender_name} onChange={e => setFormData({...formData, sender_name: e.target.value})} type="text" placeholder={t('jobCreateModal.fullNamePlaceholder')} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
+                   <input required value={formData.sender_phone} onChange={e => setFormData({...formData, sender_phone: e.target.value})} type="tel" placeholder={t('jobCreateModal.whatsappPlaceholder')} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
                  </div>
                </div>
                <div className="space-y-6">
                  <h3 className="text-xs font-medium text-brand-neon flex items-center gap-2">
                    <User className="w-3 h-3" />
-                   Recipient Information
+                   {t('jobCreateModal.recipientInfo')}
                  </h3>
                  <div className="space-y-4">
-                   <input required value={formData.recipient_name} onChange={e => setFormData({...formData, recipient_name: e.target.value})} type="text" placeholder="Full Name / Company" className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
-                   <input required value={formData.recipient_phone} onChange={e => setFormData({...formData, recipient_phone: e.target.value})} type="tel" placeholder="WhatsApp Number" className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
+                   <input required value={formData.recipient_name} onChange={e => setFormData({...formData, recipient_name: e.target.value})} type="text" placeholder={t('jobCreateModal.fullNamePlaceholder')} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
+                   <input required value={formData.recipient_phone} onChange={e => setFormData({...formData, recipient_phone: e.target.value})} type="tel" placeholder={t('jobCreateModal.whatsappPlaceholder')} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
                  </div>
                </div>
             </div>
@@ -150,90 +172,133 @@ export const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => vo
                <div className="space-y-6">
                  <h3 className="text-xs font-medium text-brand-neon flex items-center gap-2">
                    <MapPin className="w-3 h-3" />
-                   Pickup Logistics
+                   {t('jobCreateModal.pickupLogistics')}
                  </h3>
                  <div className="space-y-4">
                    <select required value={formData.pickup_emirate} onChange={e => setFormData({...formData, pickup_emirate: e.target.value})} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none">
                      {['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'RAK', 'Fujairah', 'UMM Al Quwain'].map(e => <option key={e} value={e}>{e}</option>)}
                    </select>
-                   <input required value={formData.pickup_location} onChange={e => setFormData({...formData, pickup_location: e.target.value})} type="text" placeholder="Specific Pickup Address / Area" className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
+                   <input required value={formData.pickup_location} onChange={e => setFormData({...formData, pickup_location: e.target.value})} type="text" placeholder={t('jobCreateModal.pickupAddressPlaceholder')} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
                  </div>
                </div>
                <div className="space-y-6">
                  <h3 className="text-xs font-medium text-brand-neon flex items-center gap-2">
                    <Navigation className="w-3 h-3" />
-                   Delivery Logistics
+                   {t('jobCreateModal.deliveryLogistics')}
                  </h3>
                  <div className="space-y-4">
                     <select required value={formData.delivery_emirate} onChange={e => setFormData({...formData, delivery_emirate: e.target.value})} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none">
                      {['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'RAK', 'Fujairah', 'UMM Al Quwain'].map(e => <option key={e} value={e}>{e}</option>)}
                    </select>
-                   <input required value={formData.delivery_location} onChange={e => setFormData({...formData, delivery_location: e.target.value})} type="text" placeholder="Specific Delivery Address / Area" className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
+                   <input required value={formData.delivery_location} onChange={e => setFormData({...formData, delivery_location: e.target.value})} type="text" placeholder={t('jobCreateModal.deliveryAddressPlaceholder')} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
                  </div>
                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                <div className="space-y-4">
-                  <p className="text-xs font-medium text-brand-muted">Item Category</p>
+                  <p className="text-xs font-medium text-brand-muted">{t('jobCreateModal.itemCategory')}</p>
                   <select value={formData.item_type} onChange={e => setFormData({...formData, item_type: e.target.value as any})} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none">
-                    <option value="parcel">Standard Parcel</option>
-                    <option value="document">Legal Document</option>
-                    <option value="spare_part">Machine Spare Part</option>
-                    <option value="other">Other Manifest</option>
+                    <option value="parcel">{t('jobCreateModal.itemTypes.parcel')}</option>
+                    <option value="document">{t('jobCreateModal.itemTypes.document')}</option>
+                    <option value="spare_part">{t('jobCreateModal.itemTypes.sparePart')}</option>
+                    <option value="other">{t('jobCreateModal.itemTypes.other')}</option>
                   </select>
                </div>
                <div className="space-y-4">
-                  <p className="text-xs font-medium text-brand-muted">Urgency Status</p>
+                  <p className="text-xs font-medium text-brand-muted">{t('jobCreateModal.urgencyStatus')}</p>
                   <select value={formData.urgency} onChange={e => setFormData({...formData, urgency: e.target.value as any})} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none">
-                    <option value="immediate">Immediate Dispatch</option>
-                    <option value="today">Same Day UAE</option>
-                    <option value="scheduled">Scheduled Logistics</option>
+                    <option value="immediate">{t('jobCreateModal.urgencyOptions.immediate')}</option>
+                    <option value="today">{t('jobCreateModal.urgencyOptions.today')}</option>
+                    <option value="scheduled">{t('jobCreateModal.urgencyOptions.scheduled')}</option>
                   </select>
                </div>
                <div className="space-y-4">
-                  <p className="text-xs font-medium text-brand-muted">Driver Assignment</p>
+                  <p className="text-xs font-medium text-brand-muted">{t('jobCreateModal.driverAssignment')}</p>
                   <select
                     value={formData.driver_id}
                     onChange={e => setFormData({...formData, driver_id: e.target.value})}
                     className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none"
                   >
-                    <option value="">Unassigned — assign later</option>
+                    <option value="">{t('jobCreateModal.unassignedOption')}</option>
                     {drivers.map(d => {
                       const statusIcon = d.status === 'available' ? '🟢' : d.status === 'on_job' ? '🟠' : '⚪';
                       return (
-                        <option key={d.id} value={d.id}>{statusIcon} {d.full_name} (Tier {d.tier || 'D'} · {d.vehicle_type})</option>
+                        <option key={d.id} value={d.id}>{statusIcon} {d.full_name} ({t('jobCreateModal.tierShort')} {d.tier || 'D'} · {d.vehicle_type})</option>
                       );
                     })}
                   </select>
                </div>
             </div>
 
+            {formData.urgency === 'scheduled' && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-brand-muted">{t('jobCreateModal.scheduledPickup')}</p>
+                <input
+                  required
+                  type="datetime-local"
+                  value={formData.scheduled_pickup_at}
+                  onChange={e => setFormData({...formData, scheduled_pickup_at: e.target.value})}
+                  aria-label={t('jobCreateModal.scheduledPickupPlaceholder')}
+                  className="w-full md:w-1/2 bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none"
+                />
+                <p className="text-[11px] text-brand-muted">{t('jobCreateModal.scheduledPickupHint')}</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div className="space-y-4">
+                  <p className="text-xs font-medium text-brand-muted">{t('jobCreateModal.companyAccount')}</p>
+                  <input value={formData.company_name} onChange={e => setFormData({...formData, company_name: e.target.value})} type="text" placeholder={t('jobCreateModal.companyPlaceholder')} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
+               </div>
+               <div className="space-y-4">
+                  <p className="text-xs font-medium text-brand-muted">{t('jobCreateModal.serviceTier')}</p>
+                  <select value={formData.service_tier} onChange={e => setFormData({...formData, service_tier: e.target.value as ServiceTier})} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none">
+                    <option value="express">{t('jobCreateModal.serviceTiers.express')}</option>
+                    <option value="priority">{t('jobCreateModal.serviceTiers.priority')}</option>
+                    <option value="standard">{t('jobCreateModal.serviceTiers.standard')}</option>
+                  </select>
+               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div className="space-y-2">
+                  <p className="text-xs font-medium text-brand-muted">{t('jobCreateModal.driverInstructions')}</p>
+                  <textarea rows={3} value={formData.special_instructions} onChange={e => setFormData({...formData, special_instructions: e.target.value})} placeholder={t('jobCreateModal.driverInstructionsPlaceholder')} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
+                  <p className="text-[11px] text-brand-muted">{t('jobCreateModal.driverInstructionsHint')}</p>
+               </div>
+               <div className="space-y-2">
+                  <p className="text-xs font-medium text-brand-muted">{t('jobCreateModal.internalNotes')}</p>
+                  <textarea rows={3} value={formData.operator_notes} onChange={e => setFormData({...formData, operator_notes: e.target.value})} placeholder={t('jobCreateModal.internalNotesPlaceholder')} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
+                  <p className="text-[11px] text-brand-muted">{t('jobCreateModal.internalNotesHint')}</p>
+               </div>
+            </div>
+
             <div className="space-y-4">
-               <p className="text-xs font-medium text-brand-muted">Chain-of-Custody Confirmation</p>
+               <p className="text-xs font-medium text-brand-muted">{t('jobCreateModal.cocConfirmation')}</p>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, confirmation_mode: 'driver_only' })}
                     className={`text-left p-5 rounded-2xl border transition-all ${formData.confirmation_mode === 'driver_only' ? 'border-brand-neon bg-brand-neon/10' : 'border-brand-input-border bg-brand-input'}`}
                   >
-                     <p className="text-sm font-semibold text-brand-text mb-1">2-Step · Driver-Confirmed</p>
-                     <p className="text-xs text-brand-muted leading-relaxed">Driver enters both OTPs in the app (pickup + delivery). No sender/recipient portal step. Default.</p>
+                     <p className="text-sm font-semibold text-brand-text mb-1">{t('jobCreateModal.twoStepTitle')}</p>
+                     <p className="text-xs text-brand-muted leading-relaxed">{t('jobCreateModal.twoStepDesc')}</p>
                   </button>
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, confirmation_mode: 'four_step' })}
                     className={`text-left p-5 rounded-2xl border transition-all ${formData.confirmation_mode === 'four_step' ? 'border-brand-neon bg-brand-neon/10' : 'border-brand-input-border bg-brand-input'}`}
                   >
-                     <p className="text-sm font-semibold text-brand-text mb-1">4-Step · Sender + Driver + Recipient</p>
-                     <p className="text-xs text-brand-muted leading-relaxed">Sender and recipient each confirm via confirm.nokael.com in addition to the driver. Use for high-value or client-mandated chain-of-custody.</p>
+                     <p className="text-sm font-semibold text-brand-text mb-1">{t('jobCreateModal.fourStepTitle')}</p>
+                     <p className="text-xs text-brand-muted leading-relaxed">{t('jobCreateModal.fourStepDesc')}</p>
                   </button>
                </div>
             </div>
 
             <button disabled={loading} type="submit" className="btn-primary w-full py-6 flex items-center justify-center gap-4 text-sm font-semibold transition-all">
                {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Zap className="w-6 h-6" />}
-               Commit Dispatch to Pipeline
+               {t('jobCreateModal.commitDispatch')}
             </button>
         </form>
       </motion.div>

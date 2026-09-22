@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, Star } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { Driver } from '../../lib/supabase';
 import type { DriverPoolSummary } from './selectors';
 
@@ -28,33 +29,34 @@ export function DriversView({
   onDriverStatusUpdate,
   onViewDriver,
 }: DriversViewProps) {
+  const { t } = useTranslation('dashboard');
   return (
     <>
       {/* Driver Pool Summary - matching Excel tracker targets */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="dispatch-card p-4">
-          <div className="text-xs uppercase tracking-wide text-brand-muted font-medium mb-2">Dubai Active</div>
+          <div className="text-xs uppercase tracking-wide text-brand-muted font-medium mb-2">{t('drivers.pool.dubaiActive')}</div>
           <div className="text-2xl font-bold text-brand-text">
             {driverPoolSummary.dubaiActive}
             <span className="text-sm text-brand-muted font-normal">/{driverPoolSummary.dubaiTarget}</span>
           </div>
         </div>
         <div className="dispatch-card p-4">
-          <div className="text-xs uppercase tracking-wide text-brand-muted font-medium mb-2">Abu Dhabi Active</div>
+          <div className="text-xs uppercase tracking-wide text-brand-muted font-medium mb-2">{t('drivers.pool.abuDhabiActive')}</div>
           <div className="text-2xl font-bold text-brand-text">
             {driverPoolSummary.abuDhabiActive}
             <span className="text-sm text-brand-muted font-normal">/{driverPoolSummary.abuDhabiTarget}</span>
           </div>
         </div>
         <div className="dispatch-card p-4">
-          <div className="text-xs uppercase tracking-wide text-brand-muted font-medium mb-2">Total Active</div>
+          <div className="text-xs uppercase tracking-wide text-brand-muted font-medium mb-2">{t('drivers.pool.totalActive')}</div>
           <div className="text-2xl font-bold text-brand-neon">
             {driverPoolSummary.totalActive}
             <span className="text-sm text-brand-muted font-normal">/{driverPoolSummary.totalTarget}</span>
           </div>
         </div>
         <div className="dispatch-card p-4">
-          <div className="text-xs uppercase tracking-wide text-brand-muted font-medium mb-2">In Pipeline</div>
+          <div className="text-xs uppercase tracking-wide text-brand-muted font-medium mb-2">{t('drivers.pool.inPipeline')}</div>
           <div className="text-2xl font-bold text-blue-400">
             {driverPoolSummary.inPipeline}
           </div>
@@ -67,7 +69,7 @@ export function DriversView({
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
           <input 
             type="text" 
-            placeholder="Search drivers..."
+            placeholder={t('drivers.searchPlaceholder')}
             autoComplete="off"
             autoCorrect="off"
             spellCheck={false}
@@ -81,25 +83,25 @@ export function DriversView({
           value={['Sourced', 'Screening', 'Docs Pending', 'Trial Scheduled', 'Active', 'Rejected'].includes(filterStatus) ? filterStatus : 'all'}
           onChange={e => setFilterStatus(e.target.value)}
         >
-          <option value="all">All stages</option>
-          <option value="Sourced">Sourced</option>
-          <option value="Screening">Screening</option>
-          <option value="Docs Pending">Docs Pending</option>
-          <option value="Trial Scheduled">Trial Scheduled</option>
-          <option value="Active">Active</option>
-          <option value="Rejected">Rejected</option>
+          <option value="all">{t('drivers.stageFilter.all')}</option>
+          <option value="Sourced">{t('drivers.stageFilter.sourced')}</option>
+          <option value="Screening">{t('drivers.stageFilter.screening')}</option>
+          <option value="Docs Pending">{t('drivers.stageFilter.docsPending')}</option>
+          <option value="Trial Scheduled">{t('drivers.stageFilter.trialScheduled')}</option>
+          <option value="Active">{t('drivers.stageFilter.active')}</option>
+          <option value="Rejected">{t('drivers.stageFilter.rejected')}</option>
         </select>
         <select 
           className="bg-brand-input border border-brand-input-border rounded-xl px-4 py-2.5 text-xs font-medium outline-none focus:border-brand-neon/50 w-full md:w-auto"
           value={filterVehicle}
           onChange={e => setFilterVehicle(e.target.value)}
         >
-          <option value="all">All vehicles</option>
-          <option value="Sedan">Sedan</option>
-          <option value="Executive SUV">Executive SUV</option>
-          <option value="Panel Van">Panel Van</option>
-          <option value="Motorcycle (License R)">Motorcycle</option>
-          <option value="3-Ton Pickup">3-Ton Pickup</option>
+          <option value="all">{t('drivers.vehicleFilter.all')}</option>
+          <option value="Sedan">{t('drivers.vehicleFilter.sedan')}</option>
+          <option value="Executive SUV">{t('drivers.vehicleFilter.executiveSuv')}</option>
+          <option value="Panel Van">{t('drivers.vehicleFilter.panelVan')}</option>
+          <option value="Motorcycle (License R)">{t('drivers.vehicleFilter.motorcycle')}</option>
+          <option value="3-Ton Pickup">{t('drivers.vehicleFilter.pickup3Ton')}</option>
         </select>
       </div>
 
@@ -107,12 +109,12 @@ export function DriversView({
         <table className="w-full text-left">
           <thead>
             <tr className="bg-brand-input text-[11px] uppercase tracking-wide font-medium text-brand-muted">
-              <th className="px-6 py-3">Driver</th>
-              <th className="px-6 py-3">Vehicle</th>
-              <th className="px-6 py-3">Rating</th>
-              <th className="px-6 py-3">Status</th>
-              <th className="px-6 py-3">Application</th>
-              <th className="px-6 py-3 text-right">Actions</th>
+              <th className="px-6 py-3">{t('drivers.table.driver')}</th>
+              <th className="px-6 py-3">{t('drivers.table.vehicle')}</th>
+              <th className="px-6 py-3">{t('drivers.table.rating')}</th>
+              <th className="px-6 py-3">{t('drivers.table.status')}</th>
+              <th className="px-6 py-3">{t('drivers.table.application')}</th>
+              <th className="px-6 py-3 text-right">{t('drivers.table.actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-brand-border">
@@ -129,16 +131,16 @@ export function DriversView({
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
                     <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-                    <span className="text-sm font-medium text-brand-text">{driver.reliability_score || 'New'}</span>
-                    <span className="text-xs text-brand-muted">• Tier {driver.tier}</span>
+                    <span className="text-sm font-medium text-brand-text">{driver.reliability_score || t('drivers.new')}</span>
+                    <span className="text-xs text-brand-muted">• {t('drivers.tier')} {driver.tier}</span>
                   </div>
                 </td>
                 <td className="px-6 py-4">
                   {(() => {
                     const statusMap: Record<string, { label: string; dot: string; text: string }> = {
-                      available: { label: 'Available', dot: 'bg-emerald-500', text: 'text-emerald-500' },
-                      on_job: { label: 'On Job', dot: 'bg-blue-500', text: 'text-blue-500' },
-                      offline: { label: 'Offline', dot: 'bg-brand-muted', text: 'text-brand-muted' },
+                      available: { label: t('drivers.status.available'), dot: 'bg-emerald-500', text: 'text-emerald-500' },
+                      on_job: { label: t('drivers.status.onJob'), dot: 'bg-blue-500', text: 'text-blue-500' },
+                      offline: { label: t('drivers.status.offline'), dot: 'bg-brand-muted', text: 'text-brand-muted' },
                     };
                     const cfg = statusMap[driver.status || 'offline'] || statusMap.offline;
                     return (
@@ -166,12 +168,12 @@ export function DriversView({
                         onChange={(e) => onDriverStatusUpdate(driver.id!, { pipeline_status: e.target.value as any })}
                         className={`text-[11px] font-medium tracking-wide px-3 py-2 rounded-lg border outline-none transition-all ${stageStyles[stage] || stageStyles['Sourced']}`}
                       >
-                        <option value="Sourced">Sourced</option>
-                        <option value="Screening">Screening</option>
-                        <option value="Docs Pending">Docs Pending</option>
-                        <option value="Trial Scheduled">Trial Scheduled</option>
-                        <option value="Active">Active</option>
-                        <option value="Rejected">Rejected</option>
+                        <option value="Sourced">{t('drivers.stageFilter.sourced')}</option>
+                        <option value="Screening">{t('drivers.stageFilter.screening')}</option>
+                        <option value="Docs Pending">{t('drivers.stageFilter.docsPending')}</option>
+                        <option value="Trial Scheduled">{t('drivers.stageFilter.trialScheduled')}</option>
+                        <option value="Active">{t('drivers.stageFilter.active')}</option>
+                        <option value="Rejected">{t('drivers.stageFilter.rejected')}</option>
                       </select>
                     );
                   })()}
@@ -181,7 +183,7 @@ export function DriversView({
                     onClick={() => onViewDriver(driver.id!)}
                     className="px-4 py-2 bg-brand-input border border-brand-border text-brand-text text-xs font-medium rounded-lg hover:bg-brand-surface hover:border-brand-neon/30 transition-all"
                   >
-                    View
+                    {t('drivers.view')}
                   </button>
                 </td>
               </tr>

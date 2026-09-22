@@ -6,16 +6,29 @@ import {
   CheckSquare, XCircle, FastForward, Edit3, Check, Undo2, HelpCircle, Ban
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import { format } from 'date-fns';
+import { ar as arLocale } from 'date-fns/locale';
 import { generateJobPOC } from '../../../lib/pdf-export';
 import {
   assignDriverToJob, updateJob, overrideJobLevel, overrideCocStep, cancelJob, reactivateJob,
   type Driver, type Job, type JobStatus, type ItemType, type UrgencyType, type JobWithDriver
 } from '../../../lib/supabase';
-import { STAGE_ORDER, STAGE_CONFIG, COMMON_FAILURE_REASONS } from '../constants';
+import { STAGE_ORDER, FAILURE_REASON_KEYS, getStageConfig } from '../constants';
+import { getVerificationSteps, isDriverOnly, stepI18nKey, type CocStepKey } from '../verificationSteps';
 
 export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDriver, drivers: Driver[], onClose: () => void, onUpdate: () => void }) => {
+  const { t, i18n } = useTranslation('dashboard');
+  const STAGE_CONFIG = getStageConfig(t);
+  // Anything written to the database / audit log (operator_notes, cancellation_reason)
+  // is always English, whatever language the operator is using, so the record stays
+  // consistent. `tEn` is used for those strings; `t` is for what's shown on screen.
+  const tEn = i18n.getFixedT('en', 'dashboard');
+  const dateLocale = i18n.language?.startsWith('ar') ? arLocale : undefined;
+  // 'returned' is terminal (set by the driver app after pickup). Nothing on this screen
+  // may move a returned job to another status; dispatch re-dispatches with a new job.
+  const isReturned = job.status === 'returned';
   const [copiedStep, setCopiedStep] = React.useState<string | null>(null);
   const [reassigning, setReassigning] = React.useState(false);
   const [assigningDriver, setAssigningDriver] = React.useState(false);
@@ -29,7 +42,8 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
 
   // Failure modal state
   const [showFailModal, setShowFailModal] = React.useState(false);
-  const [failReason, setFailReason] = React.useState(COMMON_FAILURE_REASONS[0]);
+  // Tracks the selected reason KEY (or 'custom'); the English label is what gets saved.
+  const [failReason, setFailReason] = React.useState<string>(FAILURE_REASON_KEYS[0]);
   const [customFailReason, setCustomFailReason] = React.useState('');
   const [isCancelling, setIsCancelling] = React.useState(false);
 
@@ -134,11 +148,11 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
       // Refetch to get updated data and trigger parent refresh
       await onUpdate();
       
-      setOverrideMessage('Job details updated.');
+      setOverrideMessage(t('jobDetailModal.toast.detailsUpdated'));
       setTimeout(() => setOverrideMessage(null), 2500);
     } catch (err: any) {
       console.error('[Dashboard] Failed to update job details:', err);
-      alert(`Failed to update job details: ${err.message || err}`);
+      alert(t('jobDetailModal.errors.updateDetails', { error: err.message || String(err) }));
     } finally {
       setSavingDetails(false);
     }
@@ -154,13 +168,13 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
       await overrideJobLevel(job.id!, {
         status: nextStatus,
         autoTimestampCoc: true,
-        overrideNotes: operatorNotes || `Advanced to ${STAGE_CONFIG[nextStatus].label} by Command Centre`
+        overrideNotes: operatorNotes || `Advanced to ${tEn(`stageConfig.${nextStatus}.label`)} by Command Centre`
       });
-      setOverrideMessage(`Job advanced to ${STAGE_CONFIG[nextStatus].label}`);
+      setOverrideMessage(t('jobDetailModal.toast.advancedTo', { stage: STAGE_CONFIG[nextStatus].label }));
       setTimeout(() => setOverrideMessage(null), 3000);
       onUpdate();
     } catch (err: any) {
-      alert(`Failed to advance job stage: ${err.message || err}`);
+      alert(t('jobDetailModal.errors.advance', { error: err.message || String(err) }));
     } finally {
       setIsApplyingOverride(false);
     }
@@ -174,27 +188,31 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
         autoTimestampCoc: autoTimestampCoc,
         overrideNotes: operatorNotes
       });
-      setOverrideMessage(`Level manually overridden to ${STAGE_CONFIG[targetStatus].label}`);
+      setOverrideMessage(t('jobDetailModal.toast.overridden', { stage: STAGE_CONFIG[targetStatus].label }));
       setTimeout(() => setOverrideMessage(null), 3000);
       onUpdate();
     } catch (err: any) {
-      alert(`Failed to apply override: ${err.message || err}`);
+      alert(t('jobDetailModal.errors.override', { error: err.message || String(err) }));
     } finally {
       setIsApplyingOverride(false);
     }
   };
 
   const handleFailJob = async () => {
-    const finalReason = customFailReason.trim() ? customFailReason.trim() : failReason;
+    const finalReason = customFailReason.trim()
+      ? customFailReason.trim()
+      : failReason === 'custom'
+        ? 'Custom'
+        : tEn(`failureReasons.${failReason}`);
     setIsCancelling(true);
     try {
       await cancelJob(job.id!, finalReason, operatorNotes);
       setShowFailModal(false);
-      setOverrideMessage('Job marked as Failed / Cancelled');
+      setOverrideMessage(t('jobDetailModal.toast.markedFailed'));
       setTimeout(() => setOverrideMessage(null), 3000);
       onUpdate();
     } catch (err: any) {
-      alert(`Failed to cancel job: ${err.message || err}`);
+      alert(t('jobDetailModal.errors.cancel', { error: err.message || String(err) }));
     } finally {
       setIsCancelling(false);
     }
@@ -204,45 +222,48 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
     setIsApplyingOverride(true);
     try {
       await reactivateJob(job.id!, targetLevel);
-      setOverrideMessage(`Job reactivated to ${STAGE_CONFIG[targetLevel].label}`);
+      setOverrideMessage(t('jobDetailModal.toast.reactivatedTo', { stage: STAGE_CONFIG[targetLevel].label }));
       setTimeout(() => setOverrideMessage(null), 3000);
       onUpdate();
     } catch (err: any) {
-      alert(`Failed to reactivate job: ${err.message || err}`);
+      alert(t('jobDetailModal.errors.reactivate', { error: err.message || String(err) }));
     } finally {
       setIsApplyingOverride(false);
     }
   };
 
   const handleToggleCocStep = async (
-    stepKey: 'client_pickup_at' | 'driver_pickup_at' | 'driver_delivery_at' | 'client_delivery_at',
+    stepKey: CocStepKey,
     currentlyConfirmed: boolean,
-    stepLabel?: string,
     note?: string
   ) => {
     setActingStep(stepKey);
     try {
       const action = !currentlyConfirmed ? 'force-confirmed' : 'reset';
+      // Audit-log text is always English (see tEn above), regardless of UI language.
+      const stepLabel = tEn(`jobDetailModal.verification.steps.${stepI18nKey(job, stepKey)}.label`);
       const entry = note?.trim()
-        ? `[${format(new Date(), 'HH:mm')}] ${stepLabel || stepKey} ${action} — ${note.trim()}`
-        : `[${format(new Date(), 'HH:mm')}] ${stepLabel || stepKey} ${action} via Command Centre`;
+        ? `[${format(new Date(), 'HH:mm')}] ${stepLabel} ${action} — ${note.trim()}`
+        : `[${format(new Date(), 'HH:mm')}] ${stepLabel} ${action} via Command Centre`;
       // Append rather than overwrite — operator_notes is a single shared
       // field on the job row, and a per-step note shouldn't clobber notes
       // left on a previous step or in the main override panel.
       const combinedNotes = job.operator_notes ? `${job.operator_notes}\n${entry}` : entry;
 
-      await overrideCocStep(job.id!, stepKey, !currentlyConfirmed, combinedNotes);
-      setOverrideMessage(`COC Step updated.`);
+      await overrideCocStep(job.id!, stepKey, !currentlyConfirmed, combinedNotes, job.confirmation_mode);
+      setOverrideMessage(t('jobDetailModal.toast.cocStepUpdated'));
       setTimeout(() => setOverrideMessage(null), 2500);
       setStepNotes(prev => ({ ...prev, [stepKey]: '' }));
       onUpdate();
     } catch (err: any) {
-      alert(`Failed to update COC step: ${err.message || err}`);
+      alert(t('jobDetailModal.errors.cocStep', { error: err.message || String(err) }));
     } finally {
       setActingStep(null);
     }
   };
 
+  // NOTE: these WhatsApp messages go to external parties (sender / driver / recipient),
+  // not to the operator, so they are intentionally NOT tied to the operator's UI language.
   const dispatchWhatsApp = async (type: 'sender' | 'driver' | 'recipient') => {
     let message = '';
     let phone = '';
@@ -271,11 +292,25 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
     await onUpdate();
   };
 
+  // Which hand-offs exist depends on confirmation_mode (see verificationSteps.ts):
+  // driver_only = 2 steps using the sender's / recipient's codes; four_step = 4 steps.
+  const driverOnly = isDriverOnly(job);
+  const verificationSteps = getVerificationSteps(job).map((def) => ({
+    ...def,
+    label: t(`jobDetailModal.verification.steps.${def.i18nKey}.label`),
+    desc: t(`jobDetailModal.verification.steps.${def.i18nKey}.desc`),
+    status: job[def.stepKey],
+    otp: job[def.otpKey],
+    icon: driverOnly
+      ? (def.stepKey === 'driver_pickup_at' ? Package : CheckCircle2)
+      : ({ client_pickup_at: Package, driver_pickup_at: Truck, driver_delivery_at: Navigation, client_delivery_at: CheckCircle2 } as const)[def.stepKey],
+  }));
+
   const currentStageIndex = STAGE_ORDER.indexOf(job.status as any);
   
   // Calculate highest reached stage index even if job is cancelled
   let effectiveStageIndex = currentStageIndex;
-  if (job.status === 'cancelled') {
+  if (job.status === 'cancelled' || isReturned) {
     if (job.client_delivery_at || job.client_delivery_confirmed_at) effectiveStageIndex = 4;
     else if (job.driver_delivery_at || job.driver_delivery_confirmed_at || job.driver_arrived_delivery_at) effectiveStageIndex = 3;
     else if (job.driver_pickup_at || job.driver_pickup_confirmed_at) effectiveStageIndex = 2;
@@ -308,10 +343,10 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
             </span>
             <div>
               <h2 className="text-lg font-display font-semibold tracking-tight text-brand-text flex items-center gap-2">
-                Mission Command Center
+                {t('jobDetailModal.title')}
               </h2>
               <p className="text-[11px] text-brand-muted font-medium">
-                {format(new Date(job.created_at || new Date()), 'PPPP · HH:mm')} · Corridor: <span className="text-brand-text">{job.pickup_emirate} → {job.delivery_emirate}</span>
+                {format(new Date(job.created_at || new Date()), 'PPPP · HH:mm', { locale: dateLocale })} · {t('jobDetailModal.corridor')}: <span className="text-brand-text">{job.pickup_emirate} → {job.delivery_emirate}</span>
               </p>
             </div>
           </div>
@@ -350,8 +385,8 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
             <div className="flex items-center gap-2.5 text-red-400 text-xs font-medium">
               <AlertTriangle className="w-5 h-5 shrink-0 text-red-400" />
               <div>
-                <span className="font-bold uppercase tracking-wider text-red-300">Job Marked as Failed / Cancelled:</span>{' '}
-                <span className="italic">{job.cancellation_reason || 'Manual Failure Recorded'}</span>
+                <span className="font-bold uppercase tracking-wider text-red-300">{t('jobDetailModal.cancelledBanner')}</span>{' '}
+                <span className="italic">{job.cancellation_reason || t('jobDetailModal.manualFailureRecorded')}</span>
                 {job.cancelled_at && (
                   <span className="text-[11px] text-red-400/70 ml-2">({format(new Date(job.cancelled_at), 'HH:mm')})</span>
                 )}
@@ -364,7 +399,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                 className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                Reactivate (Pending)
+                {t('jobDetailModal.reactivatePending')}
               </button>
               <button
                 onClick={() => handleReactivateJob('driver_pickup')}
@@ -372,8 +407,25 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                 className="px-3 py-1.5 bg-brand-neon/10 hover:bg-brand-neon/20 text-brand-neon border border-brand-neon/30 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                Resume (In-Transit)
+                {t('jobDetailModal.resumeInTransit')}
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Returned Banner: the driver couldn't deliver. Terminal; no reactivation. */}
+        {isReturned && (
+          <div className="bg-amber-500/15 border-b border-amber-500/30 px-6 py-3 flex items-start gap-2.5 text-amber-300 text-xs font-medium">
+            <Undo2 className="w-5 h-5 shrink-0 text-amber-400" />
+            <div className="space-y-1">
+              <div>
+                <span className="font-bold uppercase tracking-wider text-amber-200">{t('jobDetailModal.returnedBanner')}</span>{' '}
+                <span className="italic">{job.return_reason || t('jobDetailModal.returnedNoReason')}</span>
+                {job.returned_at && (
+                  <span className="text-[11px] text-amber-400/70 ml-2">({format(new Date(job.returned_at), 'HH:mm')})</span>
+                )}
+              </div>
+              <p className="text-[11px] text-amber-300/80 font-normal">{t('jobDetailModal.returnedHint')}</p>
             </div>
           </div>
         )}
@@ -382,7 +434,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
         <div className="px-6 py-3.5 bg-brand-surface/40 border-b border-brand-border overflow-x-auto no-scrollbar">
           <div className="flex items-center justify-between min-w-[620px] gap-2">
             {STAGE_ORDER.map((stageKey, idx) => {
-              const isPast = job.status === 'cancelled' ? effectiveStageIndex >= idx : currentStageIndex > idx;
+              const isPast = (job.status === 'cancelled' || isReturned) ? effectiveStageIndex >= idx : currentStageIndex > idx;
               const isCurrent = job.status !== 'cancelled' && currentStageIndex === idx;
               const config = STAGE_CONFIG[stageKey];
               const Icon = config.icon;
@@ -431,7 +483,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-brand-text">Emergency Status Control</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-brand-text">{t('jobDetailModal.emergency.title')}</h3>
                 </div>
                 {canAdvance && (
                   <button
@@ -440,15 +492,22 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                     className="px-3 py-1.5 bg-brand-neon text-brand-bg rounded-xl text-xs font-bold hover:opacity-90 active:scale-95 transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(57,255,20,0.25)]"
                   >
                     <FastForward className="w-3.5 h-3.5" />
-                    Move to Next Stage
+                    {t('jobDetailModal.emergency.moveNext')}
                   </button>
                 )}
               </div>
 
+              {isReturned ? (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex items-start gap-2">
+                  <HelpCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-brand-text leading-relaxed">{t('jobDetailModal.returnedFinalNote')}</p>
+                </div>
+              ) : (
+                <>
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-2">
                 <HelpCircle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
                 <p className="text-[11px] text-brand-text leading-relaxed">
-                  <strong className="text-yellow-500">Use this only if:</strong> Customer or driver is unresponsive and you need to manually advance the job. This bypasses the normal verification system.
+                  <strong className="text-yellow-500">{t('jobDetailModal.emergency.useOnlyIf')}</strong> {t('jobDetailModal.emergency.useOnlyIfBody')}
                 </p>
               </div>
 
@@ -456,7 +515,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                 <div>
                   <label className="block text-[11px] font-semibold text-brand-muted uppercase mb-1.5">
                     <div className="flex items-center gap-2">
-                      <span>Jump Job To</span>
+                      <span>{t('jobDetailModal.emergency.jumpTo')}</span>
                       <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-brand-neon/10 border border-brand-neon/30 text-[9px] font-bold text-brand-neon">
                         {(() => {
                           const stages = ['pending', 'client_pickup', 'driver_pickup', 'driver_delivery', 'completed', 'cancelled'];
@@ -471,12 +530,12 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                     onChange={(e) => setTargetStatus(e.target.value as JobStatus)}
                     className="w-full bg-brand-input border border-brand-input-border rounded-xl px-3 py-2 text-xs font-medium text-brand-text focus:border-brand-neon outline-none"
                   >
-                    <option value="pending">1️⃣ Pending - Waiting for driver</option>
-                    <option value="client_pickup">2️⃣ Pickup - Driver collecting from sender</option>
-                    <option value="driver_pickup">3️⃣ In Transit - Driver has package</option>
-                    <option value="driver_delivery">4️⃣ Arrived - Driver at recipient</option>
-                    <option value="completed">5️⃣ Delivered - Job complete ✅</option>
-                    <option value="cancelled">❌ Cancelled - Job failed</option>
+                    <option value="pending">{t('jobDetailModal.emergency.jumpOptions.pending')}</option>
+                    <option value="client_pickup">{t('jobDetailModal.emergency.jumpOptions.client_pickup')}</option>
+                    <option value="driver_pickup">{t('jobDetailModal.emergency.jumpOptions.driver_pickup')}</option>
+                    <option value="driver_delivery">{t('jobDetailModal.emergency.jumpOptions.driver_delivery')}</option>
+                    <option value="completed">{t('jobDetailModal.emergency.jumpOptions.completed')}</option>
+                    <option value="cancelled">{t('jobDetailModal.emergency.jumpOptions.cancelled')}</option>
                   </select>
                 </div>
 
@@ -492,7 +551,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                     )}
                   >
                     {isApplyingOverride ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-                    Force Update Status
+                    {t('jobDetailModal.emergency.forceUpdate')}
                   </button>
                 </div>
               </div>
@@ -505,57 +564,60 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                   onChange={(e) => setAutoTimestampCoc(e.target.checked)}
                   className="rounded border-brand-border text-brand-neon focus:ring-0 w-3.5 h-3.5"
                 />
-                <span>✓ Automatically mark all previous steps as verified (recommended)</span>
+                <span>{t('jobDetailModal.emergency.autoMark')}</span>
               </label>
+
+                </>
+              )}
 
               {/* Operator Notes Field */}
               <div>
                 <label className="block text-[11px] font-semibold text-brand-muted uppercase mb-1">
-                  Reason for Manual Update <span className="text-yellow-500">(Required)</span>
+                  {t('jobDetailModal.emergency.reasonLabel')} <span className="text-yellow-500">{t('jobDetailModal.emergency.required')}</span>
                 </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={operatorNotes}
                     onChange={(e) => setOperatorNotes(e.target.value)}
-                    placeholder="e.g., Customer confirmed delivery by phone"
+                    placeholder={t('jobDetailModal.emergency.reasonPlaceholder')}
                     className="flex-1 bg-brand-input border border-brand-input-border rounded-xl px-3 py-1.5 text-xs text-brand-text placeholder:text-brand-muted/50 focus:border-brand-neon outline-none"
                   />
                   <button
                     onClick={async () => {
                       try {
                         await updateJob(job.id!, { operator_notes: operatorNotes });
-                        setOverrideMessage('Note saved.');
+                        setOverrideMessage(t('jobDetailModal.toast.noteSaved'));
                         setTimeout(() => setOverrideMessage(null), 2000);
                         onUpdate();
                       } catch (err: any) {
-                        alert(`Failed to save note: ${err.message || err}`);
+                        alert(t('jobDetailModal.errors.saveNote', { error: err.message || String(err) }));
                       }
                     }}
                     className="px-3 py-1.5 bg-brand-input hover:bg-brand-surface border border-brand-border text-brand-text rounded-xl text-xs font-semibold"
                   >
-                    Save
+                    {t('jobDetailModal.emergency.save')}
                   </button>
                 </div>
                 <p className="text-[10px] text-brand-muted mt-1 flex items-center gap-1">
                   <Shield className="w-3 h-3" />
-                  This note is saved to the job audit log for compliance
+                  {t('jobDetailModal.emergency.auditNote')}
                 </p>
               </div>
 
               {/* Mark as Failed Trigger */}
-              {job.status !== 'cancelled' && (
+              {job.status !== 'cancelled' && !isReturned && (
                 <div className="pt-2 border-t border-brand-border/60 flex justify-between items-center bg-red-500/5 border border-red-500/20 rounded-xl p-3">
                   <div className="flex items-center gap-2">
                     <Ban className="w-4 h-4 text-red-400" />
-                    <span className="text-xs text-brand-text font-medium">Job can't be completed?</span>
+                    <span className="text-xs text-brand-text font-medium">{t('jobDetailModal.emergency.cantComplete')}</span>
                   </div>
                   <button
                     onClick={() => setShowFailModal(true)}
                     className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-xs font-semibold flex items-center gap-1 border border-red-500/40 transition-all"
                   >
                     <XCircle className="w-3.5 h-3.5" />
-                    Cancel Job
+                    {t('jobDetailModal.emergency.cancelJob')}
                   </button>
                 </div>
               )}
@@ -564,7 +626,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
             {/* Job Details — editable so operators can correct mistakes made at intake */}
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Job Details</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">{t('jobDetailModal.details.title')}</p>
                 {!editingDetails ? (
                   <button
                     type="button"
@@ -572,7 +634,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-brand-input hover:bg-brand-surface border border-brand-border rounded-lg text-[11px] font-semibold text-brand-muted hover:text-brand-text transition-all"
                   >
                     <Edit3 className="w-3 h-3" />
-                    Edit Details
+                    {t('jobDetailModal.details.edit')}
                   </button>
                 ) : (
                   <div className="flex items-center gap-2">
@@ -582,7 +644,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                       onClick={() => { setDetailsForm(buildDetailsForm(job)); setEditingDetails(false); }}
                       className="px-2.5 py-1 bg-brand-input hover:bg-brand-surface border border-brand-border rounded-lg text-[11px] font-semibold text-brand-muted disabled:opacity-50"
                     >
-                      Cancel
+                      {t('jobDetailModal.details.cancel')}
                     </button>
                     <button
                       type="button"
@@ -591,7 +653,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                       className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-neon text-brand-bg rounded-lg text-[11px] font-bold disabled:opacity-50"
                     >
                       {savingDetails ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                      Save Changes
+                      {t('jobDetailModal.details.save')}
                     </button>
                   </div>
                 )}
@@ -600,7 +662,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
               {!editingDetails ? (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Consignor (Sender)</p>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">{t('jobDetailModal.details.consignor')}</p>
                     <div className="p-4 bg-brand-input rounded-2xl border border-brand-border">
                       <p className="text-sm font-semibold text-brand-text mb-0.5 truncate">{job.sender_name}</p>
                       <p className="text-xs font-mono text-brand-neon">{job.sender_phone}</p>
@@ -610,7 +672,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Consignee (Recipient)</p>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">{t('jobDetailModal.details.consignee')}</p>
                     <div className="p-4 bg-brand-input rounded-2xl border border-brand-border">
                       <p className="text-sm font-semibold text-brand-text mb-0.5 truncate">{job.recipient_name}</p>
                       <p className="text-xs font-mono text-brand-neon">{job.recipient_phone}</p>
@@ -621,21 +683,21 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                   </div>
                   <div className="col-span-2 grid grid-cols-3 gap-3">
                     <div className="p-3 bg-brand-input rounded-xl border border-brand-border">
-                      <p className="text-[10px] uppercase text-brand-muted mb-1">Item</p>
-                      <p className="text-xs font-medium text-brand-text capitalize">{job.item_type?.replace('_', ' ') || '—'}</p>
+                      <p className="text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.item')}</p>
+                      <p className="text-xs font-medium text-brand-text capitalize">{job.item_type ? t(`jobDetailModal.details.itemTypes.${job.item_type}`, { defaultValue: job.item_type.replace('_', ' ') }) : '—'}</p>
                     </div>
                     <div className="p-3 bg-brand-input rounded-xl border border-brand-border">
-                      <p className="text-[10px] uppercase text-brand-muted mb-1">Urgency</p>
-                      <p className="text-xs font-medium text-brand-text capitalize">{job.urgency || '—'}</p>
+                      <p className="text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.urgency')}</p>
+                      <p className="text-xs font-medium text-brand-text capitalize">{job.urgency ? t(`jobDetailModal.details.urgencies.${job.urgency}`, { defaultValue: job.urgency }) : '—'}</p>
                     </div>
                     <div className="p-3 bg-brand-input rounded-xl border border-brand-border">
-                      <p className="text-[10px] uppercase text-brand-muted mb-1">Price (AED)</p>
+                      <p className="text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.price')}</p>
                       <p className="text-xs font-medium text-brand-text">{job.price_aed != null ? job.price_aed : '—'}</p>
                     </div>
                   </div>
                   {job.special_instructions && (
                     <div className="col-span-2 p-3 bg-brand-input rounded-xl border border-brand-border">
-                      <p className="text-[10px] uppercase text-brand-muted mb-1">Special Instructions</p>
+                      <p className="text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.specialInstructions')}</p>
                       <p className="text-xs text-brand-text whitespace-pre-wrap">{job.special_instructions}</p>
                     </div>
                   )}
@@ -644,17 +706,17 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                 <div className="space-y-4 p-4 bg-brand-input/60 border border-brand-neon/30 rounded-2xl">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Consignor (Sender)</p>
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">{t('jobDetailModal.details.consignor')}</p>
                       <input
                         value={detailsForm.sender_name}
                         onChange={(e) => setDetailsForm(prev => ({ ...prev, sender_name: e.target.value }))}
-                        placeholder="Sender name"
+                        placeholder={t('jobDetailModal.details.senderNamePlaceholder')}
                         className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-3 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
                       />
                       <input
                         value={detailsForm.sender_phone}
                         onChange={(e) => setDetailsForm(prev => ({ ...prev, sender_phone: e.target.value }))}
-                        placeholder="Sender phone"
+                        placeholder={t('jobDetailModal.details.senderPhonePlaceholder')}
                         className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-3 py-2 text-xs font-mono text-brand-text outline-none focus:border-brand-neon"
                       />
                       <div className="grid grid-cols-2 gap-2">
@@ -668,23 +730,23 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                         <input
                           value={detailsForm.pickup_location}
                           onChange={(e) => setDetailsForm(prev => ({ ...prev, pickup_location: e.target.value }))}
-                          placeholder="Pickup address"
+                          placeholder={t('jobDetailModal.details.pickupAddressPlaceholder')}
                           className="bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Consignee (Recipient)</p>
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">{t('jobDetailModal.details.consignee')}</p>
                       <input
                         value={detailsForm.recipient_name}
                         onChange={(e) => setDetailsForm(prev => ({ ...prev, recipient_name: e.target.value }))}
-                        placeholder="Recipient name"
+                        placeholder={t('jobDetailModal.details.recipientNamePlaceholder')}
                         className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-3 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
                       />
                       <input
                         value={detailsForm.recipient_phone}
                         onChange={(e) => setDetailsForm(prev => ({ ...prev, recipient_phone: e.target.value }))}
-                        placeholder="Recipient phone"
+                        placeholder={t('jobDetailModal.details.recipientPhonePlaceholder')}
                         className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-3 py-2 text-xs font-mono text-brand-text outline-none focus:border-brand-neon"
                       />
                       <div className="grid grid-cols-2 gap-2">
@@ -698,7 +760,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                         <input
                           value={detailsForm.delivery_location}
                           onChange={(e) => setDetailsForm(prev => ({ ...prev, delivery_location: e.target.value }))}
-                          placeholder="Delivery address"
+                          placeholder={t('jobDetailModal.details.deliveryAddressPlaceholder')}
                           className="bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
                         />
                       </div>
@@ -707,50 +769,50 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
 
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-[10px] uppercase text-brand-muted mb-1">Item</label>
+                      <label className="block text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.item')}</label>
                       <select
                         value={detailsForm.item_type}
                         onChange={(e) => setDetailsForm(prev => ({ ...prev, item_type: e.target.value as ItemType }))}
                         className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
                       >
-                        <option value="parcel">Parcel</option>
-                        <option value="document">Document</option>
-                        <option value="spare_part">Spare Part</option>
-                        <option value="other">Other</option>
+                        <option value="parcel">{t('jobDetailModal.details.itemTypes.parcel')}</option>
+                        <option value="document">{t('jobDetailModal.details.itemTypes.document')}</option>
+                        <option value="spare_part">{t('jobDetailModal.details.itemTypes.spare_part')}</option>
+                        <option value="other">{t('jobDetailModal.details.itemTypes.other')}</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[10px] uppercase text-brand-muted mb-1">Urgency</label>
+                      <label className="block text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.urgency')}</label>
                       <select
                         value={detailsForm.urgency}
                         onChange={(e) => setDetailsForm(prev => ({ ...prev, urgency: e.target.value as UrgencyType }))}
                         className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
                       >
-                        <option value="immediate">Immediate</option>
-                        <option value="today">Today</option>
-                        <option value="scheduled">Scheduled</option>
+                        <option value="immediate">{t('jobDetailModal.details.urgencies.immediate')}</option>
+                        <option value="today">{t('jobDetailModal.details.urgencies.today')}</option>
+                        <option value="scheduled">{t('jobDetailModal.details.urgencies.scheduled')}</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[10px] uppercase text-brand-muted mb-1">Price (AED)</label>
+                      <label className="block text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.price')}</label>
                       <input
                         type="number"
                         min="0"
                         step="0.01"
                         value={detailsForm.price_aed}
                         onChange={(e) => setDetailsForm(prev => ({ ...prev, price_aed: e.target.value }))}
-                        placeholder="e.g. 45"
+                        placeholder={t('jobDetailModal.details.pricePlaceholder')}
                         className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs font-mono text-brand-text outline-none focus:border-brand-neon"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[10px] uppercase text-brand-muted mb-1">Special Instructions</label>
+                    <label className="block text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.specialInstructions')}</label>
                     <textarea
                       value={detailsForm.special_instructions}
                       onChange={(e) => setDetailsForm(prev => ({ ...prev, special_instructions: e.target.value }))}
-                      placeholder="e.g. Fragile, call before arrival, gate code..."
+                      placeholder={t('jobDetailModal.details.instructionsPlaceholder')}
                       rows={2}
                       className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-3 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
                     />
@@ -761,7 +823,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
 
             {/* Pilot Assignment */}
             <div className="space-y-2">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Assigned Pilot</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">{t('jobDetailModal.pilot.title')}</p>
               <div className="p-4 bg-brand-surface border border-brand-border rounded-2xl flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-brand-neon/10 flex items-center justify-center border border-brand-neon/20">
@@ -771,10 +833,10 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                     {job.driver?.full_name ? (
                       <>
                         <p className="text-sm font-semibold text-brand-text">{job.driver.full_name}</p>
-                        <p className="text-xs text-brand-muted font-mono">{job.driver.phone} · {job.driver.vehicle_type || 'Corridor Pilot'}</p>
+                        <p className="text-xs text-brand-muted font-mono">{job.driver.phone} · {job.driver.vehicle_type || t('jobDetailModal.pilot.corridorPilot')}</p>
                       </>
                     ) : (
-                      <p className="text-sm font-medium text-brand-muted italic">Pilot Pending Assignment</p>
+                      <p className="text-sm font-medium text-brand-muted italic">{t('jobDetailModal.pilot.pending')}</p>
                     )}
                   </div>
                 </div>
@@ -783,7 +845,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                   onClick={() => setReassigning(v => !v)}
                   className="px-3.5 py-1.5 bg-brand-input hover:bg-brand-surface border border-brand-border rounded-xl text-xs font-semibold uppercase tracking-wider"
                 >
-                  {job.driver?.full_name ? 'Reassign' : 'Assign'}
+                  {job.driver?.full_name ? t('jobDetailModal.pilot.reassign') : t('jobDetailModal.pilot.assign')}
                 </button>
               </div>
               {reassigning && (
@@ -800,18 +862,18 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                         // Refetch jobs to get updated driver info
                         await onUpdate();
                       } catch (err: any) {
-                        alert(`Failed to assign driver: ${err.message || err}`);
+                        alert(t('jobDetailModal.errors.assign', { error: err.message || String(err) }));
                       } finally {
                         setAssigningDriver(false);
                       }
                     }}
                     className="flex-1 bg-brand-input border border-brand-input-border rounded-xl px-3 py-2 text-xs font-medium text-brand-text focus:border-brand-neon outline-none"
                   >
-                    <option value="unassigned">Unassigned</option>
+                    <option value="unassigned">{t('jobDetailModal.pilot.unassigned')}</option>
                     {drivers.map(d => {
                       const statusIcon = d.status === 'available' ? '🟢' : d.status === 'on_job' ? '🟠' : '⚪';
                       return (
-                        <option key={d.id} value={d.id}>{statusIcon} {d.full_name} (Tier {d.tier || 'D'} · {d.vehicle_type})</option>
+                        <option key={d.id} value={d.id}>{statusIcon} {d.full_name} ({t('jobCreateModal.tierShort')} {d.tier || 'D'} · {d.vehicle_type})</option>
                       );
                     })}
                   </select>
@@ -822,12 +884,12 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
 
             {/* Quick Dispatch WhatsApp Buttons */}
             <div className="space-y-2">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">Operational WhatsApp Links</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">{t('jobDetailModal.whatsapp.title')}</p>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { id: 'sender', label: 'Sender Dsp.', sent: job.sender_notified },
-                  { id: 'driver', label: 'Pilot Dsp.', sent: job.driver_notified },
-                  { id: 'recipient', label: 'Client Dsp.', sent: job.recipient_notified }
+                  { id: 'sender', label: t('jobDetailModal.whatsapp.sender'), sent: job.sender_notified },
+                  { id: 'driver', label: t('jobDetailModal.whatsapp.pilot'), sent: job.driver_notified },
+                  { id: 'recipient', label: t('jobDetailModal.whatsapp.client'), sent: job.recipient_notified }
                 ].map((btn) => (
                   <button
                     key={btn.id}
@@ -840,7 +902,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                     <MessageSquare className={cn("w-4 h-4", btn.sent ? "text-brand-muted" : "text-brand-neon")} />
                     <span className="text-[11px] font-semibold">{btn.label}</span>
                     <span className={cn("text-[10px]", btn.sent ? "text-brand-muted" : "text-brand-neon font-medium")}>
-                      {btn.sent ? 'Dispatched' : 'Ready'}
+                      {btn.sent ? t('jobDetailModal.whatsapp.dispatched') : t('jobDetailModal.whatsapp.ready')}
                     </span>
                   </button>
                 ))}
@@ -854,19 +916,19 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
             <div>
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h3 className="text-base font-display font-bold tracking-tight text-brand-text">Delivery Verification Steps</h3>
-                  <p className="text-xs text-brand-muted">Track each handoff from sender → driver → recipient</p>
+                  <h3 className="text-base font-display font-bold tracking-tight text-brand-text">{t('jobDetailModal.verification.title')}</h3>
+                  <p className="text-xs text-brand-muted">{t('jobDetailModal.verification.subtitle')}</p>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-brand-muted font-mono bg-brand-input px-2.5 py-1 rounded-lg border border-brand-border">
                   <Shield className="w-3.5 h-3.5 text-brand-neon" />
-                  <span>OTP Secured</span>
+                  <span>{t('jobDetailModal.verification.otpSecured')}</span>
                 </div>
               </div>
 
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 mb-4 flex items-start gap-2">
                 <HelpCircle className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
                 <div className="text-[11px] text-brand-text leading-relaxed">
-                  <strong className="text-blue-400">How this works:</strong> Each step requires either an OTP code or your manual verification. Use "Override Step" only if the person isn't responding but you've confirmed by phone.
+                  <strong className="text-blue-400">{t('jobDetailModal.verification.howItWorks')}</strong> {t(driverOnly ? 'jobDetailModal.verification.howItWorksBodyDriverOnly' : 'jobDetailModal.verification.howItWorksBody')}
                 </div>
               </div>
 
@@ -874,47 +936,10 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
               <div className="space-y-4 relative">
                 <div className="absolute left-[19px] top-6 bottom-6 w-0.5 bg-brand-border" />
                 
-                {[
-                  { 
-                    label: '1. Sender Handed Package to Driver', 
-                    stepKey: 'client_pickup_at' as const,
-                    status: job.client_pickup_at, 
-                    tokenKey: 'token_client_pickup', 
-                    icon: Package,
-                    otp: job.otp_sender,
-                    desc: 'Sender confirms driver collected the package'
-                  },
-                  { 
-                    label: '2. Driver Confirmed Pickup', 
-                    stepKey: 'driver_pickup_at' as const,
-                    status: job.driver_pickup_at, 
-                    tokenKey: 'token_driver_pickup', 
-                    icon: Truck,
-                    otp: job.otp_driver_pickup,
-                    desc: 'Driver confirms they have the package and are on the way'
-                  },
-                  { 
-                    label: '3. Driver Arrived at Destination', 
-                    stepKey: 'driver_delivery_at' as const,
-                    status: job.driver_delivery_at, 
-                    tokenKey: 'token_driver_delivery', 
-                    icon: Navigation,
-                    otp: job.otp_driver_delivery,
-                    desc: 'Driver confirms arrival at recipient location'
-                  },
-                  { 
-                    label: '4. Recipient Received Package', 
-                    stepKey: 'client_delivery_at' as const,
-                    status: job.client_delivery_at, 
-                    tokenKey: 'token_client_delivery', 
-                    icon: CheckCircle2,
-                    otp: job.otp_recipient,
-                    desc: 'Recipient confirms they received the package'
-                  }
-                ].map((step, i) => {
+                {verificationSteps.map((step, i) => {
                   const cocDomain = (import.meta.env.VITE_COC_URL || 'https://nokael.ae').replace(/\/$/, '');
-                  const stepSlug = step.tokenKey.replace('token_', '').replace('_', '-');
-                  const tokenValue = (job as any)[step.tokenKey];
+                  const stepSlug = step.tokenKey ? step.tokenKey.replace('token_', '').replace('_', '-') : '';
+                  const tokenValue = step.tokenKey ? (job as any)[step.tokenKey] : undefined;
                   const stepUrl = tokenValue ? `${cocDomain}/${tokenValue}/${stepSlug}` : '';
                   const isConfirmed = !!step.status;
                   const isBusy = actingStep === step.stepKey;
@@ -944,8 +969,8 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
 
                         <p className="text-[11px] text-brand-muted font-medium mb-2">
                           {isConfirmed 
-                            ? '✓ Verified & Complete'
-                            : `⏳ Waiting · Security Code: ${step.otp || 'Not set'}`
+                            ? t('jobDetailModal.verification.verified')
+                            : t(`jobDetailModal.verification.${step.waitingKey}`, { code: step.otp || t('jobDetailModal.verification.codeNotSet') })
                           }
                         </p>
 
@@ -955,7 +980,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                             type="text"
                             value={stepNotes[step.stepKey] || ''}
                             onChange={(e) => setStepNotes(prev => ({ ...prev, [step.stepKey]: e.target.value }))}
-                            placeholder="Add note if manually verifying (optional)..."
+                            placeholder={t('jobDetailModal.verification.notePlaceholder')}
                             className="w-full bg-brand-input border border-brand-input-border rounded-lg px-2.5 py-1.5 text-[11px] text-brand-text placeholder:text-brand-muted/50 focus:border-brand-neon outline-none"
                           />
                         </div>
@@ -963,8 +988,8 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                         {/* Override Step / Undo & Link Actions */}
                         <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-brand-border/60 mt-2">
                           <button
-                            onClick={() => handleToggleCocStep(step.stepKey, isConfirmed, step.label, stepNotes[step.stepKey])}
-                            disabled={isBusy}
+                            onClick={() => handleToggleCocStep(step.stepKey, isConfirmed, stepNotes[step.stepKey])}
+                            disabled={isBusy || isReturned}
                             className={cn(
                               "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold tracking-wide transition-all",
                               isConfirmed
@@ -977,12 +1002,12 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                             ) : isConfirmed ? (
                               <>
                                 <Undo2 className="w-3.5 h-3.5" />
-                                Undo
+                                {t('jobDetailModal.verification.undo')}
                               </>
                             ) : (
                               <>
                                 <CheckSquare className="w-3.5 h-3.5" />
-                                Override Step
+                                {t('jobDetailModal.verification.overrideStep')}
                               </>
                             )}
                           </button>
@@ -996,20 +1021,20 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                                   setTimeout(() => setCopiedStep(null), 2000);
                                 }}
                                 className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-brand-input hover:bg-brand-surface rounded-lg border border-brand-border text-[11px] font-semibold text-brand-muted hover:text-brand-text transition-all"
-                                title="Copy verification link to send via WhatsApp"
+                                title={t('jobDetailModal.verification.copyLinkTitle')}
                               >
                                 <Copy className="w-3 h-3" />
-                                {copiedStep === step.tokenKey ? 'Copied!' : 'Copy Link'}
+                                {copiedStep === step.tokenKey ? t('jobDetailModal.verification.copied') : t('jobDetailModal.verification.copyLink')}
                               </button>
                               <a
                                 href={stepUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-brand-input hover:bg-brand-surface rounded-lg border border-brand-border text-[11px] font-semibold text-brand-muted hover:text-brand-text transition-all"
-                                title="Open verification page in new tab"
+                                title={t('jobDetailModal.verification.openTitle')}
                               >
                                 <ExternalLink className="w-3 h-3" />
-                                Open
+                                {t('jobDetailModal.verification.open')}
                               </a>
                             </>
                           )}
@@ -1033,7 +1058,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                   className="btn-primary w-full py-4 text-xs font-bold flex items-center justify-center gap-2.5"
                 >
                   <Download className="w-4 h-4" />
-                  Download Proof of Delivery (PDF)
+                  {t('jobDetailModal.verification.downloadPoc')}
                 </button>
               </motion.div>
             )}
@@ -1055,33 +1080,33 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                     <XCircle className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-brand-text">Cancel This Job</h3>
-                    <p className="text-xs text-brand-muted">Record why the delivery couldn't be completed</p>
+                    <h3 className="text-base font-bold text-brand-text">{t('jobDetailModal.failModal.title')}</h3>
+                    <p className="text-xs text-brand-muted">{t('jobDetailModal.failModal.subtitle')}</p>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-semibold text-brand-muted uppercase mb-1">Why is this job being cancelled?</label>
+                    <label className="block text-xs font-semibold text-brand-muted uppercase mb-1">{t('jobDetailModal.failModal.why')}</label>
                     <select
                       value={failReason}
                       onChange={(e) => setFailReason(e.target.value)}
                       className="w-full bg-brand-input border border-brand-input-border rounded-xl px-3 py-2 text-xs text-brand-text outline-none focus:border-red-500"
                     >
-                      {COMMON_FAILURE_REASONS.map((r) => (
-                        <option key={r} value={r}>{r}</option>
+                      {FAILURE_REASON_KEYS.map((key) => (
+                        <option key={key} value={key}>{t(`failureReasons.${key}`)}</option>
                       ))}
-                      <option value="Custom">Other reason (specify below)</option>
+                      <option value="custom">{t('jobDetailModal.failModal.other')}</option>
                     </select>
                   </div>
 
-                  {failReason === 'Custom' && (
+                  {failReason === 'custom' && (
                     <div>
-                      <label className="block text-xs font-semibold text-brand-muted uppercase mb-1">Explain the reason</label>
+                      <label className="block text-xs font-semibold text-brand-muted uppercase mb-1">{t('jobDetailModal.failModal.explain')}</label>
                       <textarea
                         value={customFailReason}
                         onChange={(e) => setCustomFailReason(e.target.value)}
-                        placeholder="Describe what happened..."
+                        placeholder={t('jobDetailModal.failModal.describePlaceholder')}
                         rows={2}
                         className="w-full bg-brand-input border border-brand-input-border rounded-xl p-3 text-xs text-brand-text outline-none focus:border-red-500"
                       />
@@ -1094,7 +1119,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                     onClick={() => setShowFailModal(false)}
                     className="px-4 py-2 bg-brand-input hover:bg-brand-surface border border-brand-border rounded-xl text-xs font-medium text-brand-text"
                   >
-                    Back
+                    {t('jobDetailModal.failModal.back')}
                   </button>
                   <button
                     onClick={handleFailJob}
@@ -1102,7 +1127,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                     className="px-5 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-lg shadow-red-500/20"
                   >
                     {isCancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Ban className="w-3.5 h-3.5" />}
-                    Confirm Failure Status
+                    {t('jobDetailModal.failModal.confirm')}
                   </button>
                 </div>
               </motion.div>

@@ -10,6 +10,7 @@ import {
   MessageSquare,
   X,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { type BusinessInquiry } from '../../../lib/supabase';
 import { cn } from '../../../lib/utils';
 
@@ -20,6 +21,7 @@ interface BusinessDetailsModalProps {
 }
 
 export function BusinessDetailsModal({ business, onClose, onBusinessUpdate }: BusinessDetailsModalProps) {
+  const { t } = useTranslation('dashboard');
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
       <motion.div
@@ -37,7 +39,7 @@ export function BusinessDetailsModal({ business, onClose, onBusinessUpdate }: Bu
         <div className="p-8 border-b border-brand-border flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-display font-medium tracking-tighter mb-1">{business.company_name}</h2>
-            <p className="text-xs text-brand-muted uppercase tracking-wide font-medium">Business Entity</p>
+            <p className="text-xs text-brand-muted uppercase tracking-wide font-medium">{t('businessDetailsModal.entity')}</p>
           </div>
           <button
             onClick={onClose}
@@ -53,7 +55,7 @@ export function BusinessDetailsModal({ business, onClose, onBusinessUpdate }: Bu
 
             {/* Point of Contact */}
             <div className="space-y-6">
-              <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted">Point of Contact</h3>
+              <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted">{t('businessDetailsModal.pointOfContact')}</h3>
               <div className="space-y-4">
                 <div className="flex items-center gap-3 text-sm">
                   <User className="w-4 h-4 text-brand-neon" />
@@ -72,7 +74,7 @@ export function BusinessDetailsModal({ business, onClose, onBusinessUpdate }: Bu
 
             {/* Operational Scope */}
             <div className="space-y-6">
-              <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted">Operational Scope</h3>
+              <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted">{t('businessDetailsModal.operationalScope')}</h3>
               <div className="space-y-4">
                 <div className="flex items-center gap-3 text-sm">
                   <Navigation className="w-4 h-4 text-brand-neon" />
@@ -84,25 +86,25 @@ export function BusinessDetailsModal({ business, onClose, onBusinessUpdate }: Bu
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                   <Activity className="w-4 h-4 text-brand-neon" />
-                  <span>{business.estimated_monthly_volume} Jobs/mo</span>
+                  <span>{business.estimated_monthly_volume} {t('businessDetailsModal.jobsPerMonth')}</span>
                 </div>
               </div>
             </div>
 
             {/* Contract Admin */}
             <div className="space-y-6">
-              <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted">Contract Admin</h3>
+              <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted">{t('businessDetailsModal.contractAdmin')}</h3>
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <label className="text-xs font-medium text-brand-muted">Status</label>
+                  <label className="text-xs font-medium text-brand-muted">{t('businessDetailsModal.statusLabel')}</label>
                   <select
                     value={business.status}
                     onChange={(e) => onBusinessUpdate(business.id!, { status: e.target.value as any })}
                     className="bg-brand-input border border-brand-input-border rounded-lg px-3 py-1.5 text-xs font-medium outline-none"
                   >
-                    <option value="pending">Pending</option>
-                    <option value="active">Active</option>
-                    <option value="archived">Archived</option>
+                    <option value="pending">{t('business.status.pending')}</option>
+                    <option value="active">{t('business.status.active')}</option>
+                    <option value="archived">{t('business.status.archived')}</option>
                   </select>
                 </div>
                 <div className="flex items-center gap-3">
@@ -111,7 +113,7 @@ export function BusinessDetailsModal({ business, onClose, onBusinessUpdate }: Bu
                     business.invoicing_required ? "bg-brand-neon" : "bg-brand-muted"
                   )} />
                   <span className="text-xs font-medium text-brand-text">
-                    {business.invoicing_required ? 'Monthly Invoicing' : 'Standard Payment'}
+                    {business.invoicing_required ? t('businessDetailsModal.monthlyInvoicing') : t('businessDetailsModal.standardPayment')}
                   </span>
                 </div>
               </div>
@@ -121,10 +123,10 @@ export function BusinessDetailsModal({ business, onClose, onBusinessUpdate }: Bu
 
           {/* CRM Notes */}
           <div>
-            <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted mb-6">CRM & Follow-up Notes</h3>
+            <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted mb-6">{t('businessDetailsModal.crmNotes')}</h3>
             <textarea
               className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-6 text-sm outline-none focus:border-brand-neon/50 transition-all min-h-[150px]"
-              placeholder="Logs, pre-agreed rates, contract details..."
+              placeholder={t('businessDetailsModal.notesPlaceholder')}
               value={business.follow_up_notes || ''}
               onChange={(e) => onBusinessUpdate(business.id!, { follow_up_notes: e.target.value })}
             />
@@ -140,13 +142,13 @@ export function BusinessDetailsModal({ business, onClose, onBusinessUpdate }: Bu
             className="flex-1 py-4 bg-brand-neon text-brand-bg text-xs font-medium uppercase tracking-wide rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-3"
           >
             <MessageSquare className="w-4 h-4" />
-            Contact Decision Maker
+            {t('businessDetailsModal.contactDecisionMaker')}
           </a>
           <button
             onClick={onClose}
             className="px-8 py-4 bg-brand-input border border-brand-input-border text-brand-text text-xs font-medium uppercase tracking-wide rounded-xl hover:bg-brand-surface transition-all"
           >
-            Close
+            {t('businessDetailsModal.close')}
           </button>
         </div>
       </motion.div>

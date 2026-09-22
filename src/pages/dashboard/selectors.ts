@@ -6,7 +6,7 @@ import type { QuoteRequest, Driver, JobWithDriver, BusinessInquiry } from '../..
  * so these can be exercised directly in Vitest without mounting the component.
  */
 
-export type JobStatusFilter = 'all' | 'pending' | 'in_transit' | 'completed' | 'cancelled';
+export type JobStatusFilter = 'all' | 'pending' | 'in_transit' | 'completed' | 'returned' | 'cancelled';
 
 export function filterRequests(
   requests: QuoteRequest[],
@@ -51,6 +51,7 @@ export function filterJobs(
                           (j.company_name || '').toLowerCase().includes(s) ||
                           (j.id || '').toLowerCase().includes(s) ||
                           (j.cancellation_reason || '').toLowerCase().includes(s) ||
+                          (j.return_reason || '').toLowerCase().includes(s) ||
                           (j.operator_notes || '').toLowerCase().includes(s) ||
                           (j.driver?.full_name || '').toLowerCase().includes(s);
 
@@ -58,6 +59,7 @@ export function filterJobs(
     if (jobStatusFilter === 'pending') matchesStatus = j.status === 'pending';
     else if (jobStatusFilter === 'in_transit') matchesStatus = ['client_pickup', 'driver_pickup', 'driver_delivery'].includes(j.status);
     else if (jobStatusFilter === 'completed') matchesStatus = j.status === 'completed';
+    else if (jobStatusFilter === 'returned') matchesStatus = j.status === 'returned';
     else if (jobStatusFilter === 'cancelled') matchesStatus = j.status === 'cancelled';
 
     return matchesSearch && matchesStatus;

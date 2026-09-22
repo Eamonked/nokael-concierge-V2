@@ -1,32 +1,39 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { User, X, MapPin, Loader2, XCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { type QuoteRequest } from '../../../lib/supabase';
 
+const LOST_REASON_KEYS = [
+  'competitor',
+  'priceObjection',
+  'wentDark',
+  'noLongerNeeds',
+  'timingMismatch',
+  'areaNotSupported',
+  'corporateSetup',
+  'custom',
+] as const;
+
 export const LostQuoteModal = ({ quote, onClose, onConfirm }: { quote: QuoteRequest; onClose: () => void; onConfirm: (reason: string) => void }) => {
+  const { t } = useTranslation('dashboard');
+  // `reason` holds the option KEY (language-independent). The value saved to the
+  // database is always the English label so lost_reason stays consistent no matter
+  // which language the operator is using.
   const [reason, setReason] = React.useState('');
   const [customReason, setCustomReason] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const COMMON_LOST_REASONS = [
-    'Customer went with a competitor',
-    'Price objection / Too expensive',
-    'Customer stopped responding / Went dark',
-    'Customer no longer needs the service',
-    'Timing / Urgency mismatch',
-    'Service area / Route not supported',
-    'Corporate account setup required',
-    'Custom reason (specify below)',
-  ];
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const finalReason = reason === 'Custom reason (specify below)' 
-      ? customReason.trim() 
-      : reason;
-    
+    const finalReason = reason === 'custom'
+      ? customReason.trim()
+      : reason
+        ? t(`lostQuoteModal.reasons.${reason}`, { lng: 'en' })
+        : '';
+
     if (!finalReason) {
-      alert('Please select or enter a reason');
+      alert(t('lostQuoteModal.selectReasonAlert'));
       return;
     }
 
@@ -60,10 +67,10 @@ export const LostQuoteModal = ({ quote, onClose, onConfirm }: { quote: QuoteRequ
           <div>
             <h2 className="text-lg font-display font-medium tracking-tight flex items-center gap-2">
               <XCircle className="w-5 h-5 text-red-500" />
-              Mark Quote as Lost
+              {t('lostQuoteModal.title')}
             </h2>
             <p className="text-xs text-brand-muted mt-1">
-              Document why this quote never converted to a job
+              {t('lostQuoteModal.subtitle')}
             </p>
           </div>
           <button onClick={onClose} className="p-2 bg-brand-input rounded-full text-brand-muted hover:text-brand-text transition-colors">
@@ -87,7 +94,7 @@ export const LostQuoteModal = ({ quote, onClose, onConfirm }: { quote: QuoteRequ
           {/* Reason selection */}
           <div>
             <label className="block text-[11px] font-semibold text-brand-muted uppercase mb-2">
-              Why didn't this quote convert?
+              {t('lostQuoteModal.whyLabel')}
             </label>
             <select
               required
@@ -95,24 +102,24 @@ export const LostQuoteModal = ({ quote, onClose, onConfirm }: { quote: QuoteRequ
               onChange={(e) => setReason(e.target.value)}
               className="w-full bg-brand-input border border-brand-input-border rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-neon/50"
             >
-              <option value="">Select a reason...</option>
-              {COMMON_LOST_REASONS.map((r) => (
-                <option key={r} value={r}>{r}</option>
+              <option value="">{t('lostQuoteModal.selectPlaceholder')}</option>
+              {LOST_REASON_KEYS.map((key) => (
+                <option key={key} value={key}>{t(`lostQuoteModal.reasons.${key}`)}</option>
               ))}
             </select>
           </div>
 
           {/* Custom reason textarea */}
-          {reason === 'Custom reason (specify below)' && (
+          {reason === 'custom' && (
             <div>
               <label className="block text-[11px] font-semibold text-brand-muted uppercase mb-2">
-                Custom Reason
+                {t('lostQuoteModal.customLabel')}
               </label>
               <textarea
                 required
                 value={customReason}
                 onChange={(e) => setCustomReason(e.target.value)}
-                placeholder="Enter specific details..."
+                placeholder={t('lostQuoteModal.customPlaceholder')}
                 className="w-full bg-brand-input border border-brand-input-border rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-neon/50 min-h-[100px] resize-none"
               />
             </div>
@@ -125,7 +132,7 @@ export const LostQuoteModal = ({ quote, onClose, onConfirm }: { quote: QuoteRequ
               onClick={onClose}
               className="flex-1 py-3 bg-brand-input border border-brand-input-border text-brand-text text-xs font-medium uppercase tracking-wide rounded-xl hover:bg-brand-surface transition-all"
             >
-              Cancel
+              {t('lostQuoteModal.cancel')}
             </button>
             <button
               type="submit"
@@ -137,7 +144,7 @@ export const LostQuoteModal = ({ quote, onClose, onConfirm }: { quote: QuoteRequ
               ) : (
                 <>
                   <XCircle className="w-4 h-4" />
-                  Mark as Lost
+                  {t('lostQuoteModal.markAsLost')}
                 </>
               )}
             </button>

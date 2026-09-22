@@ -21,6 +21,7 @@ import {
   Tooltip,
   Area,
 } from 'recharts';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { format } from 'date-fns';
 import type { QuoteRequest } from '../../lib/supabase';
@@ -60,14 +61,15 @@ export function QuotesView({
   onMarkLost,
   onDelete,
 }: QuotesViewProps) {
+  const { t } = useTranslation('dashboard');
   return (
     <>
       {/* Growth chart — collapsed by default to reduce clutter, real data would replace the placeholder series */}
       <details className="dispatch-card p-6 mb-6 group">
         <summary className="flex justify-between items-center cursor-pointer list-none">
           <div>
-            <h2 className="text-base font-display font-medium tracking-tight">Weekly volume</h2>
-            <p className="text-xs text-brand-muted">Corridor throughput trend</p>
+            <h2 className="text-base font-display font-medium tracking-tight">{t('quotes.chart.title')}</h2>
+            <p className="text-xs text-brand-muted">{t('quotes.chart.subtitle')}</p>
           </div>
           <ChevronRight className="w-4 h-4 text-brand-muted transition-transform group-open:rotate-90" />
         </summary>
@@ -96,13 +98,13 @@ export function QuotesView({
       {/* Quotes table */}
       <div className="dispatch-card overflow-hidden p-0">
         <div className="p-5 border-b border-brand-border flex flex-col md:flex-row justify-between items-center gap-4">
-          <h2 className="text-base font-display font-medium tracking-tight self-start md:self-auto">Quote requests</h2>
+          <h2 className="text-base font-display font-medium tracking-tight self-start md:self-auto">{t('quotes.title')}</h2>
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative flex-1 md:w-64">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
               <input 
                 type="text" 
-                placeholder="Search quotes..."
+                placeholder={t('quotes.searchPlaceholder')}
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck={false}
@@ -116,12 +118,12 @@ export function QuotesView({
               value={filterStatus}
               onChange={e => setFilterStatus(e.target.value)}
             >
-              <option value="active">Active (Pending + Contacted)</option>
-              <option value="all">All status</option>
-              <option value="pending">Pending</option>
-              <option value="contacted">Contacted</option>
-              <option value="completed">Completed / Converted</option>
-              <option value="lost">Lost / Never Converted</option>
+              <option value="active">{t('quotes.filters.active')}</option>
+              <option value="all">{t('quotes.filters.all')}</option>
+              <option value="pending">{t('quotes.filters.pending')}</option>
+              <option value="contacted">{t('quotes.filters.contacted')}</option>
+              <option value="completed">{t('quotes.filters.completed')}</option>
+              <option value="lost">{t('quotes.filters.lost')}</option>
             </select>
           </div>
         </div>
@@ -130,11 +132,11 @@ export function QuotesView({
           <table className="w-full text-left">
             <thead>
               <tr className="bg-brand-input text-[11px] uppercase tracking-wide font-medium text-brand-muted">
-                <th className="px-6 py-3">Customer</th>
-                <th className="px-6 py-3">Route</th>
-                <th className="px-6 py-3">Details</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3 text-right">Actions</th>
+                <th className="px-6 py-3">{t('quotes.table.customer')}</th>
+                <th className="px-6 py-3">{t('quotes.table.route')}</th>
+                <th className="px-6 py-3">{t('quotes.table.details')}</th>
+                <th className="px-6 py-3">{t('quotes.table.status')}</th>
+                <th className="px-6 py-3 text-right">{t('quotes.table.actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-brand-border">
@@ -147,17 +149,17 @@ export function QuotesView({
                       {req.corporate_code && (
                         <div className="flex items-center gap-1.5">
                           <Shield className="w-3 h-3 text-brand-neon" />
-                          <span className="text-[11px] text-brand-neon font-medium font-mono">Corp: {req.corporate_code}</span>
+                          <span className="text-[11px] text-brand-neon font-medium font-mono">{t('quotes.corp')}: {req.corporate_code}</span>
                         </div>
                       )}
                       {req.tracking_id && (
-                        <div className="text-[11px] text-brand-muted font-medium font-mono">ID: {req.tracking_id}</div>
+                        <div className="text-[11px] text-brand-muted font-medium font-mono">{t('quotes.id')}: {req.tracking_id}</div>
                       )}
                       {req.status === 'lost' && req.lost_reason && (
                         <div className="flex items-start gap-1.5 mt-1 p-2 bg-red-500/5 border border-red-500/20 rounded">
                           <AlertTriangle className="w-3 h-3 text-red-500 shrink-0 mt-0.5" />
                           <div>
-                            <div className="text-[10px] text-red-500/70 font-medium uppercase tracking-wide mb-0.5">Lost Reason:</div>
+                            <div className="text-[10px] text-red-500/70 font-medium uppercase tracking-wide mb-0.5">{t('quotes.lostReasonLabel')}</div>
                             <div className="text-xs text-red-500 font-medium">{req.lost_reason}</div>
                             {req.lost_at && (
                               <div className="text-[10px] text-red-500/60 font-medium mt-0.5">
@@ -175,7 +177,7 @@ export function QuotesView({
                       <ArrowRight className="w-3 h-3 text-brand-neon" />
                       <span>{req.delivery_location}</span>
                     </div>
-                    <div className="text-xs uppercase tracking-wide text-brand-muted font-medium">{req.emirate} Corridor</div>
+                    <div className="text-xs uppercase tracking-wide text-brand-muted font-medium">{req.emirate} {t('quotes.corridor')}</div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-xs font-medium text-brand-text mb-1 capitalize">{req.item_type}</div>
@@ -200,48 +202,48 @@ export function QuotesView({
                         'bg-yellow-500/5 border-yellow-500/20 text-yellow-500'
                       }`}
                     >
-                      <option value="pending">Pending</option>
-                      <option value="contacted">Contacted</option>
-                      <option value="completed">Completed / Converted</option>
-                      <option value="lost">Lost / Never Converted</option>
+                      <option value="pending">{t('quotes.filters.pending')}</option>
+                      <option value="contacted">{t('quotes.filters.contacted')}</option>
+                      <option value="completed">{t('quotes.filters.completed')}</option>
+                      <option value="lost">{t('quotes.filters.lost')}</option>
                     </select>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       {req.status === 'completed' ? (
                         <span
-                          title="This quote has already been converted to a job"
+                          title={t('quotes.convertedTitle')}
                           className="px-3 py-1.5 bg-brand-neon/5 text-brand-neon/70 text-xs font-medium rounded-lg flex items-center gap-1.5"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          Converted
+                          {t('quotes.converted')}
                         </span>
                       ) : req.status === 'lost' ? (
                         <button 
                           onClick={() => onReopenQuote(req.id!)}
-                          title="Reopen Quote"
+                          title={t('quotes.reopenTitle')}
                           className="px-3 py-1.5 bg-blue-500/10 text-blue-500 text-xs font-medium rounded-lg flex items-center gap-1.5 hover:bg-blue-500 hover:text-white transition-all"
                         >
                           <Undo2 className="w-3.5 h-3.5" />
-                          Reopen
+                          {t('quotes.reopen')}
                         </button>
                       ) : (
                         <>
                           <button 
                             onClick={() => onConvertToJob(req)}
-                            title="Create Job"
+                            title={t('quotes.createJobTitle')}
                             className="px-3 py-1.5 bg-brand-neon/10 text-brand-neon text-xs font-medium rounded-lg flex items-center gap-1.5 hover:bg-brand-neon hover:text-brand-bg transition-all"
                           >
                             <Zap className="w-3.5 h-3.5" />
-                            Create Job
+                            {t('quotes.createJob')}
                           </button>
                           <button 
                             onClick={() => onMarkLost(req)}
-                            title="Mark as Lost"
+                            title={t('quotes.markLostTitle')}
                             className="px-3 py-1.5 bg-red-500/10 text-red-500 text-xs font-medium rounded-lg flex items-center gap-1.5 hover:bg-red-500 hover:text-white transition-all"
                           >
                             <XCircle className="w-3.5 h-3.5" />
-                            Mark Lost
+                            {t('quotes.markLost')}
                           </button>
                         </>
                       )}
@@ -250,14 +252,14 @@ export function QuotesView({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-8 h-8 bg-brand-input text-brand-muted rounded-lg flex items-center justify-center hover:bg-brand-surface hover:text-brand-text transition-all"
-                        title="WhatsApp"
+                        title={t('quotes.whatsapp')}
                       >
                         <MessageSquare className="w-3.5 h-3.5" />
                       </a>
                       <button 
                         onClick={() => onDelete(req.id!)}
                         className="w-8 h-8 bg-brand-input text-brand-muted rounded-lg flex items-center justify-center hover:bg-red-500/10 hover:text-red-500 transition-all"
-                        title="Delete"
+                        title={t('quotes.delete')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

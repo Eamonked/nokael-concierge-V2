@@ -10,6 +10,7 @@ import {
   Shield,
   FileText,
   Truck,
+  MapPin,
 } from 'lucide-react';
 import {
   type QuoteRequest,
@@ -21,6 +22,7 @@ import {
   clearStaleAuthSession,
 } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 
 import { StatCard } from './dashboard/components/StatCard';
@@ -28,6 +30,8 @@ import { PipelineView } from './dashboard/PipelineView';
 import { QuotesView } from './dashboard/QuotesView';
 import { BusinessView } from './dashboard/BusinessView';
 import { DriversView } from './dashboard/DriversView';
+// Leaflet is heavy and only the Map tab needs it, so load it on demand.
+const LiveMapView = React.lazy(() => import('./dashboard/LiveMapView').then(m => ({ default: m.LiveMapView })));
 import { TeamPanel } from './dashboard/TeamPanel';
 import { JobDetailModal } from './dashboard/modals/JobDetailModal';
 import { JobCreateModal } from './dashboard/modals/JobCreateModal';
@@ -36,7 +40,7 @@ import { DriverProfileModal } from './dashboard/modals/DriverProfileModal';
 import { BusinessDetailsModal } from './dashboard/modals/BusinessDetailsModal';
 import { useDashboardData } from './dashboard/useDashboardData';
 import { useDashboardActions } from './dashboard/useDashboardActions';
-import type { StatTone } from './dashboard/constants';
+import { TERMINAL_STATUSES, type StatTone } from './dashboard/constants';
 import {
   filterRequests,
   filterJobs,
@@ -45,10 +49,12 @@ import {
   getApprovedDrivers,
   getDriverPoolSummary,
   getDashboardStats,
+  type JobStatusFilter,
 } from './dashboard/selectors';
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = React.useState<'pipeline' | 'quotes' | 'drivers' | 'business' | 'team'>('pipeline');
+  const { t } = useTranslation('dashboard');
+  const [activeTab, setActiveTab] = React.useState<'pipeline' | 'map' | 'quotes' | 'drivers' | 'business' | 'team'>('pipeline');
   const navigate = useNavigate();
 
   const {
@@ -76,7 +82,7 @@ export default function Dashboard() {
 
   // ── View / filter state ──────────────────────────────────────────────────────
   const [jobViewMode, setJobViewMode] = React.useState<'kanban' | 'list'>('kanban');
-  const [jobStatusFilter, setJobStatusFilter] = React.useState<'all' | 'pending' | 'in_transit' | 'completed' | 'cancelled'>('all');
+  const [jobStatusFilter, setJobStatusFilter] = React.useState<JobStatusFilter>('all');
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filterStatus, setFilterStatus] = React.useState<string>('active');
   const [filterVehicle, setFilterVehicle] = React.useState<string>('all');
@@ -149,45 +155,48 @@ export default function Dashboard() {
 
   // ── Nav / tab meta ───────────────────────────────────────────────────────────
   const NAV_ITEMS: { id: typeof activeTab; label: string; icon: any; badge?: number }[] = [
-    { id: 'pipeline', label: 'Jobs',     icon: LayoutDashboard },
-    { id: 'quotes',   label: 'Quotes',   icon: FileText, badge: stats.pending },
-    { id: 'drivers',  label: 'Drivers',  icon: Truck,    badge: stats.pendingDrivers },
-    { id: 'business', label: 'Business', icon: Shield,   badge: stats.pendingBusiness },
-    { id: 'team',     label: 'Team',     icon: Users },
+    { id: 'pipeline', label: t('nav.jobs'),     icon: LayoutDashboard },
+    { id: 'map',      label: t('nav.map'),      icon: MapPin },
+    { id: 'quotes',   label: t('nav.quotes'),   icon: FileText, badge: stats.pending },
+    { id: 'drivers',  label: t('nav.drivers'),  icon: Truck,    badge: stats.pendingDrivers },
+    { id: 'business', label: t('nav.business'), icon: Shield,   badge: stats.pendingBusiness },
+    { id: 'team',     label: t('nav.team'),     icon: Users },
   ];
 
   const TAB_META: Record<typeof activeTab, { title: string; subtitle: string }> = {
-    pipeline: { title: 'Active Jobs',      subtitle: 'Track and manage deliveries' },
-    quotes:   { title: 'Quote Requests',   subtitle: 'Incoming delivery requests' },
-    drivers:  { title: 'Drivers',          subtitle: 'Manage driver applications' },
-    business: { title: 'Business Clients', subtitle: 'Corporate accounts' },
-    team:     { title: 'Team',             subtitle: 'Manage team access' },
+    pipeline: { title: t('tabMeta.pipeline.title'), subtitle: t('tabMeta.pipeline.subtitle') },
+    map:      { title: t('tabMeta.map.title'),      subtitle: t('tabMeta.map.subtitle') },
+    quotes:   { title: t('tabMeta.quotes.title'),   subtitle: t('tabMeta.quotes.subtitle') },
+    drivers:  { title: t('tabMeta.drivers.title'),  subtitle: t('tabMeta.drivers.subtitle') },
+    business: { title: t('tabMeta.business.title'), subtitle: t('tabMeta.business.subtitle') },
+    team:     { title: t('tabMeta.team.title'),     subtitle: t('tabMeta.team.subtitle') },
   };
 
-  const jobsActive    = jobs.filter(j => j.status !== 'completed').length;
+  const jobsActive    = jobs.filter(j => !TERMINAL_STATUSES.includes(j.status)).length;
   const jobsCompleted = jobs.filter(j => j.status === 'completed').length;
 
   const CONTEXT_STATS: Record<typeof activeTab, { title: string; value: number; icon: any; tone?: StatTone }[]> = {
     pipeline: [
-      { title: 'Active',    value: jobsActive,                                           icon: Zap,          tone: 'attention' },
-      { title: 'Pending',   value: jobs.filter(j => j.status === 'pending').length,      icon: Clock,        tone: 'pending'   },
-      { title: 'Completed', value: jobsCompleted,                                        icon: CheckCircle2, tone: 'complete'  },
+      { title: t('stats.active'),    value: jobsActive,                                           icon: Zap,          tone: 'attention' },
+      { title: t('stats.pending'),   value: jobs.filter(j => j.status === 'pending').length,      icon: Clock,        tone: 'pending'   },
+      { title: t('stats.completed'), value: jobsCompleted,                                        icon: CheckCircle2, tone: 'complete'  },
     ],
     quotes: [
-      { title: 'New',       value: stats.pending,   icon: Clock,         tone: 'attention' },
-      { title: 'Total',     value: stats.total,     icon: LayoutDashboard                 },
-      { title: 'Completed', value: stats.completed, icon: CheckCircle2,  tone: 'complete'  },
+      { title: t('stats.new'),       value: stats.pending,   icon: Clock,         tone: 'attention' },
+      { title: t('stats.total'),     value: stats.total,     icon: LayoutDashboard                 },
+      { title: t('stats.completed'), value: stats.completed, icon: CheckCircle2,  tone: 'complete'  },
     ],
     drivers: [
-      { title: 'Needs Review', value: stats.pendingDrivers,    icon: Clock,         tone: 'attention' },
-      { title: 'Total',        value: stats.drivers,           icon: Truck                            },
-      { title: 'Active',       value: approvedDrivers.length,  icon: CheckCircle2,  tone: 'complete'  },
+      { title: t('stats.needsReview'), value: stats.pendingDrivers,    icon: Clock,         tone: 'attention' },
+      { title: t('stats.total'),       value: stats.drivers,           icon: Truck                            },
+      { title: t('stats.active'),      value: approvedDrivers.length,  icon: CheckCircle2,  tone: 'complete'  },
     ],
     business: [
-      { title: 'New',   value: stats.pendingBusiness,                               icon: Clock,         tone: 'attention' },
-      { title: 'Total', value: stats.business,                                      icon: Shield                           },
-      { title: 'Active', value: businessInquiries.filter(b => b.status === 'active').length, icon: CheckCircle2, tone: 'complete' },
+      { title: t('stats.new'),   value: stats.pendingBusiness,                               icon: Clock,         tone: 'attention' },
+      { title: t('stats.total'), value: stats.business,                                      icon: Shield                           },
+      { title: t('stats.active'), value: businessInquiries.filter(b => b.status === 'active').length, icon: CheckCircle2, tone: 'complete' },
     ],
+    map: [],
     team: [],
   };
 
@@ -239,7 +248,7 @@ export default function Dashboard() {
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-brand-muted hover:text-brand-text hover:bg-brand-surface transition-colors"
           >
             <LogOut className="w-4 h-4" />
-            Logout
+            {t('nav.logout')}
           </button>
         </div>
       </aside>
@@ -290,10 +299,10 @@ export default function Dashboard() {
             <div className="mb-6 p-5 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500">
               <div className="flex items-center gap-3 mb-2">
                 <Shield className="w-5 h-5" />
-                <h3 className="text-sm font-semibold">System Error</h3>
+                <h3 className="text-sm font-semibold">{t('error.title')}</h3>
               </div>
               <p className="text-xs leading-relaxed opacity-80 mb-3">{error}</p>
-              <button onClick={fetchData} className="text-xs font-semibold underline">Retry Connection</button>
+              <button onClick={fetchData} className="text-xs font-semibold underline">{t('error.retry')}</button>
             </div>
           )}
 
@@ -318,6 +327,10 @@ export default function Dashboard() {
               onNewJob={() => setShowJobCreateModal(true)}
               onJobClick={setSelectedJob}
             />
+          ) : activeTab === 'map' ? (
+            <React.Suspense fallback={<div className="h-[420px] rounded-2xl border border-brand-border bg-brand-input animate-pulse" />}>
+              <LiveMapView jobs={jobs} onJobClick={setSelectedJob} />
+            </React.Suspense>
           ) : activeTab === 'quotes' ? (
             <QuotesView
               filteredRequests={filteredRequests}

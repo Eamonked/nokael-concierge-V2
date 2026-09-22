@@ -14,33 +14,42 @@ export default function TrackMilestoneTimeline({ activeJob, statusConfig }: Trac
   const { t } = useTranslation('tracking');
   const hasDriver = !!(activeJob.driver || activeJob.driver_id);
   const m = computeCustodyMilestones(activeJob);
-  const { ts1, ts2, ts3, ts4, ts5, tsCancel, isCancelled, step2Done, step3Done, step4Done, step5Done, lastCompletedStep } = m;
+  const { ts1, ts2, ts3, ts4, ts5, tsInterrupt, isReturned, isInterrupted, step2Done, step3Done, step4Done, step5Done, lastCompletedStep } = m;
 
-  const renderCancellationNode = () => (
-    <div className="relative p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-300">
-      <div className="absolute -left-[31px] sm:-left-[39px] top-4 w-4 h-4 rounded-full border-4 border-brand-bg bg-red-500 shadow-[0_0_14px_rgba(239,68,68,0.9)] flex items-center justify-center" />
-      <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
-          <p className="text-xs font-black uppercase tracking-wider text-red-400">
-            {t('milestones.cancelledNodeLabel')}
-          </p>
+  // Shared "journey stopped here" node for cancelled and returned jobs.
+  // The return reason is deliberately not shown: this page is public.
+  const renderInterruptionNode = () => {
+    const tone = isReturned
+      ? { box: 'bg-amber-500/10 border-amber-500/30 text-amber-300', dot: 'bg-amber-500 shadow-[0_0_14px_rgba(245,158,11,0.9)]', accent: 'text-amber-400', time: 'text-amber-400/80', body: 'text-amber-300/90' }
+      : { box: 'bg-red-500/10 border-red-500/30 text-red-300', dot: 'bg-red-500 shadow-[0_0_14px_rgba(239,68,68,0.9)]', accent: 'text-red-400', time: 'text-red-400/80', body: 'text-red-300/90' };
+    return (
+      <div className={cn("relative p-4 rounded-2xl border", tone.box)}>
+        <div className={cn("absolute -left-[31px] sm:-left-[39px] top-4 w-4 h-4 rounded-full border-4 border-brand-bg flex items-center justify-center", tone.dot)} />
+        <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className={cn("w-3.5 h-3.5", tone.accent)} />
+            <p className={cn("text-xs font-black uppercase tracking-wider", tone.accent)}>
+              {isReturned ? t('milestones.returnedNodeLabel') : t('milestones.cancelledNodeLabel')}
+            </p>
+          </div>
+          {tsInterrupt && (
+            <span className={cn("text-[11px] font-mono font-bold", tone.time)}>
+              {tsInterrupt.time} · {tsInterrupt.date}
+            </span>
+          )}
         </div>
-        {tsCancel && (
-          <span className="text-[11px] text-red-400/80 font-mono font-bold">
-            {tsCancel.time} · {tsCancel.date}
-          </span>
-        )}
+        <p className={cn("text-xs leading-relaxed font-medium", tone.body)}>
+          {isReturned ? (
+            t('milestones.returnedFallback')
+          ) : activeJob.cancellation_reason ? (
+            <span><b>{t('milestones.cancelledReason')}</b> {activeJob.cancellation_reason}</span>
+          ) : (
+            t('milestones.cancelledFallback')
+          )}
+        </p>
       </div>
-      <p className="text-xs text-red-300/90 leading-relaxed font-medium">
-        {activeJob.cancellation_reason ? (
-          <span><b>{t('milestones.cancelledReason')}</b> {activeJob.cancellation_reason}</span>
-        ) : (
-          t('milestones.cancelledFallback')
-        )}
-      </p>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-6 mb-8">
@@ -48,10 +57,10 @@ export default function TrackMilestoneTimeline({ activeJob, statusConfig }: Trac
         <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-brand-muted">
           {t('milestones.sectionLabel')}
         </h3>
-        {activeJob.status === 'cancelled' && (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-500/10 text-red-400 text-[10px] font-bold border border-red-500/30">
-            <AlertTriangle className="w-3 h-3 text-red-400" />
-            {t('milestones.interruptedBadge')}
+        {isInterrupted && (
+          <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border", isReturned ? "bg-amber-500/10 text-amber-400 border-amber-500/30" : "bg-red-500/10 text-red-400 border-red-500/30")}>
+            <AlertTriangle className={cn("w-3 h-3", isReturned ? "text-amber-400" : "text-red-400")} />
+            {isReturned ? t('milestones.returnedBadge') : t('milestones.interruptedBadge')}
           </span>
         )}
       </div>
@@ -61,7 +70,7 @@ export default function TrackMilestoneTimeline({ activeJob, statusConfig }: Trac
         <div className="relative">
           <div className={cn(
             "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all flex items-center justify-center",
-            !isCancelled && statusConfig.stepIndex === 0 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" : "bg-brand-neon shadow-[0_0_8px_rgba(57,255,20,0.4)]"
+            !isInterrupted && statusConfig.stepIndex === 0 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" : "bg-brand-neon shadow-[0_0_8px_rgba(57,255,20,0.4)]"
           )} />
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
@@ -76,21 +85,21 @@ export default function TrackMilestoneTimeline({ activeJob, statusConfig }: Trac
         </div>
 
         {/* If cancelled right after Step 1 */}
-        {isCancelled && lastCompletedStep === 1 && renderCancellationNode()}
+        {isInterrupted && lastCompletedStep === 1 && renderInterruptionNode()}
 
         {/* Step 2: Pilot Arrival & Sender Handover */}
-        <div className={cn("relative", isCancelled && !step2Done && "opacity-40")}>
+        <div className={cn("relative", isInterrupted && !step2Done && "opacity-40")}>
           <div className={cn(
             "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
             step2Done ? "bg-brand-neon shadow-[0_0_8px_rgba(57,255,20,0.4)]" :
-              !isCancelled && statusConfig.stepIndex === 1 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
+              !isInterrupted && statusConfig.stepIndex === 1 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
                 "bg-brand-input-border"
           )} />
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
               <span>{t('milestones.step2.label')}</span>
               {step2Done && <Check className="w-3 h-3 text-brand-neon" />}
-              {isCancelled && !step2Done && (
+              {isInterrupted && !step2Done && (
                 <span className="text-[9px] px-1.5 py-0.2 bg-red-500/10 text-red-400 border border-red-500/20 rounded font-mono">{t('milestones.aborted')}</span>
               )}
             </p>
@@ -104,21 +113,21 @@ export default function TrackMilestoneTimeline({ activeJob, statusConfig }: Trac
         </div>
 
         {/* If cancelled right after Step 2 */}
-        {isCancelled && lastCompletedStep === 2 && renderCancellationNode()}
+        {isInterrupted && lastCompletedStep === 2 && renderInterruptionNode()}
 
         {/* Step 3: Picked Up & In Dedicated Transit */}
-        <div className={cn("relative", isCancelled && !step3Done && "opacity-40")}>
+        <div className={cn("relative", isInterrupted && !step3Done && "opacity-40")}>
           <div className={cn(
             "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
             step3Done ? "bg-brand-neon shadow-[0_0_8px_rgba(57,255,20,0.4)]" :
-              !isCancelled && statusConfig.stepIndex === 2 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
+              !isInterrupted && statusConfig.stepIndex === 2 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
                 "bg-brand-input-border"
           )} />
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
               <span>{t('milestones.step3.label')}</span>
               {step3Done && <Check className="w-3 h-3 text-brand-neon" />}
-              {isCancelled && !step3Done && (
+              {isInterrupted && !step3Done && (
                 <span className="text-[9px] px-1.5 py-0.2 bg-red-500/10 text-red-400 border border-red-500/20 rounded font-mono">{t('milestones.aborted')}</span>
               )}
             </p>
@@ -130,21 +139,21 @@ export default function TrackMilestoneTimeline({ activeJob, statusConfig }: Trac
         </div>
 
         {/* If cancelled right after Step 3 */}
-        {isCancelled && lastCompletedStep === 3 && renderCancellationNode()}
+        {isInterrupted && lastCompletedStep === 3 && renderInterruptionNode()}
 
         {/* Step 4: Destination Arrival */}
-        <div className={cn("relative", isCancelled && !step4Done && "opacity-40")}>
+        <div className={cn("relative", isInterrupted && !step4Done && "opacity-40")}>
           <div className={cn(
             "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
             step4Done ? "bg-brand-neon shadow-[0_0_8px_rgba(57,255,20,0.4)]" :
-              !isCancelled && statusConfig.stepIndex === 3 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
+              !isInterrupted && statusConfig.stepIndex === 3 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
                 "bg-brand-input-border"
           )} />
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
               <span>{t('milestones.step4.label')}</span>
               {step4Done && <Check className="w-3 h-3 text-brand-neon" />}
-              {isCancelled && !step4Done && (
+              {isInterrupted && !step4Done && (
                 <span className="text-[9px] px-1.5 py-0.2 bg-red-500/10 text-red-400 border border-red-500/20 rounded font-mono">{t('milestones.aborted')}</span>
               )}
             </p>
@@ -156,21 +165,21 @@ export default function TrackMilestoneTimeline({ activeJob, statusConfig }: Trac
         </div>
 
         {/* If cancelled right after Step 4 */}
-        {isCancelled && lastCompletedStep === 4 && renderCancellationNode()}
+        {isInterrupted && lastCompletedStep === 4 && renderInterruptionNode()}
 
         {/* Step 5: Final Delivery Handover */}
-        <div className={cn("relative", isCancelled && !step5Done && "opacity-40")}>
+        <div className={cn("relative", isInterrupted && !step5Done && "opacity-40")}>
           <div className={cn(
             "absolute -left-[31px] sm:-left-[39px] top-0 w-4 h-4 rounded-full border-4 border-brand-bg transition-all",
             step5Done ? "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]" :
-              !isCancelled && statusConfig.stepIndex === 4 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
+              !isInterrupted && statusConfig.stepIndex === 4 ? "bg-brand-neon shadow-[0_0_12px_rgba(57,255,20,0.8)]" :
                 "bg-brand-input-border"
           )} />
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-xs font-bold uppercase tracking-wider text-brand-text flex items-center gap-1.5">
               <span>{t('milestones.step5.label')}</span>
               {step5Done && <Check className="w-3 h-3 text-emerald-400" />}
-              {isCancelled && !step5Done && (
+              {isInterrupted && !step5Done && (
                 <span className="text-[9px] px-1.5 py-0.2 bg-red-500/10 text-red-400 border border-red-500/20 rounded font-mono">{t('milestones.unfulfilled')}</span>
               )}
             </p>
@@ -179,8 +188,8 @@ export default function TrackMilestoneTimeline({ activeJob, statusConfig }: Trac
           <p className="text-xs text-brand-muted mt-0.5">
             {step5Done
               ? t('milestones.step5.descDone')
-              : isCancelled
-                ? t('milestones.step5.descCancelled')
+              : isInterrupted
+                ? (isReturned ? t('milestones.step5.descReturned') : t('milestones.step5.descCancelled'))
                 : t('milestones.step5.descPending')}
           </p>
         </div>

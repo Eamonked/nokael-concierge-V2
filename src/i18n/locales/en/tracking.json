@@ -75,6 +75,11 @@
       "badge": "Cancelled",
       "subtext": "This dispatch operation was cancelled before final delivery. Please contact our operations desk for re-dispatch or parcel recovery."
     },
+    "returned": {
+      "title": "Package Returning to Sender",
+      "badge": "Returned",
+      "subtext": "We couldn't complete this delivery and the package is being returned to the sender. Please contact our operations desk for re-dispatch options."
+    },
     "default": {
       "title": "Dispatch Processing",
       "badge": "Processing",
@@ -102,6 +107,9 @@
     "cancelledNodeLabel": "Mission Interrupted / Dispatch Cancelled",
     "cancelledReason": "Reason:",
     "cancelledFallback": "Dispatch operations terminated before final handover completion.",
+    "returnedBadge": "Returned to Sender",
+    "returnedNodeLabel": "Delivery Not Completed / Returned to Sender",
+    "returnedFallback": "The package could not be delivered and is being returned to the sender.",
     "aborted": "Aborted",
     "unfulfilled": "Unfulfilled",
     "step1": {
@@ -126,6 +134,7 @@
       "label": "5. Delivered & Handover Confirmed",
       "descDone": "Final receipt validated. Complete Chain of Custody digitally signed.",
       "descCancelled": "Delivery handover was not completed due to cancellation.",
+      "descReturned": "Delivery handover was not completed; the package is being returned to the sender.",
       "descPending": "Final receipt validated. Complete Chain of Custody digitally signed."
     }
   },
@@ -141,6 +150,7 @@
     "badge": {
       "awaiting": "Awaiting Allocation",
       "cancelled": "Mission Cancelled",
+      "returned": "Returned to Sender",
       "verified": "Custody Verified",
       "inTransit": "In Corridor Transit",
       "atDestination": "At Destination",
@@ -153,6 +163,8 @@
       "cancelledTitle": "Nokael Operations Control",
       "cancelledSubtitleFallback": "Mission Cancelled · Operations Terminated",
       "cancelledSubtitlePrefix": "Terminated:",
+      "returnedTitle": "Nokael Operations Control",
+      "returnedSubtitle": "Returned to Sender · Delivery Not Completed",
       "completedTitle": "Nokael Executive Pilot",
       "completedSubtitleFallback": "Dedicated Fleet · Delivered Successfully",
       "completedSubtitleSuffix": "· Dedicated Delivery Verified",
@@ -168,14 +180,17 @@
       "assignedSubtitleSuffix": "· En Route to Pickup"
     },
     "terminatedOn": "Terminated on {{date}}",
+    "returnedOn": "Returned on {{date}}",
     "custody": {
       "halted": "Custody Halted",
+      "returning": "Returning to Sender",
       "handoverSigned": "Handover Signed",
       "activeCustody": "Active Custody",
       "insuredTransit": "Insured Transit"
     },
     "action": {
       "cancelled": "Inquire Regarding Cancellation",
+      "returned": "Inquire About Return",
       "completed": "Contact Dispatch Desk",
       "default": "Chat with Live Dispatch Desk"
     }

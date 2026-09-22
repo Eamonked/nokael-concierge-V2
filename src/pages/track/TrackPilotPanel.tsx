@@ -1,6 +1,7 @@
 import {
   Zap,
   XCircle,
+  Undo2,
   ShieldCheck,
   Truck,
   MapPin,
@@ -25,6 +26,7 @@ export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackP
   const { t } = useTranslation('tracking');
   const hasDriver = !!(activeJob.driver || activeJob.driver_id);
   const isCancelled = activeJob.status === 'cancelled';
+  const isReturned = activeJob.status === 'returned';
   const isCompleted = activeJob.status === 'completed';
   const isInTransit = activeJob.status === 'driver_pickup';
   const isAtPickup = activeJob.status === 'client_pickup';
@@ -39,6 +41,8 @@ export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackP
   };
   if (isCancelled) {
     badge = { text: t('pilotPanel.badge.cancelled'), bg: 'bg-red-500/10', textCol: 'text-red-400', border: 'border-red-500/30' };
+  } else if (isReturned) {
+    badge = { text: t('pilotPanel.badge.returned'), bg: 'bg-amber-500/10', textCol: 'text-amber-400', border: 'border-amber-500/30' };
   } else if (isCompleted) {
     badge = { text: t('pilotPanel.badge.verified'), bg: 'bg-emerald-500/10', textCol: 'text-emerald-400', border: 'border-emerald-500/30' };
   } else if (isInTransit) {
@@ -69,6 +73,12 @@ export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackP
       : t('pilotPanel.profile.cancelledSubtitleFallback');
     iconElement = <XCircle className="w-6 h-6" />;
     iconBg = 'bg-red-500/10 border-red-500/30 text-red-400';
+  } else if (isReturned) {
+    title = t('pilotPanel.profile.returnedTitle');
+    // Return reason intentionally not surfaced on this public page.
+    subtitle = t('pilotPanel.profile.returnedSubtitle');
+    iconElement = <Undo2 className="w-6 h-6" />;
+    iconBg = 'bg-amber-500/10 border-amber-500/30 text-amber-400';
   } else if (isCompleted) {
     title = t('pilotPanel.profile.completedTitle');
     subtitle = activeJob.driver?.vehicle_type
@@ -109,6 +119,8 @@ export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackP
   let contextualWaMsg = `Hi Nokael Dispatch, I am tracking manifest ${currentTrackingId}${activeJob ? ` (${activeJob.pickup_emirate} ➔ ${activeJob.delivery_emirate})` : ''} and would like a live status update.`;
   if (isCancelled) {
     contextualWaMsg = `Hi Nokael Dispatch, I am inquiring regarding the cancelled manifest ${activeJob.job_ref || currentTrackingId} (${activeJob.pickup_emirate} to ${activeJob.delivery_emirate}). Reason cited: "${activeJob.cancellation_reason || 'Manual Cancellation'}". Please advise on parcel recovery or re-dispatch status.`;
+  } else if (isReturned) {
+    contextualWaMsg = `Hi Nokael Dispatch, I am inquiring regarding manifest ${activeJob.job_ref || currentTrackingId} (${activeJob.pickup_emirate} to ${activeJob.delivery_emirate}), which shows as returned to sender. Please advise on re-dispatch or recovery options.`;
   } else if (isCompleted) {
     contextualWaMsg = `Hi Nokael Dispatch, I am following up regarding completed manifest ${activeJob.job_ref || currentTrackingId} (${activeJob.pickup_emirate} to ${activeJob.delivery_emirate}).`;
   } else if (isInTransit) {
@@ -121,7 +133,7 @@ export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackP
   return (
     <div className={cn(
       "dispatch-card border bg-brand-surface/60 space-y-4 transition-all",
-      isCancelled ? "border-red-500/30 bg-red-950/10" : isCompleted ? "border-emerald-500/30 bg-emerald-950/10" : "border-brand-border"
+      isCancelled ? "border-red-500/30 bg-red-950/10" : isReturned ? "border-amber-500/30 bg-amber-950/10" : isCompleted ? "border-emerald-500/30 bg-emerald-950/10" : "border-brand-border"
     )}>
       {/* Header with Dynamic Badge */}
       <div className="flex items-center justify-between">
@@ -150,6 +162,11 @@ export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackP
               {t('pilotPanel.terminatedOn', { date: format(new Date(activeJob.cancelled_at), 'dd MMM yyyy, hh:mm a') })}
             </p>
           )}
+          {isReturned && (activeJob.returned_at || activeJob.updated_at) && (
+            <p className="text-[10px] text-amber-400/80 font-mono mt-0.5">
+              {t('pilotPanel.returnedOn', { date: format(new Date((activeJob.returned_at || activeJob.updated_at)!), 'dd MMM yyyy, hh:mm a') })}
+            </p>
+          )}
         </div>
       </div>
 
@@ -163,6 +180,10 @@ export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackP
           {isCancelled ? (
             <span className="text-[10px] text-red-400 uppercase tracking-wider font-bold">
               {t('pilotPanel.custody.halted')}
+            </span>
+          ) : isReturned ? (
+            <span className="text-[10px] text-amber-400 uppercase tracking-wider font-bold">
+              {t('pilotPanel.custody.returning')}
             </span>
           ) : isCompleted ? (
             <span className="text-[10px] text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1">
@@ -200,6 +221,8 @@ export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackP
             "w-full py-3 text-xs uppercase tracking-wider font-bold rounded-xl flex items-center justify-center gap-2 transition-all",
             isCancelled
               ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30"
+              : isReturned
+                ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30"
               : isCompleted
                 ? "bg-brand-input hover:bg-brand-border/60 text-brand-text border border-brand-input-border"
                 : "btn-primary"
@@ -209,6 +232,8 @@ export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackP
           <span>
             {isCancelled
               ? t('pilotPanel.action.cancelled')
+              : isReturned
+                ? t('pilotPanel.action.returned')
               : isCompleted
                 ? t('pilotPanel.action.completed')
                 : t('pilotPanel.action.default')}

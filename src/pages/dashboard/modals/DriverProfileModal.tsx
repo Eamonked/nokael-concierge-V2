@@ -16,6 +16,7 @@ import {
   Trash2,
   Loader2,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { setDriverPin, type Driver, type DriverDocument } from '../../../lib/supabase';
 import { cn } from '../../../lib/utils';
 
@@ -26,6 +27,7 @@ interface DriverProfileModalProps {
 }
 
 export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: DriverProfileModalProps) {
+  const { t } = useTranslation('dashboard');
   const [isUpdating, setIsUpdating] = React.useState(false);
   const [pinDraft, setPinDraft] = React.useState('');
   const [copiedDriverLink, setCopiedDriverLink] = React.useState(false);
@@ -43,9 +45,9 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
   const statusUrl = `${cocDomain}/driver/${driver.id}/status`;
 
   const statusMap: Record<string, { label: string; dot: string; text: string }> = {
-    available: { label: 'Available now', dot: 'bg-emerald-400', text: 'text-emerald-400' },
-    on_job:    { label: 'On a job',       dot: 'bg-amber-400',  text: 'text-amber-400'  },
-    offline:   { label: 'Offline',        dot: 'bg-brand-muted', text: 'text-brand-muted' },
+    available: { label: t('driverProfileModal.dispatchStatus.availableNow'), dot: 'bg-emerald-400', text: 'text-emerald-400' },
+    on_job:    { label: t('driverProfileModal.dispatchStatus.onJob'),        dot: 'bg-amber-400',  text: 'text-amber-400'  },
+    offline:   { label: t('driverProfileModal.dispatchStatus.offline'),      dot: 'bg-brand-muted', text: 'text-brand-muted' },
   };
   const dispatchStatus = statusMap[driver.status || 'offline'] || statusMap.offline;
 
@@ -72,7 +74,7 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
               <h2 className="text-2xl font-display font-medium tracking-tighter mb-1">{driver.full_name}</h2>
               <div className="flex items-center gap-3">
                 <p className="text-xs text-brand-muted uppercase tracking-wide font-medium">
-                  Driver ID: {driver.id?.substring(0, 8)}
+                  {t('driverProfileModal.driverIdLabel')}: {driver.id?.substring(0, 8)}
                 </p>
                 <div className={cn(
                   "px-2 py-0.5 rounded text-xs font-medium border",
@@ -82,7 +84,9 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
                     ? "bg-red-500/10 text-red-500 border-red-500/20"
                     : "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
                 )}>
-                  {driver.onboarding_status || 'pending'}
+                  {t(`driverProfileModal.onboardingStatus.${driver.onboarding_status || 'pending'}`, {
+                    defaultValue: driver.onboarding_status || 'pending',
+                  })}
                 </div>
               </div>
             </div>
@@ -102,7 +106,7 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
             {/* Contact */}
             <div className="space-y-6">
               <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted border-b border-brand-border pb-2">
-                Contact Details
+                {t('driverProfileModal.contactDetails')}
               </h3>
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
@@ -123,7 +127,7 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
             {/* Vehicle */}
             <div className="space-y-6">
               <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted border-b border-brand-border pb-2">
-                Vehicle & Logistics
+                {t('driverProfileModal.vehicleLogistics')}
               </h3>
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
@@ -132,7 +136,7 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="p-2 bg-brand-input rounded-lg"><Navigation className="w-4 h-4 text-brand-neon" /></div>
-                  <span className="text-sm">Inter-Emirate: {driver.inter_emirate ? 'Yes' : 'No'}</span>
+                  <span className="text-sm">{t('driverProfileModal.interEmirate')}: {driver.inter_emirate ? t('driverProfileModal.yes') : t('driverProfileModal.no')}</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="p-2 bg-brand-input rounded-lg"><Clock className="w-4 h-4 text-brand-neon" /></div>
@@ -144,28 +148,28 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
             {/* Internal Management */}
             <div className="space-y-6">
               <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted border-b border-brand-border pb-2">
-                Internal Management
+                {t('driverProfileModal.internalManagement')}
               </h3>
               <div className="space-y-4">
 
                 {/* Tier */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-[11px] font-medium text-brand-muted">Tiering Strategy</label>
+                  <label className="text-[11px] font-medium text-brand-muted">{t('driverProfileModal.tieringStrategy')}</label>
                   <select
                     value={driver.tier || 'D'}
                     onChange={(e) => handleUpdate({ tier: e.target.value as any })}
                     className="w-full bg-brand-input border border-brand-input-border rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-brand-neon/50 transition-all font-mono"
                   >
-                    <option value="A">Elite Rank (A)</option>
-                    <option value="B">Priority Rank (B)</option>
-                    <option value="C">Standard Rank (C)</option>
-                    <option value="D">New Arrival (D)</option>
+                    <option value="A">{t('driverProfileModal.tiers.elite')}</option>
+                    <option value="B">{t('driverProfileModal.tiers.priority')}</option>
+                    <option value="C">{t('driverProfileModal.tiers.standard')}</option>
+                    <option value="D">{t('driverProfileModal.tiers.newArrival')}</option>
                   </select>
                 </div>
 
                 {/* Reliability score */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-[11px] font-medium text-brand-muted">Reliability Score (1-10)</label>
+                  <label className="text-[11px] font-medium text-brand-muted">{t('driverProfileModal.reliabilityScore')}</label>
                   <div className="flex items-center gap-3">
                     <input
                       type="number"
@@ -189,29 +193,28 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
 
                 {/* Dispatch pool status */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-[11px] font-medium text-brand-muted">Dispatch Pool Status</label>
+                  <label className="text-[11px] font-medium text-brand-muted">{t('driverProfileModal.dispatchPoolStatus')}</label>
                   <div className="flex items-center gap-2 px-3 py-2 bg-brand-input border border-brand-input-border rounded-lg w-fit">
                     <span className={`w-2 h-2 rounded-full ${dispatchStatus.dot}`} />
                     <span className={`text-xs font-medium ${dispatchStatus.text}`}>{dispatchStatus.label}</span>
                   </div>
                   <p className="text-[10px] text-brand-muted">
-                    Set by the driver in their app, or automatically when a job is assigned or completed.
+                    {t('driverProfileModal.dispatchPoolHint')}
                   </p>
                 </div>
 
                 {/* PIN management */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-[11px] font-medium text-brand-muted">Driver App PIN</label>
+                  <label className="text-[11px] font-medium text-brand-muted">{t('driverProfileModal.driverAppPin')}</label>
                   <p className="text-[10px] text-brand-muted mb-1">
-                    Set a 4-6 digit PIN so this driver can log into the status app and toggle their own
-                    availability. Share it with them over WhatsApp along with their status link.
+                    {t('driverProfileModal.pinHint')}
                   </p>
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
                       inputMode="numeric"
                       maxLength={6}
-                      placeholder="e.g. 4821"
+                      placeholder={t('driverProfileModal.pinPlaceholder')}
                       value={pinDraft}
                       onChange={(e) => setPinDraft(e.target.value.replace(/\D/g, ''))}
                       className="w-28 bg-brand-input border border-brand-input-border rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-brand-neon transition-all font-mono"
@@ -223,14 +226,14 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
                         try {
                           await setDriverPin(driver.id!, pinDraft);
                           setPinDraft('');
-                          alert(`PIN set. Send ${driver.full_name} their status link + this PIN over WhatsApp.`);
+                          alert(t('driverProfileModal.pinSetAlert', { name: driver.full_name }));
                         } catch (err: any) {
-                          alert(`Failed to set PIN: ${err.message || err}`);
+                          alert(t('driverProfileModal.pinFailedAlert', { error: err.message || String(err) }));
                         }
                       }}
                       className="px-4 py-2 bg-brand-neon/10 border border-brand-neon/20 text-brand-neon rounded-lg text-[11px] font-medium uppercase tracking-wide hover:bg-brand-neon/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      Set PIN
+                      {t('driverProfileModal.setPin')}
                     </button>
                   </div>
                   <div className="flex items-center gap-2 mt-1">
@@ -244,7 +247,7 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
                       className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-input hover:bg-brand-border rounded-lg border border-brand-border text-xs font-semibold text-brand-neon tracking-wider uppercase transition-all hover:scale-105"
                     >
                       <Copy className="w-3 h-3" />
-                      {copiedDriverLink ? 'Copied' : 'Copy status link'}
+                      {copiedDriverLink ? t('driverProfileModal.copied') : t('driverProfileModal.copyStatusLink')}
                     </button>
                     <a
                       href={statusUrl}
@@ -253,7 +256,7 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
                       className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-input hover:bg-brand-border rounded-lg border border-brand-border text-xs font-semibold text-brand-muted hover:text-brand-text tracking-wider uppercase transition-all hover:scale-105"
                     >
                       <ExternalLink className="w-3 h-3" />
-                      Open link
+                      {t('driverProfileModal.openLink')}
                     </a>
                   </div>
                 </div>
@@ -265,7 +268,7 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
           {/* Documents */}
           <div className="mb-8">
             <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted border-b border-brand-border pb-4 mb-6">
-              Uploaded Documents (Google Drive)
+              {t('driverProfileModal.uploadedDocuments')}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {driver.documents?.map((doc) => (
@@ -281,7 +284,7 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
                       <div className="text-xs font-medium text-brand-text mb-1">
                         {doc.document_type.replace('_', ' ')}
                       </div>
-                      <div className="text-[11px] text-brand-muted">Status: {doc.verification_status}</div>
+                      <div className="text-[11px] text-brand-muted">{t('driverProfileModal.docStatusLabel')}: {doc.verification_status}</div>
                     </div>
                   </div>
                   <a
@@ -297,7 +300,7 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
               {(!driver.documents || driver.documents.length === 0) && (
                 <div className="col-span-2 p-8 bg-brand-input rounded-3xl border border-dashed border-brand-border text-center opacity-50">
                   <FileText className="w-10 h-10 text-brand-muted mx-auto mb-4" />
-                  <p className="text-xs font-medium text-brand-muted">No documents found</p>
+                  <p className="text-xs font-medium text-brand-muted">{t('driverProfileModal.noDocuments')}</p>
                 </div>
               )}
             </div>
@@ -305,10 +308,10 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
 
           {/* Internal notes */}
           <div>
-            <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted mb-6">Internal Audit Notes</h3>
+            <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted mb-6">{t('driverProfileModal.internalAuditNotes')}</h3>
             <textarea
               className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-6 text-sm outline-none focus:border-brand-neon/50 transition-all min-h-[150px] font-mono text-[11px]"
-              placeholder="Record verification results or history..."
+              placeholder={t('driverProfileModal.notesPlaceholder')}
               value={driver.internal_notes || ''}
               onChange={(e) => handleUpdate({ internal_notes: e.target.value })}
             />
@@ -327,7 +330,7 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
             ) : (
               <CheckCircle2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
             )}
-            {driver.onboarding_status === 'approved' ? 'Update & Re-Approve' : 'Approve Driver'}
+            {driver.onboarding_status === 'approved' ? t('driverProfileModal.updateReapprove') : t('driverProfileModal.approveDriver')}
           </button>
           <button
             disabled={isUpdating}
@@ -339,7 +342,7 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
             ) : (
               <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
             )}
-            Reject Application
+            {t('driverProfileModal.rejectApplication')}
           </button>
         </div>
       </motion.div>

@@ -1,11 +1,13 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { AlertTriangle, MapPin, ChevronRight, Navigation, User } from 'lucide-react';
+import { AlertTriangle, MapPin, ChevronRight, Navigation, User, Undo2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import type { Job, JobStatus } from '../../../lib/supabase';
 
 export const KanbanColumn = ({ title, status, jobs, onJobClick }: { title: string, status: JobStatus | 'in_transit', jobs: Job[], onJobClick: (job: Job) => void }) => {
+  const { t } = useTranslation('dashboard');
   return (
     <div className="flex flex-col h-full bg-brand-surface/30 rounded-3xl border border-brand-border/50 overflow-hidden">
       <div className="p-5 border-b border-brand-border flex justify-between items-center bg-brand-surface/50">
@@ -15,13 +17,14 @@ export const KanbanColumn = ({ title, status, jobs, onJobClick }: { title: strin
             status === 'pending' ? "bg-yellow-500" :
             status === 'client_pickup' || status === 'driver_pickup' ? "bg-blue-500" :
             status === 'driver_delivery' ? "bg-purple-500" : 
-            status === 'cancelled' ? "bg-red-500" : "bg-brand-neon"
+            status === 'cancelled' ? "bg-red-500" :
+            status === 'returned' ? "bg-amber-500" : "bg-brand-neon"
           )} />
           <h3 className="text-xs font-semibold uppercase tracking-wider text-brand-text">{title}</h3>
         </div>
         <span className={cn(
           "text-xs font-mono font-semibold px-2 py-0.5 rounded border",
-          status === 'cancelled' && jobs.length > 0 ? "bg-red-500/10 text-red-400 border-red-500/30" : "bg-brand-bg text-brand-muted border-brand-border"
+          status === 'cancelled' && jobs.length > 0 ? "bg-red-500/10 text-red-400 border-red-500/30" : status === 'returned' && jobs.length > 0 ? "bg-amber-500/10 text-amber-400 border-amber-500/30" : "bg-brand-bg text-brand-muted border-brand-border"
         )}>{jobs.length}</span>
       </div>
       <div className="p-3.5 flex-grow overflow-y-auto no-scrollbar space-y-3">
@@ -34,7 +37,9 @@ export const KanbanColumn = ({ title, status, jobs, onJobClick }: { title: strin
               "dispatch-card p-4 cursor-pointer transition-all group relative",
               job.status === 'cancelled' 
                 ? "border-red-500/30 hover:border-red-500/60 bg-red-950/10" 
-                : "hover:border-brand-neon/50"
+                : job.status === 'returned'
+                  ? "border-amber-500/30 hover:border-amber-500/60 bg-amber-950/10"
+                  : "hover:border-brand-neon/50"
             )}
           >
             <div className="flex justify-between items-start mb-3">
@@ -42,7 +47,9 @@ export const KanbanColumn = ({ title, status, jobs, onJobClick }: { title: strin
                 "text-[11px] font-semibold font-mono px-2 py-0.5 rounded",
                 job.status === 'cancelled' 
                   ? "text-red-400 bg-red-500/10" 
-                  : "text-brand-neon bg-brand-neon/10"
+                  : job.status === 'returned'
+                    ? "text-amber-400 bg-amber-500/10"
+                    : "text-brand-neon bg-brand-neon/10"
               )}>
                 #{job.job_ref?.toString().padStart(4, '0')}
               </span>
@@ -52,7 +59,14 @@ export const KanbanColumn = ({ title, status, jobs, onJobClick }: { title: strin
             {job.status === 'cancelled' && (
               <div className="mb-3 px-2.5 py-1 bg-red-500/15 border border-red-500/30 rounded-lg flex items-center gap-1.5 text-red-400 text-xs font-medium">
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{job.cancellation_reason || 'Failed / Cancelled'}</span>
+                <span className="truncate">{job.cancellation_reason || t('kanban.failedCancelled')}</span>
+              </div>
+            )}
+
+            {job.status === 'returned' && (
+              <div className="mb-3 px-2.5 py-1 bg-amber-500/15 border border-amber-500/30 rounded-lg flex items-center gap-1.5 text-amber-400 text-xs font-medium">
+                <Undo2 className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{job.return_reason || t('kanban.returnedFallback')}</span>
               </div>
             )}
 
@@ -71,10 +85,10 @@ export const KanbanColumn = ({ title, status, jobs, onJobClick }: { title: strin
             {/* COC Mini Progress Bar */}
             <div className="flex items-center gap-1 my-3 pt-2 border-t border-brand-border/60">
               {[
-                { key: 'client_pickup_at', label: 'Sender' },
-                { key: 'driver_pickup_at', label: 'Driver' },
-                { key: 'driver_delivery_at', label: 'Arrive' },
-                { key: 'client_delivery_at', label: 'Signed' }
+                { key: 'client_pickup_at', label: t('kanban.custody.sender') },
+                { key: 'driver_pickup_at', label: t('kanban.custody.driver') },
+                { key: 'driver_delivery_at', label: t('kanban.custody.arrive') },
+                { key: 'client_delivery_at', label: t('kanban.custody.signed') }
               ].map((step, idx) => (
                 <div 
                   key={step.key} 
@@ -107,7 +121,7 @@ export const KanbanColumn = ({ title, status, jobs, onJobClick }: { title: strin
         ))}
         {jobs.length === 0 && (
           <div className="h-32 flex items-center justify-center border-2 border-dashed border-brand-border rounded-2xl opacity-30">
-            <span className="text-xs font-medium">Clear</span>
+            <span className="text-xs font-medium">{t('kanban.clear')}</span>
           </div>
         )}
       </div>

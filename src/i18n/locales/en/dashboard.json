@@ -1,0 +1,473 @@
+{
+  "nav": {
+    "jobs": "Jobs",
+    "map": "Map",
+    "quotes": "Quotes",
+    "drivers": "Drivers",
+    "business": "Business",
+    "team": "Team",
+    "logout": "Logout"
+  },
+  "tabMeta": {
+    "pipeline": { "title": "Active Jobs", "subtitle": "Track and manage deliveries" },
+    "map": { "title": "Live Map", "subtitle": "Where drivers are right now" },
+    "quotes": { "title": "Quote Requests", "subtitle": "Incoming delivery requests" },
+    "drivers": { "title": "Drivers", "subtitle": "Manage driver applications" },
+    "business": { "title": "Business Clients", "subtitle": "Corporate accounts" },
+    "team": { "title": "Team", "subtitle": "Manage team access" }
+  },
+  "stats": {
+    "active": "Active",
+    "pending": "Pending",
+    "completed": "Completed",
+    "new": "New",
+    "total": "Total",
+    "needsReview": "Needs Review"
+  },
+  "error": {
+    "title": "System Error",
+    "retry": "Retry Connection"
+  },
+  "stageConfig": {
+    "pending": { "label": "Waiting for Driver", "short": "Pending", "desc": "Job created, need to assign a driver for pickup." },
+    "client_pickup": { "label": "Driver Collecting from Sender", "short": "Pickup", "desc": "Driver is picking up the package from sender." },
+    "driver_pickup": { "label": "Driver Has Package - In Transit", "short": "In Transit", "desc": "Driver confirmed they have the package and are delivering it." },
+    "driver_delivery": { "label": "Driver Arrived at Recipient", "short": "Arrived", "desc": "Driver is at the delivery location with the package." },
+    "completed": { "label": "Delivered Successfully \u2713", "short": "Completed", "desc": "Recipient confirmed they received the package. Job complete!" },
+    "cancelled": { "label": "Cancelled", "short": "Cancelled", "desc": "Job could not be completed." },
+    "returned": { "label": "Returned to Sender", "short": "Returned", "desc": "Driver could not deliver. The package is being returned to the sender." }
+  },
+  "failureReasons": {
+    "clientUnavailable": "Client / Sender unavailable (No-Show)",
+    "recipientRefused": "Recipient refused to accept package",
+    "securityDenied": "Building / Gate security denied entry",
+    "badAddress": "Incorrect / Non-existent address",
+    "damagedOrProhibited": "Damaged or prohibited item",
+    "clientCancelled": "Client cancelled shipment request",
+    "vehicleBreakdown": "Pilot / Vehicle mechanical breakdown",
+    "roadClosure": "Corridor weather / road closure"
+  },
+  "roles": {
+    "owner": "Owner",
+    "admin": "Admin",
+    "operator": "Operator",
+    "viewer": "Viewer"
+  },
+  "kanban": {
+    "clear": "Clear",
+    "failedCancelled": "Failed / Cancelled",
+    "returnedFallback": "Returned to sender",
+    "custody": {
+      "sender": "Sender",
+      "driver": "Driver",
+      "arrive": "Arrive",
+      "signed": "Signed"
+    }
+  },
+  "pipeline": {
+    "board": "Board",
+    "list": "List",
+    "filters": { "all": "All", "pending": "Pending", "inTransit": "In Transit", "completed": "Completed", "returned": "Returned", "cancelled": "Cancelled" },
+    "newJob": "New Job",
+    "columns": { "pending": "Pending", "inTransit": "In Transit", "completed": "Completed", "returned": "Returned", "cancelled": "Cancelled" },
+    "table": { "job": "Job", "corridor": "Corridor", "driver": "Driver", "custody": "Custody", "actions": "Actions", "unassigned": "Unassigned", "view": "View" },
+    "custodySteps": { "senderHandover": "Sender handover", "driverPickup": "Driver pickup", "inbound": "Inbound", "delivered": "Delivered" }
+  },
+  "quotes": {
+    "chart": { "title": "Weekly volume", "subtitle": "Corridor throughput trend" },
+    "title": "Quote requests",
+    "searchPlaceholder": "Search quotes...",
+    "filters": {
+      "active": "Active (Pending + Contacted)",
+      "all": "All status",
+      "pending": "Pending",
+      "contacted": "Contacted",
+      "completed": "Completed / Converted",
+      "lost": "Lost / Never Converted"
+    },
+    "table": { "customer": "Customer", "route": "Route", "details": "Details", "status": "Status", "actions": "Actions" },
+    "corp": "Corp",
+    "id": "ID",
+    "lostReasonLabel": "Lost Reason:",
+    "corridor": "Corridor",
+    "converted": "Converted",
+    "convertedTitle": "This quote has already been converted to a job",
+    "reopen": "Reopen",
+    "reopenTitle": "Reopen Quote",
+    "createJob": "Create Job",
+    "createJobTitle": "Create Job",
+    "markLost": "Mark Lost",
+    "markLostTitle": "Mark as Lost",
+    "whatsapp": "WhatsApp",
+    "delete": "Delete"
+  },
+  "business": {
+    "searchPlaceholder": "Search accounts...",
+    "table": { "company": "Company", "volume": "Volume", "billing": "Billing", "status": "Status", "actions": "Actions" },
+    "jobsPerMonth": "jobs/mo",
+    "monthlyInvoicing": "Monthly Invoicing",
+    "standardPay": "Standard Pay",
+    "status": { "pending": "Pending", "active": "Active", "archived": "Archived" },
+    "viewDetails": "View Details"
+  },
+  "drivers": {
+    "pool": { "dubaiActive": "Dubai Active", "abuDhabiActive": "Abu Dhabi Active", "totalActive": "Total Active", "inPipeline": "In Pipeline" },
+    "searchPlaceholder": "Search drivers...",
+    "stageFilter": {
+      "all": "All stages",
+      "sourced": "Sourced",
+      "screening": "Screening",
+      "docsPending": "Docs Pending",
+      "trialScheduled": "Trial Scheduled",
+      "active": "Active",
+      "rejected": "Rejected"
+    },
+    "vehicleFilter": {
+      "all": "All vehicles",
+      "sedan": "Sedan",
+      "executiveSuv": "Executive SUV",
+      "panelVan": "Panel Van",
+      "motorcycle": "Motorcycle",
+      "pickup3Ton": "3-Ton Pickup"
+    },
+    "table": { "driver": "Driver", "vehicle": "Vehicle", "rating": "Rating", "status": "Status", "application": "Application", "actions": "Actions" },
+    "new": "New",
+    "tier": "Tier",
+    "status": { "available": "Available", "onJob": "On Job", "offline": "Offline" },
+    "view": "View"
+  },
+  "team": {
+    "resolvingOrg": "Resolving your organization membership...",
+    "title": "Command Centre access",
+    "subtitle": "Who can log in and what they can do",
+    "invite": "Invite",
+    "loadFailed": "Failed to load team",
+    "updateRoleFailed": "Failed to update role",
+    "removeFailed": "Failed to remove team member",
+    "removeConfirm": "Remove {{email}} from this organization?",
+    "table": { "user": "User", "role": "Role", "memberSince": "Member Since", "actions": "Actions" },
+    "noMembers": "No team members found."
+  },
+  "invite": {
+    "title": "Invite team member",
+    "emailLabel": "Email",
+    "emailPlaceholder": "name@company.com",
+    "roleLabel": "Role",
+    "roles": {
+      "admin": "Admin \u2014 full access, can manage team",
+      "operator": "Operator \u2014 dispatch and driver management",
+      "viewer": "Viewer \u2014 read-only",
+      "owner": "Owner \u2014 full access, org ownership"
+    },
+    "sendFailed": "Failed to send invite",
+    "send": "Send Invite"
+  },
+  "lostQuoteModal": {
+    "title": "Mark Quote as Lost",
+    "subtitle": "Document why this quote never converted to a job",
+    "reasons": {
+      "competitor": "Customer went with a competitor",
+      "priceObjection": "Price objection / Too expensive",
+      "wentDark": "Customer stopped responding / Went dark",
+      "noLongerNeeds": "Customer no longer needs the service",
+      "timingMismatch": "Timing / Urgency mismatch",
+      "areaNotSupported": "Service area / Route not supported",
+      "corporateSetup": "Corporate account setup required",
+      "custom": "Custom reason (specify below)"
+    },
+    "whyLabel": "Why didn't this quote convert?",
+    "selectPlaceholder": "Select a reason...",
+    "customLabel": "Custom Reason",
+    "customPlaceholder": "Enter specific details...",
+    "selectReasonAlert": "Please select or enter a reason",
+    "cancel": "Cancel",
+    "markAsLost": "Mark as Lost"
+  },
+  "businessDetailsModal": {
+    "entity": "Business Entity",
+    "pointOfContact": "Point of Contact",
+    "operationalScope": "Operational Scope",
+    "contractAdmin": "Contract Admin",
+    "jobsPerMonth": "Jobs/mo",
+    "statusLabel": "Status",
+    "monthlyInvoicing": "Monthly Invoicing",
+    "standardPayment": "Standard Payment",
+    "crmNotes": "CRM & Follow-up Notes",
+    "notesPlaceholder": "Logs, pre-agreed rates, contract details...",
+    "contactDecisionMaker": "Contact Decision Maker",
+    "close": "Close"
+  },
+  "liveMap": {
+    "activeJobs": "Active jobs",
+    "noActive": "No active jobs with an assigned driver.",
+    "noLocations": "No driver locations yet. Pins appear once the driver app reports a position.",
+    "noSignal": "No GPS yet",
+    "live": "Live",
+    "stale": "Stale",
+    "updated": "Updated {{time}}",
+    "openJob": "Open job",
+    "fitAll": "Fit all",
+    "pickup": "Pickup",
+    "delivery": "Delivery"
+  },
+  "jobCreateModal": {
+    "title": "Manual Job Intake.",
+    "subtitle": "Operator manual dispatch override",
+    "senderInfo": "Sender Information",
+    "recipientInfo": "Recipient Information",
+    "fullNamePlaceholder": "Full Name / Company",
+    "whatsappPlaceholder": "WhatsApp Number",
+    "pickupLogistics": "Pickup Logistics",
+    "deliveryLogistics": "Delivery Logistics",
+    "pickupAddressPlaceholder": "Specific Pickup Address / Area",
+    "deliveryAddressPlaceholder": "Specific Delivery Address / Area",
+    "itemCategory": "Item Category",
+    "itemTypes": {
+      "parcel": "Standard Parcel",
+      "document": "Legal Document",
+      "sparePart": "Machine Spare Part",
+      "other": "Other Manifest"
+    },
+    "urgencyStatus": "Urgency Status",
+    "urgencyOptions": {
+      "immediate": "Immediate Dispatch",
+      "today": "Same Day UAE",
+      "scheduled": "Scheduled Logistics"
+    },
+    "scheduledPickup": "Scheduled Pickup Time",
+    "scheduledPickupPlaceholder": "Pick a date and time",
+    "scheduledPickupHint": "UAE time (Gulf Standard Time). The driver will see this in their app.",
+    "companyAccount": "Company Account (optional)",
+    "companyPlaceholder": "e.g. Aramex, ENOC \u2014 leave blank for individuals",
+    "serviceTier": "Service Tier",
+    "serviceTiers": {
+      "express": "Express \u2014 same-hour priority",
+      "priority": "Priority \u2014 within 3 hours",
+      "standard": "Standard \u2014 flexible window"
+    },
+    "driverInstructions": "Driver Instructions",
+    "driverInstructionsPlaceholder": "e.g. Call before arrival, gate code 4521, handle with care...",
+    "driverInstructionsHint": "Sent to driver via WhatsApp. Keep it short and actionable.",
+    "internalNotes": "Internal Notes (dispatch only)",
+    "internalNotesPlaceholder": "e.g. VIP client, pre-agreed AED 60, re-dispatch of job #0042...",
+    "internalNotesHint": "Never sent to driver or customer. For the audit log only.",
+    "driverAssignment": "Driver Assignment",
+    "unassignedOption": "Unassigned \u2014 assign later",
+    "tierShort": "Tier",
+    "cocConfirmation": "Chain-of-Custody Confirmation",
+    "twoStepTitle": "2-Step \u00b7 Driver-Confirmed",
+    "twoStepDesc": "Driver enters both OTPs in the app (pickup + delivery). No sender/recipient portal step. Default.",
+    "fourStepTitle": "4-Step \u00b7 Sender + Driver + Recipient",
+    "fourStepDesc": "Sender and recipient each confirm via confirm.nokael.com in addition to the driver. Use for high-value or client-mandated chain-of-custody.",
+    "commitDispatch": "Commit Dispatch to Pipeline",
+    "createFailedAlert": "Failed to create job"
+  },
+  "driverProfileModal": {
+    "driverIdLabel": "Driver ID",
+    "contactDetails": "Contact Details",
+    "vehicleLogistics": "Vehicle & Logistics",
+    "interEmirate": "Inter-Emirate",
+    "yes": "Yes",
+    "no": "No",
+    "internalManagement": "Internal Management",
+    "tieringStrategy": "Tiering Strategy",
+    "tiers": {
+      "elite": "Elite Rank (A)",
+      "priority": "Priority Rank (B)",
+      "standard": "Standard Rank (C)",
+      "newArrival": "New Arrival (D)"
+    },
+    "reliabilityScore": "Reliability Score (1-10)",
+    "dispatchPoolStatus": "Dispatch Pool Status",
+    "dispatchPoolHint": "Set by the driver in their app, or automatically when a job is assigned or completed.",
+    "dispatchStatus": {
+      "availableNow": "Available now",
+      "onJob": "On a job",
+      "offline": "Offline"
+    },
+    "driverAppPin": "Driver App PIN",
+    "pinHint": "Set a 4-6 digit PIN so this driver can log into the status app and toggle their own availability. Share it with them over WhatsApp along with their status link.",
+    "pinPlaceholder": "e.g. 4821",
+    "setPin": "Set PIN",
+    "pinSetAlert": "PIN set. Send {{name}} their status link + this PIN over WhatsApp.",
+    "pinFailedAlert": "Failed to set PIN: {{error}}",
+    "copyStatusLink": "Copy status link",
+    "copied": "Copied",
+    "openLink": "Open link",
+    "uploadedDocuments": "Uploaded Documents (Google Drive)",
+    "docStatusLabel": "Status",
+    "noDocuments": "No documents found",
+    "internalAuditNotes": "Internal Audit Notes",
+    "notesPlaceholder": "Record verification results or history...",
+    "updateReapprove": "Update & Re-Approve",
+    "approveDriver": "Approve Driver",
+    "rejectApplication": "Reject Application",
+    "onboardingStatus": {
+      "pending": "pending",
+      "approved": "approved",
+      "rejected": "rejected"
+    }
+  },
+  "jobDetailModal": {
+    "title": "Mission Command Center",
+    "corridor": "Corridor",
+    "cancelledBanner": "Job Marked as Failed / Cancelled:",
+    "manualFailureRecorded": "Manual Failure Recorded",
+    "returnedBanner": "Package Returned to Sender:",
+    "returnedNoReason": "No reason recorded",
+    "returnedHint": "The driver couldn't deliver this package. Arrange recovery with the sender, or create a new job to re-dispatch. Returned jobs are final and can't be reopened.",
+    "returnedFinalNote": "Returned jobs are final. Their status can't be changed; create a new job to re-dispatch.",
+    "reactivatePending": "Reactivate (Pending)",
+    "resumeInTransit": "Resume (In-Transit)",
+    "emergency": {
+      "title": "Emergency Status Control",
+      "moveNext": "Move to Next Stage",
+      "useOnlyIf": "Use this only if:",
+      "useOnlyIfBody": "Customer or driver is unresponsive and you need to manually advance the job. This bypasses the normal verification system.",
+      "jumpTo": "Jump Job To",
+      "jumpOptions": {
+        "pending": "1\ufe0f\u20e3 Pending - Waiting for driver",
+        "client_pickup": "2\ufe0f\u20e3 Pickup - Driver collecting from sender",
+        "driver_pickup": "3\ufe0f\u20e3 In Transit - Driver has package",
+        "driver_delivery": "4\ufe0f\u20e3 Arrived - Driver at recipient",
+        "completed": "5\ufe0f\u20e3 Delivered - Job complete \u2705",
+        "cancelled": "\u274c Cancelled - Job failed"
+      },
+      "forceUpdate": "Force Update Status",
+      "autoMark": "\u2713 Automatically mark all previous steps as verified (recommended)",
+      "reasonLabel": "Reason for Manual Update",
+      "required": "(Required)",
+      "reasonPlaceholder": "e.g., Customer confirmed delivery by phone",
+      "save": "Save",
+      "auditNote": "This note is saved to the job audit log for compliance",
+      "cantComplete": "Job can't be completed?",
+      "cancelJob": "Cancel Job"
+    },
+    "details": {
+      "title": "Job Details",
+      "edit": "Edit Details",
+      "cancel": "Cancel",
+      "save": "Save Changes",
+      "consignor": "Consignor (Sender)",
+      "consignee": "Consignee (Recipient)",
+      "item": "Item",
+      "urgency": "Urgency",
+      "price": "Price (AED)",
+      "specialInstructions": "Driver Instructions",
+      "internalNotes": "Internal Notes",
+      "senderNamePlaceholder": "Sender name",
+      "senderPhonePlaceholder": "Sender phone",
+      "recipientNamePlaceholder": "Recipient name",
+      "recipientPhonePlaceholder": "Recipient phone",
+      "pickupAddressPlaceholder": "Pickup address",
+      "deliveryAddressPlaceholder": "Delivery address",
+      "pricePlaceholder": "e.g. 45",
+      "instructionsPlaceholder": "e.g. Fragile, call before arrival, gate code...",
+      "internalNotesPlaceholder": "e.g. VIP client, pre-agreed rate, notes for dispatch...",
+      "itemTypes": {
+        "parcel": "Parcel",
+        "document": "Document",
+        "spare_part": "Spare Part",
+        "other": "Other"
+      },
+      "urgencies": {
+        "immediate": "Immediate",
+        "today": "Today",
+        "scheduled": "Scheduled"
+      }
+    },
+    "pilot": {
+      "title": "Assigned Pilot",
+      "corridorPilot": "Corridor Pilot",
+      "pending": "Pilot Pending Assignment",
+      "reassign": "Reassign",
+      "assign": "Assign",
+      "unassigned": "Unassigned"
+    },
+    "whatsapp": {
+      "title": "Operational WhatsApp Links",
+      "sender": "Sender Dsp.",
+      "pilot": "Pilot Dsp.",
+      "client": "Client Dsp.",
+      "dispatched": "Dispatched",
+      "ready": "Ready"
+    },
+    "verification": {
+      "title": "Delivery Verification Steps",
+      "subtitle": "Track each handoff from sender \u2192 driver \u2192 recipient",
+      "otpSecured": "OTP Secured",
+      "howItWorks": "How this works:",
+      "howItWorksBody": "Each step requires either an OTP code or your manual verification. Use \"Override Step\" only if the person isn't responding but you've confirmed by phone.",
+      "howItWorksBodyDriverOnly": "The driver enters the sender's code at pickup and the recipient's code at delivery \u2014 both in the Nokael Driver app. There are no portal links for this job. Use \"Override Step\" only if you've confirmed the handoff by phone.",
+      "waitingSender": "\u23f3 Driver enters sender's code in app \u00b7 Code: {{code}}",
+      "waitingRecipient": "\u23f3 Driver enters recipient's code in app \u00b7 Code: {{code}}",
+      "steps": {
+        "pickupCode": {
+          "label": "1. Driver Entered Sender's Code (Pickup)",
+          "desc": "Driver confirms pickup by entering the sender's 6-digit code in the app"
+        },
+        "deliveryCode": {
+          "label": "2. Driver Entered Recipient's Code (Delivery)",
+          "desc": "Driver confirms delivery by entering the recipient's 6-digit code \u2014 job completes"
+        },
+        "senderHandover": {
+          "label": "1. Sender Handed Package to Driver",
+          "desc": "Sender confirms driver collected the package"
+        },
+        "driverPickup": {
+          "label": "2. Driver Confirmed Pickup",
+          "desc": "Driver confirms they have the package and are on the way"
+        },
+        "driverArrived": {
+          "label": "3. Driver Arrived at Destination",
+          "desc": "Driver confirms arrival at recipient location"
+        },
+        "recipientReceived": {
+          "label": "4. Recipient Received Package",
+          "desc": "Recipient confirms they received the package"
+        }
+      },
+      "verified": "\u2713 Verified & Complete",
+      "waiting": "\u23f3 Waiting \u00b7 Security Code: {{code}}",
+      "codeNotSet": "Not set",
+      "notePlaceholder": "Add note if manually verifying (optional)...",
+      "undo": "Undo",
+      "overrideStep": "Override Step",
+      "copyLink": "Copy Link",
+      "copied": "Copied!",
+      "copyLinkTitle": "Copy verification link to send via WhatsApp",
+      "open": "Open",
+      "openTitle": "Open verification page in new tab",
+      "downloadPoc": "Download Proof of Delivery (PDF)"
+    },
+    "failModal": {
+      "title": "Cancel This Job",
+      "subtitle": "Record why the delivery couldn't be completed",
+      "why": "Why is this job being cancelled?",
+      "other": "Other reason (specify below)",
+      "explain": "Explain the reason",
+      "describePlaceholder": "Describe what happened...",
+      "back": "Back",
+      "confirm": "Confirm Failure Status"
+    },
+    "toast": {
+      "detailsUpdated": "Job details updated.",
+      "advancedTo": "Job advanced to {{stage}}",
+      "overridden": "Level manually overridden to {{stage}}",
+      "markedFailed": "Job marked as Failed / Cancelled",
+      "reactivatedTo": "Job reactivated to {{stage}}",
+      "cocStepUpdated": "COC Step updated.",
+      "noteSaved": "Note saved."
+    },
+    "errors": {
+      "updateDetails": "Failed to update job details: {{error}}",
+      "advance": "Failed to advance job stage: {{error}}",
+      "override": "Failed to apply override: {{error}}",
+      "cancel": "Failed to cancel job: {{error}}",
+      "reactivate": "Failed to reactivate job: {{error}}",
+      "cocStep": "Failed to update COC step: {{error}}",
+      "saveNote": "Failed to save note: {{error}}",
+      "assign": "Failed to assign driver: {{error}}"
+    }
+  }
+}

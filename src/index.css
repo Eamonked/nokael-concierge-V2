@@ -49,6 +49,7 @@
   --color-stage-transit: #5B8DEF;
   --color-stage-complete: #4FA97C;
   --color-stage-cancelled: #C2564F;
+  --color-stage-returned: #D98A3D;
 }
 
 @layer base {

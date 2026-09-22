@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 
-type StatusVariant = 'completed' | 'pending' | 'in_transit' | 'cancelled' | 'active' | 'rejected' | 'approved' | 'archived';
+type StatusVariant = 'completed' | 'pending' | 'in_transit' | 'cancelled' | 'returned' | 'active' | 'rejected' | 'approved' | 'archived';
 
 interface StatusBadgeProps {
   status: string;
@@ -14,6 +14,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) =
   const variants: Record<StatusVariant, string> = {
     completed: 'bg-brand-neon/10 text-brand-neon border-brand-neon/20',
     cancelled: 'bg-red-500/10 text-red-400 border-red-500/20',
+    returned: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
     pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
     in_transit: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
     active: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',

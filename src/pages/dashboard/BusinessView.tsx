@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import type { BusinessInquiry } from '../../lib/supabase';
 
@@ -18,6 +19,7 @@ export function BusinessView({
   onStatusUpdate,
   onViewDetails,
 }: BusinessViewProps) {
+  const { t } = useTranslation('dashboard');
   return (
     <div className="dispatch-card overflow-hidden p-0">
       <div className="p-5 border-b border-brand-border flex justify-end">
@@ -25,7 +27,7 @@ export function BusinessView({
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
           <input 
             type="text" 
-            placeholder="Search accounts..."
+            placeholder={t('business.searchPlaceholder')}
             autoComplete="off"
             autoCorrect="off"
             spellCheck={false}
@@ -40,11 +42,11 @@ export function BusinessView({
         <table className="w-full text-left">
           <thead>
             <tr className="bg-brand-input text-[11px] uppercase tracking-wide font-medium text-brand-muted">
-              <th className="px-6 py-3">Company</th>
-              <th className="px-6 py-3">Volume</th>
-              <th className="px-6 py-3">Billing</th>
-              <th className="px-6 py-3">Status</th>
-              <th className="px-6 py-3 text-right">Actions</th>
+              <th className="px-6 py-3">{t('business.table.company')}</th>
+              <th className="px-6 py-3">{t('business.table.volume')}</th>
+              <th className="px-6 py-3">{t('business.table.billing')}</th>
+              <th className="px-6 py-3">{t('business.table.status')}</th>
+              <th className="px-6 py-3 text-right">{t('business.table.actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-brand-border">
@@ -54,11 +56,11 @@ export function BusinessView({
                   <div className="font-medium text-brand-text mb-1.5 text-sm">{biz.company_name}</div>
                   <div className="flex flex-col gap-1">
                     <div className="text-xs text-brand-muted font-medium">{biz.contact_person} • {biz.phone_whatsapp}</div>
-                    <div className="text-[11px] text-brand-neon font-medium font-mono">ID: {biz.corporate_code}</div>
+                    <div className="text-[11px] text-brand-neon font-medium font-mono">{t('quotes.id')}: {biz.corporate_code}</div>
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="text-sm font-medium mb-1.5">{biz.estimated_monthly_volume} jobs/mo</div>
+                  <div className="text-sm font-medium mb-1.5">{biz.estimated_monthly_volume} {t('business.jobsPerMonth')}</div>
                   <div className="text-xs uppercase tracking-wide text-brand-muted font-medium truncate max-w-[200px]">{biz.typical_routes}</div>
                 </td>
                 <td className="px-6 py-4">
@@ -66,7 +68,7 @@ export function BusinessView({
                     "px-3 py-1 inline-block rounded text-[11px] font-medium",
                     biz.invoicing_required ? "bg-brand-neon/10 text-brand-neon border border-brand-neon/20" : "bg-brand-muted/10 text-brand-muted"
                   )}>
-                    {biz.invoicing_required ? 'Monthly Invoicing' : 'Standard Pay'}
+                    {biz.invoicing_required ? t('business.monthlyInvoicing') : t('business.standardPay')}
                   </div>
                 </td>
                 <td className="px-6 py-4">
@@ -79,9 +81,9 @@ export function BusinessView({
                       'bg-yellow-500/5 border-yellow-500/20 text-yellow-500'
                     }`}
                   >
-                    <option value="pending">Pending</option>
-                    <option value="active">Active</option>
-                    <option value="archived">Archived</option>
+                    <option value="pending">{t('business.status.pending')}</option>
+                    <option value="active">{t('business.status.active')}</option>
+                    <option value="archived">{t('business.status.archived')}</option>
                   </select>
                 </td>
                 <td className="px-6 py-4 text-right">
@@ -89,7 +91,7 @@ export function BusinessView({
                     onClick={() => onViewDetails(biz)}
                     className="px-6 py-2.5 bg-brand-surface border border-brand-border text-brand-text text-xs font-medium rounded-lg hover:bg-brand-neon hover:text-brand-bg transition-all"
                   >
-                    View Details
+                    {t('business.viewDetails')}
                   </button>
                 </td>
               </tr>
