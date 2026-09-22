@@ -11,6 +11,9 @@ import {
   FileText,
   Truck,
   MapPin,
+  ChevronLeft,
+  ChevronDown,
+  Bell,
 } from 'lucide-react';
 import {
   type QuoteRequest,
@@ -23,6 +26,7 @@ import {
 } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import i18n from '../i18n/config';
 import { cn } from '../lib/utils';
 
 import { StatCard } from './dashboard/components/StatCard';
@@ -60,6 +64,7 @@ export default function Dashboard() {
   const {
     orgId,
     currentRole,
+    userEmail,
     jobs,
     requests,
     drivers,
@@ -71,6 +76,42 @@ export default function Dashboard() {
     setBusinessInquiries,
     refetch: fetchData,
   } = useDashboardData();
+
+  // ── Shell state (sidebar collapse, dashboard theme, profile menu) ────────────
+  // Dashboard-scoped, independent of the marketing site's global ThemeContext —
+  // the enterprise shell defaults to dark regardless of the visitor's OS/site preference.
+  const [collapsed, setCollapsed] = React.useState(() => {
+    try { return localStorage.getItem('nokael-dashboard-sidebar-collapsed') === '1'; } catch { return false; }
+  });
+  const [dashboardTheme, setDashboardTheme] = React.useState<'Dark' | 'Light'>(() => {
+    try { return localStorage.getItem('nokael-dashboard-theme') === 'Light' ? 'Light' : 'Dark'; } catch { return 'Dark'; }
+  });
+  const [profileOpen, setProfileOpen] = React.useState(false);
+  const profileRef = React.useRef<HTMLDivElement>(null);
+
+  const toggleCollapsed = () => {
+    setCollapsed(prev => {
+      const next = !prev;
+      try { localStorage.setItem('nokael-dashboard-sidebar-collapsed', next ? '1' : '0'); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
+  const setDashboardThemeAndPersist = (next: 'Dark' | 'Light') => {
+    setDashboardTheme(next);
+    try { localStorage.setItem('nokael-dashboard-theme', next); } catch { /* ignore */ }
+  };
+
+  const isArabic = i18n.language === 'ar';
+
+  React.useEffect(() => {
+    if (!profileOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [profileOpen]);
 
   // ── Modal / selection state ──────────────────────────────────────────────────
   const [selectedDriver, setSelectedDriver] = React.useState<(Driver & { documents: DriverDocument[] }) | null>(null);
@@ -175,6 +216,15 @@ export default function Dashboard() {
   const jobsActive    = jobs.filter(j => !TERMINAL_STATUSES.includes(j.status)).length;
   const jobsCompleted = jobs.filter(j => j.status === 'completed').length;
 
+  const getInitials = (email: string | null) => {
+    if (!email) return '??';
+    const name = email.split('@')[0];
+    const parts = name.split(/[._-]/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  };
+  const hasUrgentBadges = (stats.pending + stats.pendingDrivers + stats.pendingBusiness) > 0;
+
   const CONTEXT_STATS: Record<typeof activeTab, { title: string; value: number; icon: any; tone?: StatTone }[]> = {
     pipeline: [
       { title: t('stats.active'),    value: jobsActive,                                           icon: Zap,          tone: 'attention' },
@@ -202,64 +252,117 @@ export default function Dashboard() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text flex">
+    <div className={cn('app enterprise-mode', dashboardTheme === 'Light' && 'light')} dir={isArabic ? 'rtl' : 'ltr'}>
 
-      {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
-      <aside className="hidden md:flex flex-col w-56 shrink-0 border-r border-brand-border h-screen sticky top-0 px-4 py-6">
-        <div className="flex items-center gap-3 px-2 mb-8">
-          <div className="w-9 h-9 rounded-lg overflow-hidden border border-brand-border shrink-0">
-            <img src="/logo.svg" alt="Nokael Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-sm font-display font-medium leading-tight truncate">Nokael</h1>
-            <p className="text-[11px] text-brand-muted truncate">Dashboard</p>
-          </div>
+      {/* ── Sidebar (desktop / md+; hidden below 768px via index.css) ─────────── */}
+      <aside className={cn('sidebar', collapsed && 'collapsed')}>
+        <div className="brand">
+          <span className="brand-mark">
+            <img src="/logo.svg" alt="Nokael Logo" className="w-full h-full object-cover rounded-[9px]" referrerPolicy="no-referrer" />
+          </span>
+          {!collapsed && <b>NOKAEL</b>}
         </div>
 
-        <nav className="flex-1 space-y-1">
+        <nav>
           {NAV_ITEMS.map(item => (
             <button
               key={item.id}
+              title={collapsed ? item.label : undefined}
+              className={activeTab === item.id ? 'active' : ''}
               onClick={() => setActiveTab(item.id)}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
-                activeTab === item.id
-                  ? "bg-brand-neon/10 text-brand-neon"
-                  : "text-brand-muted hover:text-brand-text hover:bg-brand-surface"
-              )}
             >
-              <item.icon className="w-4 h-4 shrink-0" />
-              <span className="flex-1 text-left truncate">{item.label}</span>
-              {!!item.badge && (
-                <span className={cn(
-                  "text-[10px] font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center",
-                  activeTab === item.id ? "bg-brand-neon text-brand-bg" : "bg-brand-input text-brand-muted"
-                )}>
-                  {item.badge}
-                </span>
+              <span className="nav-icon">
+                <item.icon className="w-[18px] h-[18px]" />
+              </span>
+              {!collapsed && (
+                <>
+                  <span>{item.label}</span>
+                  {!!item.badge && <em>{item.badge}</em>}
+                </>
               )}
             </button>
           ))}
         </nav>
 
-        <div className="space-y-1 pt-4 border-t border-brand-border">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-brand-muted hover:text-brand-text hover:bg-brand-surface transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            {t('nav.logout')}
+        <div className="sidebar-foot">
+          {!collapsed && (
+            <div className="support">
+              <span>{TAB_META[activeTab].title}</span>
+              <b>
+                <i />
+                {error ? t('profile.connectionIssue') : t('profile.systemsOperational')}
+              </b>
+            </div>
+          )}
+          <button className="collapse-button" onClick={toggleCollapsed}>
+            <ChevronLeft />
           </button>
+          {!collapsed && (
+            <button className="logout" onClick={handleLogout}>
+              <LogOut className="w-4 h-4" />
+              <span>{t('nav.logout')}</span>
+            </button>
+          )}
         </div>
       </aside>
 
       {/* ── Main column ─────────────────────────────────────────────────────── */}
-      <div className="flex-1 min-w-0 flex flex-col">
+      <main>
 
-        {/* Top bar */}
-        <header className="sticky top-0 z-40 bg-brand-bg/90 backdrop-blur-xl border-b border-brand-border px-5 md:px-8 py-4 flex items-center justify-between gap-4">
+        {/* Top bar (desktop / md+; hidden below 768px via index.css) */}
+        <header className="topbar">
+          <div>
+            <h1>{TAB_META[activeTab].title}</h1>
+            <p>{TAB_META[activeTab].subtitle}</p>
+          </div>
+          <div className="top-actions">
+            <button className="notification" aria-label={t('profile.notifications')}>
+              <Bell className="w-[17px] h-[17px]" />
+              {hasUrgentBadges && <i />}
+            </button>
+            <div className="profile-control" ref={profileRef}>
+              <button
+                className="profile-trigger"
+                onClick={() => setProfileOpen(open => !open)}
+                aria-expanded={profileOpen}
+              >
+                <span className="avatar">{getInitials(userEmail)}</span>
+                <span>
+                  <b>{userEmail || '—'}</b>
+                  <small>{currentRole ? t(`roles.${currentRole}`) : ''}</small>
+                </span>
+                <ChevronDown className="w-3 h-3" />
+              </button>
+              {profileOpen && (
+                <div className="profile-menu">
+                  <div className="profile-menu-title">
+                    <b>{t('profile.workspaceSettings')}</b>
+                    <small>{t('profile.personalPreferences')}</small>
+                  </div>
+                  <div className="profile-setting">
+                    <span>{t('profile.language')}</span>
+                    <div className="toggle">
+                      <button className={!isArabic ? 'active' : ''} onClick={() => i18n.changeLanguage('en')}>EN</button>
+                      <button className={isArabic ? 'active' : ''} onClick={() => i18n.changeLanguage('ar')}>AR</button>
+                    </div>
+                  </div>
+                  <div className="profile-setting">
+                    <span>{t('profile.appearance')}</span>
+                    <div className="toggle">
+                      <button className={dashboardTheme === 'Dark' ? 'active' : ''} onClick={() => setDashboardThemeAndPersist('Dark')}>Dark</button>
+                      <button className={dashboardTheme === 'Light' ? 'active' : ''} onClick={() => setDashboardThemeAndPersist('Light')}>Light</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Mobile-only compact header (below 768px — .topbar is hidden there) */}
+        <div className="md:hidden sticky top-0 z-40 bg-brand-bg/90 backdrop-blur-xl border-b border-brand-border px-5 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="md:hidden w-8 h-8 rounded-lg overflow-hidden border border-brand-border shrink-0">
+            <div className="w-8 h-8 rounded-lg overflow-hidden border border-brand-border shrink-0">
               <img src="/logo.svg" alt="Nokael Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             </div>
             <div className="min-w-0">
@@ -269,11 +372,11 @@ export default function Dashboard() {
           </div>
           <button
             onClick={handleLogout}
-            className="md:hidden p-2 text-brand-muted hover:text-brand-text transition-colors"
+            className="p-2 text-brand-muted hover:text-brand-text transition-colors"
           >
             <LogOut className="w-5 h-5" />
           </button>
-        </header>
+        </div>
 
         {/* Mobile tab switcher */}
         <nav className="md:hidden flex items-center gap-2 px-5 py-3 overflow-x-auto no-scrollbar border-b border-brand-border">
@@ -293,7 +396,7 @@ export default function Dashboard() {
         </nav>
 
         {/* Content */}
-        <div className="flex-1 px-5 md:px-8 py-8 max-w-[1600px] w-full mx-auto">
+        <div className="page-body max-w-[1600px] w-full mx-auto">
 
           {error && (
             <div className="mb-6 p-5 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500">
@@ -370,7 +473,7 @@ export default function Dashboard() {
           )}
 
         </div>
-      </div>
+      </main>
 
       {/* ── Modals ──────────────────────────────────────────────────────────── */}
       <AnimatePresence>

@@ -6,7 +6,9 @@
     "drivers": "Drivers",
     "business": "Business",
     "team": "Team",
-    "logout": "Logout"
+    "logout": "Logout",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar"
   },
   "tabMeta": {
     "pipeline": { "title": "Active Jobs", "subtitle": "Track and manage deliveries" },
@@ -52,6 +54,16 @@
     "admin": "Admin",
     "operator": "Operator",
     "viewer": "Viewer"
+  },
+  "profile": {
+    "workspaceSettings": "Workspace settings",
+    "personalPreferences": "Personal preferences",
+    "language": "Language",
+    "appearance": "Appearance",
+    "accountSettings": "Account settings",
+    "notifications": "Notifications",
+    "systemsOperational": "All systems operational",
+    "connectionIssue": "Connection issue"
   },
   "kanban": {
     "clear": "Clear",

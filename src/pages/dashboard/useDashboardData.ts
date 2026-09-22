@@ -29,6 +29,7 @@ export function useDashboardData() {
 
   const [orgId, setOrgId] = React.useState<string | null>(null);
   const [currentRole, setCurrentRole] = React.useState<OrgRole | null>(null);
+  const [userEmail, setUserEmail] = React.useState<string | null>(null);
   const [jobs, setJobs] = React.useState<JobWithDriver[]>([]);
   const [requests, setRequests] = React.useState<QuoteRequest[]>([]);
   const [drivers, setDrivers] = React.useState<Driver[]>([]);
@@ -74,6 +75,7 @@ export function useDashboardData() {
         if (!session) {
           navigate('/login');
         } else {
+          setUserEmail(session.user?.email ?? null);
           fetchData();
           getCurrentUserOrg().then((org) => {
             if (!isMounted || !org) return;
@@ -106,6 +108,7 @@ export function useDashboardData() {
   return {
     orgId,
     currentRole,
+    userEmail,
     jobs,
     requests,
     drivers,
