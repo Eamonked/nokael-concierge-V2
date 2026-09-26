@@ -12,11 +12,13 @@ import { format } from 'date-fns';
 import { ar as arLocale } from 'date-fns/locale';
 import { generateJobPOC } from '../../../lib/pdf-export';
 import {
-  assignDriverToJob, updateJob, overrideJobLevel, overrideCocStep, cancelJob, reactivateJob,
+  assignDriverToJob, updateJob, overrideJobLevel, overrideCocStep, cancelJob, reactivateJob, resetJobOtpAttempts,
   type Driver, type Job, type JobStatus, type ItemType, type UrgencyType, type JobWithDriver
 } from '../../../lib/supabase';
+import { JobCreateModal } from './JobCreateModal';
 import { STAGE_ORDER, FAILURE_REASON_KEYS, getStageConfig } from '../constants';
 import { getVerificationSteps, isDriverOnly, stepI18nKey, type CocStepKey } from '../verificationSteps';
+import { WriteGuard } from '../permissions';
 
 export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWithDriver, drivers: Driver[], onClose: () => void, onUpdate: () => void }) => {
   const { t, i18n } = useTranslation('dashboard');
@@ -51,111 +53,71 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
   const [actingStep, setActingStep] = React.useState<string | null>(null);
   const [stepNotes, setStepNotes] = React.useState<Record<string, string>>({});
 
-  // Editable Job Details (sender/recipient/route/item — for correcting mistakes
-  // made at intake without having to cancel and re-create the whole job)
-  const [editingDetails, setEditingDetails] = React.useState(false);
-  const [savingDetails, setSavingDetails] = React.useState(false);
-  const buildDetailsForm = (j: JobWithDriver) => {
-    // Sanitize emirate fields - legacy jobs may have concatenated values like "Dubai → Abu Dhabi"
-    const sanitizePickupEmirate = (emirate: string | undefined | null): string => {
-      if (!emirate) return 'Dubai';
-      // If the emirate contains an arrow, extract the first part (pickup origin)
-      if (emirate.includes('→')) {
-        const parts = emirate.split('→').map(p => p.trim());
-        const cleaned = parts[0] || 'Dubai';
-        console.log('[Dashboard] Sanitized pickup emirate:', emirate, '→', cleaned);
-        return cleaned;
-      }
-      return emirate;
-    };
-    
-    const sanitizeDeliveryEmirate = (emirate: string | undefined | null, pickup: string | undefined | null): string => {
-      if (!emirate) return 'Abu Dhabi';
-      // If the emirate contains an arrow, extract the second part (delivery destination)
-      if (emirate.includes('→')) {
-        const parts = emirate.split('→').map(p => p.trim());
-        const cleaned = parts[1] || 'Abu Dhabi';
-        console.log('[Dashboard] Sanitized delivery emirate:', emirate, '→', cleaned);
-        return cleaned;
-      }
-      // If delivery and pickup are the same concatenated string, try to extract second part
-      if (pickup && emirate === pickup && emirate.includes('→')) {
-        const parts = emirate.split('→').map(p => p.trim());
-        const cleaned = parts[1] || 'Abu Dhabi';
-        console.log('[Dashboard] Sanitized delivery emirate (matched pickup):', emirate, '→', cleaned);
-        return cleaned;
-      }
-      return emirate;
-    };
-    
-    const cleanPickup = sanitizePickupEmirate(j.pickup_emirate);
-    const cleanDelivery = sanitizeDeliveryEmirate(j.delivery_emirate, j.pickup_emirate);
-    
-    return {
-      sender_name: j.sender_name || '',
-      sender_phone: j.sender_phone || '',
-      recipient_name: j.recipient_name || '',
-      recipient_phone: j.recipient_phone || '',
-      pickup_emirate: cleanPickup,
-      pickup_location: j.pickup_location || '',
-      delivery_emirate: cleanDelivery,
-      delivery_location: j.delivery_location || '',
-      item_type: (j.item_type || 'parcel') as ItemType,
-      urgency: (j.urgency || 'immediate') as UrgencyType,
-      price_aed: j.price_aed != null ? String(j.price_aed) : '',
-      special_instructions: j.special_instructions || '',
-    };
-  };
-  const [detailsForm, setDetailsForm] = React.useState(buildDetailsForm(job));
+  // Job details are edited in the shared JobCreateModal drawer (edit mode), so
+  // operators can correct intake mistakes without cancelling and re-creating.
+  const [showEditDrawer, setShowEditDrawer] = React.useState(false);
+  const [showDuplicateDrawer, setShowDuplicateDrawer] = React.useState(false);
+
+  // Driver payout (what the driver sees in the app; not the client price).
+  const [payoutDraft, setPayoutDraft] = React.useState(job.driver_payout_aed != null ? String(job.driver_payout_aed) : '');
+  const [savingPayout, setSavingPayout] = React.useState(false);
+  const [unlockingOtp, setUnlockingOtp] = React.useState(false);
+  // Mirrors confirm_job_step's max-attempts constant (5).
+  const otpLocked = (job.otp_attempts ?? 0) >= 5;
 
   // Keep targetStatus in sync when job updates
   React.useEffect(() => {
     setTargetStatus(job.status || 'pending');
     setOperatorNotes(job.operator_notes || '');
-    // Only reset the details form from server data while not actively
-    // editing, so a realtime refresh mid-edit doesn't clobber unsaved input.
-    if (!editingDetails) {
-      setDetailsForm(buildDetailsForm(job));
-    }
-  }, [job.status, job.operator_notes, job.sender_name, job.sender_phone, job.recipient_name, job.recipient_phone, job.pickup_emirate, job.pickup_location, job.delivery_emirate, job.delivery_location, job.item_type, job.urgency, job.price_aed, job.special_instructions, editingDetails, job]);
+  }, [job.status, job.operator_notes]);
 
-  const handleSaveDetails = async () => {
-    setSavingDetails(true);
+  React.useEffect(() => {
+    setPayoutDraft(job.driver_payout_aed != null ? String(job.driver_payout_aed) : '');
+  }, [job.driver_payout_aed]);
+
+  const payoutValid = payoutDraft.trim() === '' || /^\d+(\.\d{1,2})?$/.test(payoutDraft.trim());
+  const payoutChanged = (payoutDraft.trim() === '' ? null : Number(payoutDraft.trim())) !== (job.driver_payout_aed ?? null);
+
+  const handleSavePayout = async () => {
+    setSavingPayout(true);
     try {
-      const priceVal = detailsForm.price_aed.trim() === '' ? null : Number(detailsForm.price_aed);
-      const updates = {
-        sender_name: detailsForm.sender_name,
-        sender_phone: detailsForm.sender_phone,
-        recipient_name: detailsForm.recipient_name,
-        recipient_phone: detailsForm.recipient_phone,
-        pickup_emirate: detailsForm.pickup_emirate,
-        pickup_location: detailsForm.pickup_location,
-        delivery_emirate: detailsForm.delivery_emirate,
-        delivery_location: detailsForm.delivery_location,
-        item_type: detailsForm.item_type,
-        urgency: detailsForm.urgency,
-        price_aed: priceVal !== null && !isNaN(priceVal) ? priceVal : null,
-        special_instructions: detailsForm.special_instructions,
-      };
-      
-      console.log('[Dashboard] Saving job details:', updates);
-      const result = await updateJob(job.id!, updates);
-      console.log('[Dashboard] Job updated, result:', result);
-      
-      // Exit editing mode BEFORE refreshing so the useEffect can update the form
-      setEditingDetails(false);
-      
-      // Refetch to get updated data and trigger parent refresh
-      await onUpdate();
-      
-      setOverrideMessage(t('jobDetailModal.toast.detailsUpdated'));
-      setTimeout(() => setOverrideMessage(null), 2500);
+      const value = payoutDraft.trim() === '' ? null : Number(payoutDraft.trim());
+      await updateJob(job.id!, { driver_payout_aed: value });
+      setOverrideMessage(t('jobDetailModal.toast.payoutSaved', { defaultValue: 'Driver payout saved' }));
+      setTimeout(() => setOverrideMessage(null), 2000);
+      onUpdate();
     } catch (err: any) {
-      console.error('[Dashboard] Failed to update job details:', err);
-      alert(t('jobDetailModal.errors.updateDetails', { error: err.message || String(err) }));
+      alert(t('jobDetailModal.errors.savePayout', { defaultValue: 'Could not save payout: {{error}}', error: err.message || String(err) }));
     } finally {
-      setSavingDetails(false);
+      setSavingPayout(false);
     }
+  };
+
+  const handleUnlockOtp = async () => {
+    setUnlockingOtp(true);
+    try {
+      await resetJobOtpAttempts(job.id!);
+      setOverrideMessage(t('jobDetailModal.toast.otpUnlocked', { defaultValue: 'Code entry unlocked' }));
+      setTimeout(() => setOverrideMessage(null), 2500);
+      onUpdate();
+    } catch (err: any) {
+      alert(t('jobDetailModal.errors.unlockOtp', { defaultValue: 'Could not unlock code entry: {{error}}', error: err.message || String(err) }));
+    } finally {
+      setUnlockingOtp(false);
+    }
+  };
+
+  // The new job appears in the pipeline via the refresh; the drawer closes itself.
+  const handleDuplicateCreated = async () => {
+    await onUpdate();
+    setOverrideMessage(t('jobDetailModal.toast.duplicateCreated'));
+    setTimeout(() => setOverrideMessage(null), 2500);
+  };
+
+  const handleDetailsSaved = async () => {
+    await onUpdate();
+    setOverrideMessage(t('jobDetailModal.toast.detailsUpdated'));
+    setTimeout(() => setOverrideMessage(null), 2500);
   };
 
   const handleNextStage = async () => {
@@ -322,6 +284,22 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
+      {showEditDrawer && (
+        <JobCreateModal
+          editJob={job}
+          drivers={drivers}
+          onClose={() => setShowEditDrawer(false)}
+          onSuccess={handleDetailsSaved}
+        />
+      )}
+      {showDuplicateDrawer && (
+        <JobCreateModal
+          duplicateFrom={job}
+          drivers={drivers}
+          onClose={() => setShowDuplicateDrawer(false)}
+          onSuccess={handleDuplicateCreated}
+        />
+      )}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -473,7 +451,8 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
           </div>
         </div>
 
-        {/* Modal Main Content */}
+        {/* Modal Main Content — every control inside is disabled for viewers */}
+        <WriteGuard>
         <div className="flex-1 flex flex-col md:flex-row overflow-y-auto no-scrollbar">
           {/* Left Column: Job Details & Mission Control */}
           <div className="md:w-1/2 p-6 sm:p-8 border-r border-brand-border overflow-y-auto no-scrollbar space-y-6">
@@ -627,198 +606,100 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">{t('jobDetailModal.details.title')}</p>
-                {!editingDetails ? (
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => { setDetailsForm(buildDetailsForm(job)); setEditingDetails(true); }}
+                    onClick={() => setShowDuplicateDrawer(true)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-brand-input hover:bg-brand-surface border border-brand-border rounded-lg text-[11px] font-semibold text-brand-muted hover:text-brand-text transition-all"
+                  >
+                    <Copy className="w-3 h-3" />
+                    {t('jobDetailModal.details.duplicate')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowEditDrawer(true)}
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-brand-input hover:bg-brand-surface border border-brand-border rounded-lg text-[11px] font-semibold text-brand-muted hover:text-brand-text transition-all"
                   >
                     <Edit3 className="w-3 h-3" />
                     {t('jobDetailModal.details.edit')}
                   </button>
-                ) : (
-                  <div className="flex items-center gap-2">
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">{t('jobDetailModal.details.consignor')}</p>
+                  <div className="p-4 bg-brand-input rounded-2xl border border-brand-border">
+                    <p className="text-sm font-semibold text-brand-text mb-0.5 truncate">{job.sender_name}</p>
+                    <p className="text-xs font-mono text-brand-neon">{job.sender_phone}</p>
+                    <div className="mt-2 text-xs text-brand-muted line-clamp-2">
+                      <span className="text-brand-text font-medium">{job.pickup_emirate}:</span> {job.pickup_location}
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">{t('jobDetailModal.details.consignee')}</p>
+                  <div className="p-4 bg-brand-input rounded-2xl border border-brand-border">
+                    <p className="text-sm font-semibold text-brand-text mb-0.5 truncate">{job.recipient_name}</p>
+                    <p className="text-xs font-mono text-brand-neon">{job.recipient_phone}</p>
+                    <div className="mt-2 text-xs text-brand-muted line-clamp-2">
+                      <span className="text-brand-text font-medium">{job.delivery_emirate}:</span> {job.delivery_location}
+                    </div>
+                  </div>
+                </div>
+                <div className="col-span-2 grid grid-cols-3 gap-3">
+                  <div className="p-3 bg-brand-input rounded-xl border border-brand-border">
+                    <p className="text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.item')}</p>
+                    <p className="text-xs font-medium text-brand-text capitalize">{job.item_type ? t(`jobDetailModal.details.itemTypes.${job.item_type}`, { defaultValue: job.item_type.replace('_', ' ') }) : '—'}</p>
+                  </div>
+                  <div className="p-3 bg-brand-input rounded-xl border border-brand-border">
+                    <p className="text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.urgency')}</p>
+                    <p className="text-xs font-medium text-brand-text capitalize">{job.urgency ? t(`jobDetailModal.details.urgencies.${job.urgency}`, { defaultValue: job.urgency }) : '—'}</p>
+                  </div>
+                  <div className="p-3 bg-brand-input rounded-xl border border-brand-border">
+                    <p className="text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.price')}</p>
+                    <p className="text-xs font-medium text-brand-text">{job.price_aed != null ? job.price_aed : '—'}</p>
+                  </div>
+                </div>
+                {job.special_instructions && (
+                  <div className="col-span-2 p-3 bg-brand-input rounded-xl border border-brand-border">
+                    <p className="text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.specialInstructions')}</p>
+                    <p className="text-xs text-brand-text whitespace-pre-wrap">{job.special_instructions}</p>
+                  </div>
+                )}
+                {/* Driver payout — what the driver app shows; kept apart from the client price */}
+                <div className="col-span-2 p-3 bg-brand-input rounded-xl border border-brand-border">
+                  <p className="text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.driverPayout', { defaultValue: 'Driver payout (AED)' })}</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={payoutDraft}
+                      onChange={(e) => setPayoutDraft(e.target.value.replace(/[^\d.]/g, ''))}
+                      placeholder="—"
+                      className="flex-1 bg-brand-bg border border-brand-input-border rounded-lg px-3 py-1.5 text-xs font-mono text-brand-text placeholder:text-brand-muted/50 focus:border-brand-neon outline-none"
+                    />
                     <button
                       type="button"
-                      disabled={savingDetails}
-                      onClick={() => { setDetailsForm(buildDetailsForm(job)); setEditingDetails(false); }}
-                      className="px-2.5 py-1 bg-brand-input hover:bg-brand-surface border border-brand-border rounded-lg text-[11px] font-semibold text-brand-muted disabled:opacity-50"
+                      onClick={handleSavePayout}
+                      disabled={!payoutValid || !payoutChanged || savingPayout}
+                      className="px-3 py-1.5 bg-brand-input hover:bg-brand-surface border border-brand-border text-brand-text rounded-lg text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
                     >
-                      {t('jobDetailModal.details.cancel')}
+                      {savingPayout && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      {t('jobDetailModal.emergency.save')}
                     </button>
-                    <button
-                      type="button"
-                      disabled={savingDetails}
-                      onClick={handleSaveDetails}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-neon text-brand-bg rounded-lg text-[11px] font-bold disabled:opacity-50"
-                    >
-                      {savingDetails ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                      {t('jobDetailModal.details.save')}
-                    </button>
+                  </div>
+                  {job.driver_id && job.driver_payout_aed == null && !['completed', 'cancelled', 'returned'].includes(job.status) && (
+                    <p className="text-[10px] text-yellow-500 mt-1">{t('jobDetailModal.details.payoutMissing', { defaultValue: 'No payout set — the driver sees "—" in the app.' })}</p>
+                  )}
+                </div>
+                {job.driver_remark && (
+                  <div className="col-span-2 p-3 bg-brand-input rounded-xl border border-brand-border">
+                    <p className="text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.driverRemark', { defaultValue: 'Driver remark' })}</p>
+                    <p className="text-xs text-brand-text whitespace-pre-wrap">{job.driver_remark}</p>
                   </div>
                 )}
               </div>
-
-              {!editingDetails ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">{t('jobDetailModal.details.consignor')}</p>
-                    <div className="p-4 bg-brand-input rounded-2xl border border-brand-border">
-                      <p className="text-sm font-semibold text-brand-text mb-0.5 truncate">{job.sender_name}</p>
-                      <p className="text-xs font-mono text-brand-neon">{job.sender_phone}</p>
-                      <div className="mt-2 text-xs text-brand-muted line-clamp-2">
-                        <span className="text-brand-text font-medium">{job.pickup_emirate}:</span> {job.pickup_location}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">{t('jobDetailModal.details.consignee')}</p>
-                    <div className="p-4 bg-brand-input rounded-2xl border border-brand-border">
-                      <p className="text-sm font-semibold text-brand-text mb-0.5 truncate">{job.recipient_name}</p>
-                      <p className="text-xs font-mono text-brand-neon">{job.recipient_phone}</p>
-                      <div className="mt-2 text-xs text-brand-muted line-clamp-2">
-                        <span className="text-brand-text font-medium">{job.delivery_emirate}:</span> {job.delivery_location}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="col-span-2 grid grid-cols-3 gap-3">
-                    <div className="p-3 bg-brand-input rounded-xl border border-brand-border">
-                      <p className="text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.item')}</p>
-                      <p className="text-xs font-medium text-brand-text capitalize">{job.item_type ? t(`jobDetailModal.details.itemTypes.${job.item_type}`, { defaultValue: job.item_type.replace('_', ' ') }) : '—'}</p>
-                    </div>
-                    <div className="p-3 bg-brand-input rounded-xl border border-brand-border">
-                      <p className="text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.urgency')}</p>
-                      <p className="text-xs font-medium text-brand-text capitalize">{job.urgency ? t(`jobDetailModal.details.urgencies.${job.urgency}`, { defaultValue: job.urgency }) : '—'}</p>
-                    </div>
-                    <div className="p-3 bg-brand-input rounded-xl border border-brand-border">
-                      <p className="text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.price')}</p>
-                      <p className="text-xs font-medium text-brand-text">{job.price_aed != null ? job.price_aed : '—'}</p>
-                    </div>
-                  </div>
-                  {job.special_instructions && (
-                    <div className="col-span-2 p-3 bg-brand-input rounded-xl border border-brand-border">
-                      <p className="text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.specialInstructions')}</p>
-                      <p className="text-xs text-brand-text whitespace-pre-wrap">{job.special_instructions}</p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4 p-4 bg-brand-input/60 border border-brand-neon/30 rounded-2xl">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">{t('jobDetailModal.details.consignor')}</p>
-                      <input
-                        value={detailsForm.sender_name}
-                        onChange={(e) => setDetailsForm(prev => ({ ...prev, sender_name: e.target.value }))}
-                        placeholder={t('jobDetailModal.details.senderNamePlaceholder')}
-                        className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-3 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
-                      />
-                      <input
-                        value={detailsForm.sender_phone}
-                        onChange={(e) => setDetailsForm(prev => ({ ...prev, sender_phone: e.target.value }))}
-                        placeholder={t('jobDetailModal.details.senderPhonePlaceholder')}
-                        className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-3 py-2 text-xs font-mono text-brand-text outline-none focus:border-brand-neon"
-                      />
-                      <div className="grid grid-cols-2 gap-2">
-                        <select
-                          value={detailsForm.pickup_emirate}
-                          onChange={(e) => setDetailsForm(prev => ({ ...prev, pickup_emirate: e.target.value }))}
-                          className="bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
-                        >
-                          {['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'RAK', 'Fujairah', 'UMM Al Quwain'].map(e => <option key={e} value={e}>{e}</option>)}
-                        </select>
-                        <input
-                          value={detailsForm.pickup_location}
-                          onChange={(e) => setDetailsForm(prev => ({ ...prev, pickup_location: e.target.value }))}
-                          placeholder={t('jobDetailModal.details.pickupAddressPlaceholder')}
-                          className="bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">{t('jobDetailModal.details.consignee')}</p>
-                      <input
-                        value={detailsForm.recipient_name}
-                        onChange={(e) => setDetailsForm(prev => ({ ...prev, recipient_name: e.target.value }))}
-                        placeholder={t('jobDetailModal.details.recipientNamePlaceholder')}
-                        className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-3 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
-                      />
-                      <input
-                        value={detailsForm.recipient_phone}
-                        onChange={(e) => setDetailsForm(prev => ({ ...prev, recipient_phone: e.target.value }))}
-                        placeholder={t('jobDetailModal.details.recipientPhonePlaceholder')}
-                        className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-3 py-2 text-xs font-mono text-brand-text outline-none focus:border-brand-neon"
-                      />
-                      <div className="grid grid-cols-2 gap-2">
-                        <select
-                          value={detailsForm.delivery_emirate}
-                          onChange={(e) => setDetailsForm(prev => ({ ...prev, delivery_emirate: e.target.value }))}
-                          className="bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
-                        >
-                          {['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'RAK', 'Fujairah', 'UMM Al Quwain'].map(e => <option key={e} value={e}>{e}</option>)}
-                        </select>
-                        <input
-                          value={detailsForm.delivery_location}
-                          onChange={(e) => setDetailsForm(prev => ({ ...prev, delivery_location: e.target.value }))}
-                          placeholder={t('jobDetailModal.details.deliveryAddressPlaceholder')}
-                          className="bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.item')}</label>
-                      <select
-                        value={detailsForm.item_type}
-                        onChange={(e) => setDetailsForm(prev => ({ ...prev, item_type: e.target.value as ItemType }))}
-                        className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
-                      >
-                        <option value="parcel">{t('jobDetailModal.details.itemTypes.parcel')}</option>
-                        <option value="document">{t('jobDetailModal.details.itemTypes.document')}</option>
-                        <option value="spare_part">{t('jobDetailModal.details.itemTypes.spare_part')}</option>
-                        <option value="other">{t('jobDetailModal.details.itemTypes.other')}</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.urgency')}</label>
-                      <select
-                        value={detailsForm.urgency}
-                        onChange={(e) => setDetailsForm(prev => ({ ...prev, urgency: e.target.value as UrgencyType }))}
-                        className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
-                      >
-                        <option value="immediate">{t('jobDetailModal.details.urgencies.immediate')}</option>
-                        <option value="today">{t('jobDetailModal.details.urgencies.today')}</option>
-                        <option value="scheduled">{t('jobDetailModal.details.urgencies.scheduled')}</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.price')}</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={detailsForm.price_aed}
-                        onChange={(e) => setDetailsForm(prev => ({ ...prev, price_aed: e.target.value }))}
-                        placeholder={t('jobDetailModal.details.pricePlaceholder')}
-                        className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-2 py-2 text-xs font-mono text-brand-text outline-none focus:border-brand-neon"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] uppercase text-brand-muted mb-1">{t('jobDetailModal.details.specialInstructions')}</label>
-                    <textarea
-                      value={detailsForm.special_instructions}
-                      onChange={(e) => setDetailsForm(prev => ({ ...prev, special_instructions: e.target.value }))}
-                      placeholder={t('jobDetailModal.details.instructionsPlaceholder')}
-                      rows={2}
-                      className="w-full bg-brand-bg border border-brand-input-border rounded-xl px-3 py-2 text-xs text-brand-text outline-none focus:border-brand-neon"
-                    />
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Pilot Assignment */}
@@ -909,6 +790,62 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
               </div>
             </div>
 
+            {/* Client tracking links (COC portal /:token/track) — live status,
+                driver/dispatch contact, own OTP, COC PDF once delivered.
+                Sent as-is to external parties, so the message isn't localised. */}
+            <div className="space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-brand-muted">
+                {t('jobDetailModal.tracking.title', { defaultValue: 'Client tracking link' })}
+              </p>
+              {([
+                { id: 'track-sender', label: t('jobDetailModal.tracking.sender', { defaultValue: 'Sender' }), token: job.token_client_pickup, query: '', name: job.sender_name, phone: job.sender_phone },
+                { id: 'track-recipient', label: t('jobDetailModal.tracking.recipient', { defaultValue: 'Recipient' }), token: job.token_client_delivery, query: '?for=recipient', name: job.recipient_name, phone: job.recipient_phone },
+              ]).map((link) => {
+                if (!link.token) return null;
+                const cocDomain = (import.meta.env.VITE_COC_URL || 'https://nokael.ae').replace(/\/$/, '');
+                const url = `${cocDomain}/${link.token}/track${link.query}`;
+                const message = `Hi ${link.name}, track your Nokael delivery (Job #${job.job_ref}) live here — driver location, contact options and your Chain of Custody certificate once delivered:\n${url}`;
+                return (
+                  <div key={link.id} className="flex items-center gap-2 p-2.5 bg-brand-input border border-brand-input-border rounded-xl">
+                    <Navigation className="w-3.5 h-3.5 text-brand-neon shrink-0" />
+                    <span className="text-[11px] font-semibold text-brand-text w-16 shrink-0">{link.label}</span>
+                    <span className="text-[11px] font-mono text-brand-muted truncate flex-1 min-w-0">{url.replace(/^https?:\/\//, '')}</span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(url);
+                        setCopiedStep(link.id);
+                        setTimeout(() => setCopiedStep(null), 2000);
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-brand-surface text-brand-muted hover:text-brand-text transition-all"
+                      title={t('jobDetailModal.verification.copyLinkTitle')}
+                    >
+                      {copiedStep === link.id ? <Check className="w-3.5 h-3.5 text-brand-neon" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                    {link.phone && (
+                      <a
+                        href={`https://wa.me/${link.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-lg hover:bg-brand-surface text-brand-muted hover:text-brand-neon transition-all"
+                        title={t('jobDetailModal.tracking.sendWhatsApp', { defaultValue: 'Send on WhatsApp' })}
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 rounded-lg hover:bg-brand-surface text-brand-muted hover:text-brand-text transition-all"
+                      title={t('jobDetailModal.tracking.open', { defaultValue: 'Open tracking page' })}
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+
           </div>
 
           {/* Right Column: Delivery Verification Steps */}
@@ -931,6 +868,27 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
                   <strong className="text-blue-400">{t('jobDetailModal.verification.howItWorks')}</strong> {t(driverOnly ? 'jobDetailModal.verification.howItWorksBodyDriverOnly' : 'jobDetailModal.verification.howItWorksBody')}
                 </div>
               </div>
+
+              {/* Code-locked: 5 wrong hand-off codes. Only dispatch can unlock. */}
+              {otpLocked && !['completed', 'cancelled', 'returned'].includes(job.status) && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4 flex items-center justify-between gap-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-brand-text leading-relaxed">
+                      {t('jobDetailModal.verification.otpLocked', { defaultValue: 'Code entry is locked after 5 wrong codes. The driver cannot confirm until you unlock it.' })}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleUnlockOtp}
+                    disabled={unlockingOtp}
+                    className="shrink-0 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all"
+                  >
+                    {unlockingOtp ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                    {t('jobDetailModal.verification.unlockOtp', { defaultValue: 'Unlock code entry' })}
+                  </button>
+                </div>
+              )}
 
               {/* Verification Steps List */}
               <div className="space-y-4 relative">
@@ -1064,6 +1022,7 @@ export const JobDetailModal = ({ job, drivers, onClose, onUpdate }: { job: JobWi
             )}
           </div>
         </div>
+        </WriteGuard>
 
         {/* Declare Failed Modal Overlay */}
         <AnimatePresence>

@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NavigateFunction } from 'react-router-dom';
 import { uploadDriverDocument, type Driver } from '../../lib/supabase';
+import { uploadDriverDocFile } from '../../lib/driverAccess';
 
 export function useDriverDocuments(driverId: string | null, navigate: NavigateFunction) {
   const { t } = useTranslation('driverApplication');
@@ -18,26 +19,8 @@ export function useDriverDocuments(driverId: string | null, navigate: NavigateFu
 
     setUploads(prev => ({ ...prev, [type]: { ...prev[type], status: 'uploading' } }));
 
-    const uploadData = new FormData();
-    uploadData.append('file', file);
-
-    const apiKey = import.meta.env.VITE_NOKAEL_API_KEY;
-
     try {
-      const response = await fetch('/api/upload-driver-doc', {
-        method: 'POST',
-        headers: {
-          ...(apiKey ? { 'x-nokael-key': apiKey } : {}),
-        },
-        body: uploadData,
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.details || errData.error || 'Upload failed');
-      }
-
-      const result = await response.json();
+      const result = await uploadDriverDocFile(file);
 
       await uploadDriverDocument({
         driver_id: driverId,

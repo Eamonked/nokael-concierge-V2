@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { submitDriverApplication, type Driver } from '../../lib/supabase';
 import { DAYS_OF_WEEK } from './constants';
+import { driverIdentityConflict } from '../../lib/driverAccess';
 
 export function useDriverApplicationForm() {
   const { t } = useTranslation('driverApplication');
@@ -44,7 +45,8 @@ export function useDriverApplicationForm() {
       setStep(2);
     } catch (error) {
       console.error('Error submitting application:', error);
-      alert(t('errors.submitFailed'));
+      const conflict = driverIdentityConflict(error);
+      alert(conflict === 'phone' ? t('errors.phoneTaken') : conflict === 'email' ? t('errors.emailTaken') : t('errors.submitFailed'));
     } finally {
       setIsSubmitting(false);
     }

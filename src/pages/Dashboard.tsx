@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronDown,
   Bell,
+  Settings,
 } from 'lucide-react';
 import {
   type QuoteRequest,
@@ -28,38 +29,46 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n/config';
 import { cn } from '../lib/utils';
+import { useTheme } from '../context/ThemeContext';
 
 import { StatCard } from './dashboard/components/StatCard';
-import { PipelineView } from './dashboard/PipelineView';
+import { JobsView } from './dashboard/JobsView';
 import { QuotesView } from './dashboard/QuotesView';
 import { BusinessView } from './dashboard/BusinessView';
 import { DriversView } from './dashboard/DriversView';
 // Leaflet is heavy and only the Map tab needs it, so load it on demand.
+import { GeofenceAlerts } from './dashboard/components/GeofenceAlerts';
 const LiveMapView = React.lazy(() => import('./dashboard/LiveMapView').then(m => ({ default: m.LiveMapView })));
 import { TeamPanel } from './dashboard/TeamPanel';
+import { AlertsView } from './dashboard/AlertsView';
+import { SettingsView } from './dashboard/SettingsView';
 import { JobDetailModal } from './dashboard/modals/JobDetailModal';
 import { JobCreateModal } from './dashboard/modals/JobCreateModal';
 import { LostQuoteModal } from './dashboard/modals/LostQuoteModal';
 import { DriverProfileModal } from './dashboard/modals/DriverProfileModal';
 import { BusinessDetailsModal } from './dashboard/modals/BusinessDetailsModal';
+import { BusinessAccountDrawer } from './dashboard/modals/BusinessAccountDrawer';
+import { AddAgentModal } from './dashboard/modals/AddAgentModal';
+import { PermissionsProvider, canWriteRole, READ_ONLY_MESSAGE } from './dashboard/permissions';
 import { useDashboardData } from './dashboard/useDashboardData';
 import { useDashboardActions } from './dashboard/useDashboardActions';
 import { TERMINAL_STATUSES, type StatTone } from './dashboard/constants';
 import {
-  filterRequests,
   filterJobs,
   filterDrivers,
   filterBusinessInquiries,
   getApprovedDrivers,
   getDriverPoolSummary,
   getDashboardStats,
+  getAlerts,
   type JobStatusFilter,
 } from './dashboard/selectors';
 
 export default function Dashboard() {
   const { t } = useTranslation('dashboard');
-  const [activeTab, setActiveTab] = React.useState<'pipeline' | 'map' | 'quotes' | 'drivers' | 'business' | 'team'>('pipeline');
+  const [activeTab, setActiveTab] = React.useState<'pipeline' | 'map' | 'quotes' | 'drivers' | 'business' | 'team' | 'alerts' | 'settings'>('pipeline');
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
 
   const {
     orgId,
@@ -77,14 +86,9 @@ export default function Dashboard() {
     refetch: fetchData,
   } = useDashboardData();
 
-  // ── Shell state (sidebar collapse, dashboard theme, profile menu) ────────────
-  // Dashboard-scoped, independent of the marketing site's global ThemeContext —
-  // the enterprise shell defaults to dark regardless of the visitor's OS/site preference.
+  // ── Shell state (sidebar collapse, profile menu) ────────────
   const [collapsed, setCollapsed] = React.useState(() => {
     try { return localStorage.getItem('nokael-dashboard-sidebar-collapsed') === '1'; } catch { return false; }
-  });
-  const [dashboardTheme, setDashboardTheme] = React.useState<'Dark' | 'Light'>(() => {
-    try { return localStorage.getItem('nokael-dashboard-theme') === 'Light' ? 'Light' : 'Dark'; } catch { return 'Dark'; }
   });
   const [profileOpen, setProfileOpen] = React.useState(false);
   const profileRef = React.useRef<HTMLDivElement>(null);
@@ -95,11 +99,6 @@ export default function Dashboard() {
       try { localStorage.setItem('nokael-dashboard-sidebar-collapsed', next ? '1' : '0'); } catch { /* ignore */ }
       return next;
     });
-  };
-
-  const setDashboardThemeAndPersist = (next: 'Dark' | 'Light') => {
-    setDashboardTheme(next);
-    try { localStorage.setItem('nokael-dashboard-theme', next); } catch { /* ignore */ }
   };
 
   const isArabic = i18n.language === 'ar';
@@ -118,6 +117,9 @@ export default function Dashboard() {
   const [selectedBusiness, setSelectedBusiness] = React.useState<BusinessInquiry | null>(null);
   const [selectedJob, setSelectedJob] = React.useState<JobWithDriver | null>(null);
   const [showJobCreateModal, setShowJobCreateModal] = React.useState(false);
+  const [showAddAgentModal, setShowAddAgentModal] = React.useState(false);
+  const [editingJob, setEditingJob] = React.useState<JobWithDriver | null>(null);
+  const [duplicatingJob, setDuplicatingJob] = React.useState<JobWithDriver | null>(null);
   const [jobPrefillData, setJobPrefillData] = React.useState<Partial<Job> | undefined>(undefined);
   const [lostModalQuote, setLostModalQuote] = React.useState<QuoteRequest | null>(null);
 
@@ -166,10 +168,21 @@ export default function Dashboard() {
       delivery_location: quote.delivery_location,
       item_type: quote.item_type as any,
       urgency: quote.urgency as any,
+      company_name: quote.company_name || '',
       quote_id: quote.id,
     });
     setShowJobCreateModal(true);
   };
+
+  // Viewers are read-only (enforced by RLS). Every write entry point below is
+  // passed through `guard` so a viewer gets a clear message instead of an error.
+  const canWrite = canWriteRole(currentRole);
+  const guard = <A extends unknown[], R>(fn: (...args: A) => R) =>
+    canWrite ? fn : (..._args: A): R => {
+      alert(READ_ONLY_MESSAGE);
+      // Resolved promise so callers that await the handler still work.
+      return Promise.resolve() as unknown as R;
+    };
 
   const handleLogout = async () => {
     await clearStaleAuthSession();
@@ -177,13 +190,14 @@ export default function Dashboard() {
   };
 
   // ── Derived data ─────────────────────────────────────────────────────────────
-  const filteredRequests  = filterRequests(requests, searchTerm, filterStatus);
   const filteredJobs      = filterJobs(jobs, searchTerm, jobStatusFilter);
   const filteredDrivers   = filterDrivers(drivers, searchTerm, filterStatus, filterVehicle);
   const filteredBusiness  = filterBusinessInquiries(businessInquiries, searchTerm);
   const approvedDrivers   = getApprovedDrivers(drivers);
   const driverPoolSummary = getDriverPoolSummary(drivers);
   const stats             = getDashboardStats(requests, drivers, businessInquiries);
+  const alerts             = React.useMemo(() => getAlerts(jobs), [jobs]);
+  const criticalAlertCount = alerts.filter(a => a.severity === 'critical').length;
 
   // ── Loading gate ─────────────────────────────────────────────────────────────
   if (loading && !selectedDriver) {
@@ -202,6 +216,8 @@ export default function Dashboard() {
     { id: 'drivers',  label: t('nav.drivers'),  icon: Truck,    badge: stats.pendingDrivers },
     { id: 'business', label: t('nav.business'), icon: Shield,   badge: stats.pendingBusiness },
     { id: 'team',     label: t('nav.team'),     icon: Users },
+    { id: 'alerts',   label: t('nav.alerts'),   icon: Bell,     badge: criticalAlertCount },
+    { id: 'settings', label: t('nav.settings'), icon: Settings },
   ];
 
   const TAB_META: Record<typeof activeTab, { title: string; subtitle: string }> = {
@@ -211,6 +227,8 @@ export default function Dashboard() {
     drivers:  { title: t('tabMeta.drivers.title'),  subtitle: t('tabMeta.drivers.subtitle') },
     business: { title: t('tabMeta.business.title'), subtitle: t('tabMeta.business.subtitle') },
     team:     { title: t('tabMeta.team.title'),     subtitle: t('tabMeta.team.subtitle') },
+    alerts:   { title: t('tabMeta.alerts.title'),   subtitle: t('tabMeta.alerts.subtitle') },
+    settings: { title: t('tabMeta.settings.title'), subtitle: t('tabMeta.settings.subtitle') },
   };
 
   const jobsActive    = jobs.filter(j => !TERMINAL_STATUSES.includes(j.status)).length;
@@ -226,33 +244,20 @@ export default function Dashboard() {
   const hasUrgentBadges = (stats.pending + stats.pendingDrivers + stats.pendingBusiness) > 0;
 
   const CONTEXT_STATS: Record<typeof activeTab, { title: string; value: number; icon: any; tone?: StatTone }[]> = {
-    pipeline: [
-      { title: t('stats.active'),    value: jobsActive,                                           icon: Zap,          tone: 'attention' },
-      { title: t('stats.pending'),   value: jobs.filter(j => j.status === 'pending').length,      icon: Clock,        tone: 'pending'   },
-      { title: t('stats.completed'), value: jobsCompleted,                                        icon: CheckCircle2, tone: 'complete'  },
-    ],
-    quotes: [
-      { title: t('stats.new'),       value: stats.pending,   icon: Clock,         tone: 'attention' },
-      { title: t('stats.total'),     value: stats.total,     icon: LayoutDashboard                 },
-      { title: t('stats.completed'), value: stats.completed, icon: CheckCircle2,  tone: 'complete'  },
-    ],
-    drivers: [
-      { title: t('stats.needsReview'), value: stats.pendingDrivers,    icon: Clock,         tone: 'attention' },
-      { title: t('stats.total'),       value: stats.drivers,           icon: Truck                            },
-      { title: t('stats.active'),      value: approvedDrivers.length,  icon: CheckCircle2,  tone: 'complete'  },
-    ],
-    business: [
-      { title: t('stats.new'),   value: stats.pendingBusiness,                               icon: Clock,         tone: 'attention' },
-      { title: t('stats.total'), value: stats.business,                                      icon: Shield                           },
-      { title: t('stats.active'), value: businessInquiries.filter(b => b.status === 'active').length, icon: CheckCircle2, tone: 'complete' },
-    ],
+    pipeline: [],  // JobsView has its own stat cards with additional metrics
+    quotes: [],
+    drivers: [],  // Removed duplicate stats - DriversView has its own metric filters
+    business: [],  // BusinessView has its own metric filters
     map: [],
     team: [],
+    alerts: [],
+    settings: [],
   };
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className={cn('app enterprise-mode', dashboardTheme === 'Light' && 'light')} dir={isArabic ? 'rtl' : 'ltr'}>
+    <PermissionsProvider role={currentRole}>
+    <div className={cn('app enterprise-mode', theme === 'light' && 'light')} dir={isArabic ? 'rtl' : 'ltr'}>
 
       {/* ── Sidebar (desktop / md+; hidden below 768px via index.css) ─────────── */}
       <aside className={cn('sidebar', collapsed && 'collapsed')}>
@@ -316,6 +321,11 @@ export default function Dashboard() {
             <p>{TAB_META[activeTab].subtitle}</p>
           </div>
           <div className="top-actions">
+            {currentRole === 'viewer' && (
+              <span className="neutral-badge" title={READ_ONLY_MESSAGE} style={{ fontSize: 11, padding: '5px 10px' }}>
+                {t('profile.viewOnly', { defaultValue: 'View only' })}
+              </span>
+            )}
             <button className="notification" aria-label={t('profile.notifications')}>
               <Bell className="w-[17px] h-[17px]" />
               {hasUrgentBadges && <i />}
@@ -349,8 +359,8 @@ export default function Dashboard() {
                   <div className="profile-setting">
                     <span>{t('profile.appearance')}</span>
                     <div className="toggle">
-                      <button className={dashboardTheme === 'Dark' ? 'active' : ''} onClick={() => setDashboardThemeAndPersist('Dark')}>Dark</button>
-                      <button className={dashboardTheme === 'Light' ? 'active' : ''} onClick={() => setDashboardThemeAndPersist('Light')}>Light</button>
+                      <button className={theme === 'dark' ? 'active' : ''} onClick={() => setTheme('dark')}>Dark</button>
+                      <button className={theme === 'light' ? 'active' : ''} onClick={() => setTheme('light')}>Light</button>
                     </div>
                   </div>
                 </div>
@@ -396,7 +406,7 @@ export default function Dashboard() {
         </nav>
 
         {/* Content */}
-        <div className="page-body max-w-[1600px] w-full mx-auto">
+        <div className={cn('page-body', activeTab === 'pipeline' && 'jw-page', activeTab === 'drivers' && 'enterprise-page')}>
 
           {error && (
             <div className="mb-6 p-5 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500">
@@ -420,43 +430,61 @@ export default function Dashboard() {
 
           {/* Active view */}
           {activeTab === 'pipeline' ? (
-            <PipelineView
+            <JobsView
               jobs={jobs}
-              filteredJobs={filteredJobs}
-              jobViewMode={jobViewMode}
-              setJobViewMode={setJobViewMode}
-              jobStatusFilter={jobStatusFilter}
-              setJobStatusFilter={setJobStatusFilter}
-              onNewJob={() => setShowJobCreateModal(true)}
-              onJobClick={setSelectedJob}
+              drivers={drivers}
+              onUpdate={fetchData}
+              onNewJob={guard(() => setShowJobCreateModal(true))}
+              onOpenMap={() => setActiveTab('map')}
+              onManageJob={setSelectedJob}
+              onEditJob={guard(setEditingJob)}
+              onDuplicateJob={guard(setDuplicatingJob)}
             />
           ) : activeTab === 'map' ? (
             <React.Suspense fallback={<div className="h-[420px] rounded-2xl border border-brand-border bg-brand-input animate-pulse" />}>
-              <LiveMapView jobs={jobs} onJobClick={setSelectedJob} />
+              <LiveMapView jobs={jobs} drivers={drivers} orgId={orgId} onJobClick={setSelectedJob} onChanged={fetchData} />
             </React.Suspense>
           ) : activeTab === 'quotes' ? (
             <QuotesView
-              filteredRequests={filteredRequests}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              filterStatus={filterStatus}
-              setFilterStatus={setFilterStatus}
-              onStatusUpdate={handleStatusUpdate}
-              onReopenQuote={handleReopenQuote}
-              onConvertToJob={handleConvertToJob}
-              onMarkLost={setLostModalQuote}
-              onDelete={handleDelete}
+              requests={requests}
+              onStatusUpdate={guard(handleStatusUpdate)}
+              onReopenQuote={guard(handleReopenQuote)}
+              onConvertToJob={guard(handleConvertToJob)}
+              onMarkLost={guard(setLostModalQuote)}
+              onDelete={guard(handleDelete)}
+              onNewQuote={guard(() => {
+                setJobPrefillData(undefined);
+                setShowJobCreateModal(true);
+              })}
             />
           ) : activeTab === 'business' ? (
             <BusinessView
               filteredBusiness={filteredBusiness}
+              jobs={jobs}
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
-              onStatusUpdate={handleBusinessUpdate}
+              onStatusUpdate={guard(handleBusinessUpdate)}
               onViewDetails={setSelectedBusiness}
+              onRefresh={fetchData}
             />
           ) : activeTab === 'team' ? (
             <TeamPanel orgId={orgId} currentRole={currentRole} />
+          ) : activeTab === 'alerts' ? (
+            <AlertsView
+              alerts={alerts}
+              onOpenJob={(jobId) => {
+                const job = jobs.find(j => j.id === jobId);
+                if (job) setSelectedJob(job);
+              }}
+            />
+          ) : activeTab === 'settings' ? (
+            <SettingsView
+              theme={theme}
+              onThemeChange={setTheme}
+              userEmail={userEmail ?? undefined}
+              orgId={orgId}
+              currentRole={currentRole}
+            />
           ) : (
             <DriversView
               driverPoolSummary={driverPoolSummary}
@@ -467,13 +495,17 @@ export default function Dashboard() {
               setFilterStatus={setFilterStatus}
               filterVehicle={filterVehicle}
               setFilterVehicle={setFilterVehicle}
-              onDriverStatusUpdate={handleDriverStatusUpdate}
+              onDriverStatusUpdate={guard(handleDriverStatusUpdate)}
               onViewDriver={handleViewDriver}
+              onAddAgent={guard(() => setShowAddAgentModal(true))}
             />
           )}
 
         </div>
       </main>
+
+      {/* Driver near pickup / drop-off, on any tab */}
+      <GeofenceAlerts jobs={jobs} onOpenJob={setSelectedJob} />
 
       {/* ── Modals ──────────────────────────────────────────────────────────── */}
       <AnimatePresence>
@@ -481,14 +513,14 @@ export default function Dashboard() {
           <DriverProfileModal
             driver={selectedDriver}
             onClose={() => setSelectedDriver(null)}
-            onDriverStatusUpdate={handleDriverStatusUpdate}
+            onDriverStatusUpdate={guard(handleDriverStatusUpdate)}
           />
         )}
         {selectedBusiness && (
-          <BusinessDetailsModal
+          <BusinessAccountDrawer
             business={selectedBusiness}
             onClose={() => setSelectedBusiness(null)}
-            onBusinessUpdate={handleBusinessUpdate}
+            onUpdate={guard(handleBusinessUpdate)}
           />
         )}
         {selectedJob && (
@@ -499,11 +531,33 @@ export default function Dashboard() {
             onUpdate={fetchData}
           />
         )}
+        {editingJob && (
+          <JobCreateModal
+            key={`edit-${editingJob.id}`}
+            editJob={editingJob}
+            drivers={approvedDrivers}
+            businessInquiries={businessInquiries}
+            onClose={() => setEditingJob(null)}
+            onSuccess={fetchData}
+          />
+        )}
+        {duplicatingJob && (
+          <JobCreateModal
+            key={`dup-${duplicatingJob.id}`}
+            duplicateFrom={duplicatingJob}
+            drivers={approvedDrivers}
+            businessInquiries={businessInquiries}
+            onClose={() => setDuplicatingJob(null)}
+            onSuccess={fetchData}
+          />
+        )}
         {showJobCreateModal && (
           <JobCreateModal
             key={jobPrefillData?.quote_id || 'manual-new'}
             initialData={jobPrefillData}
+            quoteRef={requests.find(r => r.id === jobPrefillData?.quote_id)?.tracking_id}
             drivers={approvedDrivers}
+            businessInquiries={businessInquiries}
             onClose={() => {
               setShowJobCreateModal(false);
               setJobPrefillData(undefined);
@@ -518,8 +572,15 @@ export default function Dashboard() {
             onConfirm={handleConfirmMarkLost}
           />
         )}
+        {showAddAgentModal && (
+          <AddAgentModal
+            onClose={() => setShowAddAgentModal(false)}
+            onSuccess={fetchData}
+          />
+        )}
       </AnimatePresence>
 
     </div>
+    </PermissionsProvider>
   );
 }

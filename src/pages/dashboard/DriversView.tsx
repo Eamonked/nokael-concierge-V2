@@ -15,6 +15,7 @@ interface DriversViewProps {
   setFilterVehicle: (v: string) => void;
   onDriverStatusUpdate: (id: string, updates: Partial<Driver>) => void;
   onViewDriver: (id: string) => void;
+  onAddAgent: () => void;
 }
 
 export function DriversView({
@@ -28,170 +29,186 @@ export function DriversView({
   setFilterVehicle,
   onDriverStatusUpdate,
   onViewDriver,
+  onAddAgent,
 }: DriversViewProps) {
   const { t } = useTranslation('dashboard');
+  
+  // Calculate metrics
+  const totalFleet = filteredDrivers.length;
+  const activeAgents = filteredDrivers.filter(d => d.status === 'available').length;
+  const pendingAgents = filteredDrivers.filter(d => d.pipeline_status === 'Screening' || d.pipeline_status === 'Docs Pending').length;
+  const slaWarning = filteredDrivers.filter(d => d.status === 'on_job').length;
+  
   return (
     <>
-      {/* Driver Pool Summary - matching Excel tracker targets */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="dispatch-card p-4">
-          <div className="text-xs uppercase tracking-wide text-brand-muted font-medium mb-2">{t('drivers.pool.dubaiActive')}</div>
-          <div className="text-2xl font-bold text-brand-text">
-            {driverPoolSummary.dubaiActive}
-            <span className="text-sm text-brand-muted font-normal">/{driverPoolSummary.dubaiTarget}</span>
-          </div>
+      {/* Top actions bar */}
+      <div className="enterprise-actions">
+        <div>
+          <span className="record-count">
+            {totalFleet} agents across 7 emirates
+          </span>
         </div>
-        <div className="dispatch-card p-4">
-          <div className="text-xs uppercase tracking-wide text-brand-muted font-medium mb-2">{t('drivers.pool.abuDhabiActive')}</div>
-          <div className="text-2xl font-bold text-brand-text">
-            {driverPoolSummary.abuDhabiActive}
-            <span className="text-sm text-brand-muted font-normal">/{driverPoolSummary.abuDhabiTarget}</span>
-          </div>
-        </div>
-        <div className="dispatch-card p-4">
-          <div className="text-xs uppercase tracking-wide text-brand-muted font-medium mb-2">{t('drivers.pool.totalActive')}</div>
-          <div className="text-2xl font-bold text-brand-neon">
-            {driverPoolSummary.totalActive}
-            <span className="text-sm text-brand-muted font-normal">/{driverPoolSummary.totalTarget}</span>
-          </div>
-        </div>
-        <div className="dispatch-card p-4">
-          <div className="text-xs uppercase tracking-wide text-brand-muted font-medium mb-2">{t('drivers.pool.inPipeline')}</div>
-          <div className="text-2xl font-bold text-blue-400">
-            {driverPoolSummary.inPipeline}
-          </div>
+        <div>
+          <button className="outline-button">Export CSV</button>
+          <button className="dark-button" onClick={onAddAgent}>
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 3v14M3 10h14" />
+            </svg>
+            Add Agent
+          </button>
         </div>
       </div>
       
-      <div className="dispatch-card overflow-hidden p-0">
-      <div className="p-5 border-b border-brand-border flex flex-col md:flex-row justify-end items-center gap-3">
-        <div className="relative w-full md:w-64">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
-          <input 
-            type="text" 
-            placeholder={t('drivers.searchPlaceholder')}
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-            className="w-full bg-brand-input border border-brand-input-border rounded-xl py-2.5 pl-10 pr-4 text-xs focus:border-brand-neon/50 outline-none transition-all"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
+      {/* Metric filter buttons */}
+      <div className="metric-filters">
+        <button
+          className={filterStatus === 'all' ? 'selected' : ''}
+          onClick={() => setFilterStatus('all')}
+        >
+          <span>Total Fleet</span>
+          <strong>{totalFleet}</strong>
+          <small>All registered agents</small>
+        </button>
+        <button
+          className={filterStatus === 'Active' ? 'selected' : ''}
+          onClick={() => setFilterStatus('Active')}
+        >
+          <span>Active / Online</span>
+          <strong>{activeAgents}</strong>
+          <small>Available now</small>
+        </button>
+        <button
+          className={slaWarning > 0 ? '' : ''}
+          onClick={() => setFilterStatus('on_job')}
+        >
+          <span>SLA Warning</span>
+          <strong>{String(slaWarning).padStart(2, '0')}</strong>
+          <small>Immediate action required</small>
+        </button>
+        <button
+          className={filterStatus === 'Screening' || filterStatus === 'Docs Pending' ? 'selected' : ''}
+          onClick={() => setFilterStatus('Docs Pending')}
+        >
+          <span>Pending Review</span>
+          <strong>{String(pendingAgents).padStart(2, '0')}</strong>
+          <small>Documents awaiting sign-off</small>
+        </button>
+      </div>
+      
+      {/* Operations card with table */}
+      <div className="operations-card">
+        {/* Operations toolbar */}
+        <div className="operations-toolbar">
+          <label className="enterprise-search">
+            <Search size={15} />
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search name, phone, plate, or ID..."
+            />
+            <kbd>⌘K</kbd>
+          </label>
+          <div className="facet-filters">
+            <label>
+              <span>STATUS</span>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                <option value="all">All statuses</option>
+                <option value="available">Active / Online</option>
+                <option value="on_job">SLA Risk</option>
+                <option value="Docs Pending">Pending Review</option>
+                <option value="offline">Offline</option>
+              </select>
+            </label>
+            <label>
+              <span>VEHICLE</span>
+              <select
+                value={filterVehicle}
+                onChange={(e) => setFilterVehicle(e.target.value)}
+              >
+                <option value="all">All vehicles</option>
+                <option value="Cargo Van">Cargo Van</option>
+                <option value="Motorbike">Motorbike</option>
+                <option value="Box Truck">Box Truck</option>
+              </select>
+            </label>
+          </div>
+          <div className="bulk-actions">
+            <b>0 selected</b>
+            <button>Bulk Assign</button>
+            <button>Send Message</button>
+            <button>Export Selected</button>
+          </div>
         </div>
-        <select 
-          className="bg-brand-input border border-brand-input-border rounded-xl px-4 py-2.5 text-xs font-medium outline-none focus:border-brand-neon/50 w-full md:w-auto"
-          value={['Sourced', 'Screening', 'Docs Pending', 'Trial Scheduled', 'Active', 'Rejected'].includes(filterStatus) ? filterStatus : 'all'}
-          onChange={e => setFilterStatus(e.target.value)}
-        >
-          <option value="all">{t('drivers.stageFilter.all')}</option>
-          <option value="Sourced">{t('drivers.stageFilter.sourced')}</option>
-          <option value="Screening">{t('drivers.stageFilter.screening')}</option>
-          <option value="Docs Pending">{t('drivers.stageFilter.docsPending')}</option>
-          <option value="Trial Scheduled">{t('drivers.stageFilter.trialScheduled')}</option>
-          <option value="Active">{t('drivers.stageFilter.active')}</option>
-          <option value="Rejected">{t('drivers.stageFilter.rejected')}</option>
-        </select>
-        <select 
-          className="bg-brand-input border border-brand-input-border rounded-xl px-4 py-2.5 text-xs font-medium outline-none focus:border-brand-neon/50 w-full md:w-auto"
-          value={filterVehicle}
-          onChange={e => setFilterVehicle(e.target.value)}
-        >
-          <option value="all">{t('drivers.vehicleFilter.all')}</option>
-          <option value="Sedan">{t('drivers.vehicleFilter.sedan')}</option>
-          <option value="Executive SUV">{t('drivers.vehicleFilter.executiveSuv')}</option>
-          <option value="Panel Van">{t('drivers.vehicleFilter.panelVan')}</option>
-          <option value="Motorcycle (License R)">{t('drivers.vehicleFilter.motorcycle')}</option>
-          <option value="3-Ton Pickup">{t('drivers.vehicleFilter.pickup3Ton')}</option>
-        </select>
+        
+        {/* Enterprise table */}
+        <div className="enterprise-table agent-table">
+          <div className="enterprise-head">
+            <input type="checkbox" />
+            <span>AGENT</span>
+            <span>VEHICLE TYPE</span>
+            <span>LICENSE PLATE</span>
+            <span>STATUS</span>
+            <span>LOCATION / LAST ACTIVE</span>
+            <span>ACTION</span>
+          </div>
+          {filteredDrivers.map((driver, index) => (
+            <div
+              key={driver.id}
+              className="enterprise-row"
+              onClick={() => onViewDriver(driver.id!)}
+            >
+              <input
+                type="checkbox"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <span className="enterprise-profile">
+                <span className="avatar" style={{ background: `hsl(${index * 45}, 45%, 45%)` }}>
+                  {driver.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '??'}
+                </span>
+                <span>
+                  <b>{driver.full_name}</b>
+                  <small>
+                    <span>{driver.phone}</span>
+                  </small>
+                </span>
+              </span>
+              <span>
+                <em className="neutral-badge">{driver.vehicle_type}</em>
+              </span>
+              <span className="mono">
+                {driver.vehicle_registration || '—'}
+              </span>
+              <span>
+                <span className={`plain-status ${driver.status === 'available' ? '' : driver.status === 'on_job' ? 'sla-risk' : 'offline'}`}>
+                  <i />
+                  {driver.status === 'available' ? 'Available' : driver.status === 'on_job' ? 'On Delivery' : 'Offline'}
+                </span>
+              </span>
+              <span className="context-cell">
+                {driver.base_location || 'No location'}
+              </span>
+              <span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onViewDriver(driver.id!);
+                  }}
+                  className="overflow-button"
+                >
+                  <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <circle cx="4" cy="10" r=".7" fill="currentColor" />
+                    <circle cx="10" cy="10" r=".7" fill="currentColor" />
+                    <circle cx="16" cy="10" r=".7" fill="currentColor" />
+                  </svg>
+                </button>
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
-
-      <div className="overflow-x-auto no-scrollbar">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="bg-brand-input text-[11px] uppercase tracking-wide font-medium text-brand-muted">
-              <th className="px-6 py-3">{t('drivers.table.driver')}</th>
-              <th className="px-6 py-3">{t('drivers.table.vehicle')}</th>
-              <th className="px-6 py-3">{t('drivers.table.rating')}</th>
-              <th className="px-6 py-3">{t('drivers.table.status')}</th>
-              <th className="px-6 py-3">{t('drivers.table.application')}</th>
-              <th className="px-6 py-3 text-right">{t('drivers.table.actions')}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-brand-border">
-            {filteredDrivers.map((driver) => (
-              <tr key={driver.id} className="hover:bg-brand-input transition-colors group">
-                <td className="px-6 py-4">
-                  <div className="font-medium text-brand-text mb-1.5 text-sm">{driver.full_name}</div>
-                  <div className="text-xs text-brand-muted font-medium">{driver.phone}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm font-medium mb-1.5">{driver.vehicle_type}</div>
-                  <div className="text-xs uppercase tracking-wide text-brand-muted font-medium">{driver.base_location}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-                    <span className="text-sm font-medium text-brand-text">{driver.reliability_score || t('drivers.new')}</span>
-                    <span className="text-xs text-brand-muted">• {t('drivers.tier')} {driver.tier}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  {(() => {
-                    const statusMap: Record<string, { label: string; dot: string; text: string }> = {
-                      available: { label: t('drivers.status.available'), dot: 'bg-emerald-500', text: 'text-emerald-500' },
-                      on_job: { label: t('drivers.status.onJob'), dot: 'bg-blue-500', text: 'text-blue-500' },
-                      offline: { label: t('drivers.status.offline'), dot: 'bg-brand-muted', text: 'text-brand-muted' },
-                    };
-                    const cfg = statusMap[driver.status || 'offline'] || statusMap.offline;
-                    return (
-                      <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
-                        <span className={`text-xs font-medium ${cfg.text}`}>{cfg.label}</span>
-                      </div>
-                    );
-                  })()}
-                </td>
-                <td className="px-6 py-4">
-                  {(() => {
-                    const stage = driver.pipeline_status || 'Sourced';
-                    const stageStyles: Record<string, string> = {
-                      'Sourced': 'bg-slate-500/5 border-slate-500/20 text-slate-400',
-                      'Screening': 'bg-blue-500/5 border-blue-500/20 text-blue-400',
-                      'Docs Pending': 'bg-yellow-500/5 border-yellow-500/20 text-yellow-500',
-                      'Trial Scheduled': 'bg-purple-500/5 border-purple-500/20 text-purple-400',
-                      'Active': 'bg-brand-neon/5 border-brand-neon/20 text-brand-neon',
-                      'Rejected': 'bg-red-500/5 border-red-500/20 text-red-500',
-                    };
-                    return (
-                      <select 
-                        value={stage}
-                        onChange={(e) => onDriverStatusUpdate(driver.id!, { pipeline_status: e.target.value as any })}
-                        className={`text-[11px] font-medium tracking-wide px-3 py-2 rounded-lg border outline-none transition-all ${stageStyles[stage] || stageStyles['Sourced']}`}
-                      >
-                        <option value="Sourced">{t('drivers.stageFilter.sourced')}</option>
-                        <option value="Screening">{t('drivers.stageFilter.screening')}</option>
-                        <option value="Docs Pending">{t('drivers.stageFilter.docsPending')}</option>
-                        <option value="Trial Scheduled">{t('drivers.stageFilter.trialScheduled')}</option>
-                        <option value="Active">{t('drivers.stageFilter.active')}</option>
-                        <option value="Rejected">{t('drivers.stageFilter.rejected')}</option>
-                      </select>
-                    );
-                  })()}
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button 
-                    onClick={() => onViewDriver(driver.id!)}
-                    className="px-4 py-2 bg-brand-input border border-brand-border text-brand-text text-xs font-medium rounded-lg hover:bg-brand-surface hover:border-brand-neon/30 transition-all"
-                  >
-                    {t('drivers.view')}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
     </>
   );
 }

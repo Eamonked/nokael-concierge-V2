@@ -77,11 +77,18 @@ export function useDashboardData() {
         } else {
           setUserEmail(session.user?.email ?? null);
           fetchData();
-          getCurrentUserOrg().then((org) => {
-            if (!isMounted || !org) return;
+          getCurrentUserOrg().then(async (org) => {
+            if (!isMounted) return;
+            if (!org) {
+              // Signed in, but no longer (or never) on the team: don't leave
+              // them on an empty dashboard.
+              await supabase?.auth.signOut();
+              navigate('/login?reason=no_access');
+              return;
+            }
             setOrgId(org.orgId);
             setCurrentRole(org.role);
-          });
+          }).catch((err) => console.warn('[Dashboard] Could not load team membership:', err));
         }
       })
       .catch((err) => {

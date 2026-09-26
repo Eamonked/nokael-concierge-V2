@@ -32,16 +32,16 @@ const Hero = () => {
             srcSet="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=60&w=1024&fm=webp" 
           />
           <img 
-            src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=40&w=1200&fm=webp" 
+            src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=60&w=1200&fm=webp" 
             alt="Dubai to Abu Dhabi Highway" 
             width="1200"
             height="675"
             fetchPriority="high"
-            className="w-full h-full object-cover opacity-40"
+            className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
           />
         </picture>
-        <div className="absolute inset-0 bg-gradient-to-b from-brand-bg/60 via-brand-bg/85 to-brand-bg" />
+        <div className="hero-scrim absolute inset-0" />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20 relative z-10 w-full">
@@ -59,13 +59,13 @@ const Hero = () => {
               <span>{t('hero.badge')}</span>
             </div>
             
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-medium leading-[1.1] tracking-[-0.02em] mb-6 text-brand-text">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-medium leading-[1.1] tracking-[-0.02em] mb-6 hero-fg">
               {t('hero.titleLine1')}<br />
               <span className="text-brand-neon font-normal">{t('hero.titleLine2')}</span><br />
-              <span className="text-brand-muted text-3xl md:text-5xl lg:text-6xl font-normal">{t('hero.titleLine3')}</span>
+              <span className="hero-fg text-3xl md:text-5xl lg:text-6xl font-normal">{t('hero.titleLine3')}</span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-brand-muted font-normal mb-12 max-w-xl leading-relaxed">
+            <p className="text-xl md:text-2xl hero-fg font-normal mb-12 max-w-xl leading-relaxed">
               {t('hero.subtitleLine1')}<br />
               {t('hero.subtitleLine2')}
             </p>
@@ -90,7 +90,7 @@ const Hero = () => {
               
               <a
                 href={`tel:${PHONE_NUMBER}`}
-                onClick={trackPhoneClick}
+                onClick={() => trackPhoneClick('hero')}
                 className="btn-secondary px-10 py-6"
               >
                 <Phone className="w-5 h-5" />
@@ -99,7 +99,7 @@ const Hero = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-4 mb-12">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-neon/10 border border-brand-neon/20">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full hero-glass">
                 <CheckCircle2 className="w-3.5 h-3.5 text-brand-neon" />
                 <span className="text-[11px] font-semibold text-brand-neon">{t('hero.badgeLicensed')}</span>
               </div>
@@ -109,22 +109,22 @@ const Hero = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 border-t border-brand-border pt-12">
-              <div>
-                <p className="text-[11px] uppercase tracking-wider text-brand-muted mb-3 font-semibold">{t('hero.stats.avgDispatch.label')}</p>
-                <p className="text-3xl font-display font-semibold tracking-tight">{t('hero.stats.avgDispatch.value')}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="hero-glass rounded-2xl p-3 sm:p-4">
+                <p className="hero-fg-soft text-[11px] uppercase tracking-wider mb-3 font-semibold">{t('hero.stats.avgDispatch.label')}</p>
+                <p className="text-2xl sm:text-3xl font-display font-semibold tracking-tight hero-fg">{t('hero.stats.avgDispatch.value')}</p>
               </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-wider text-brand-muted mb-3 font-semibold">{t('hero.stats.sameDay.label')}</p>
-                <p className="text-3xl font-display font-semibold tracking-tight text-brand-neon">{t('hero.stats.sameDay.priceTemplate', { price: PRICE_TIER_SAME_DAY })}</p>
+              <div className="hero-glass rounded-2xl p-3 sm:p-4">
+                <p className="hero-fg-soft text-[11px] uppercase tracking-wider mb-3 font-semibold">{t('hero.stats.sameDay.label')}</p>
+                <p className="text-2xl sm:text-3xl font-display font-semibold tracking-tight text-brand-neon hero-shadow">{t('hero.stats.sameDay.priceTemplate', { price: PRICE_TIER_SAME_DAY })}</p>
               </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-wider text-brand-muted mb-3 font-semibold">{t('hero.stats.dedicated.label')}</p>
-                <p className="text-3xl font-display font-semibold tracking-tight">{t('hero.stats.dedicated.priceTemplate', { price: PRICE_TIER_DEDICATED })}</p>
+              <div className="hero-glass rounded-2xl p-3 sm:p-4">
+                <p className="hero-fg-soft text-[11px] uppercase tracking-wider mb-3 font-semibold">{t('hero.stats.dedicated.label')}</p>
+                <p className="text-2xl sm:text-3xl font-display font-semibold tracking-tight hero-fg">{t('hero.stats.dedicated.priceTemplate', { price: PRICE_TIER_DEDICATED })}</p>
               </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-wider text-brand-muted mb-3 font-semibold">{t('hero.stats.tracking.label')}</p>
-                <p className="text-3xl font-display font-semibold tracking-tight">{t('hero.stats.tracking.value')}</p>
+              <div className="hero-glass rounded-2xl p-3 sm:p-4">
+                <p className="hero-fg-soft text-[11px] uppercase tracking-wider mb-3 font-semibold">{t('hero.stats.tracking.label')}</p>
+                <p className="text-2xl sm:text-3xl font-display font-semibold tracking-tight hero-fg">{t('hero.stats.tracking.value')}</p>
               </div>
             </div>
           </motion.div>
@@ -132,9 +132,9 @@ const Hero = () => {
           <div
             className="hidden lg:block relative"
           >
-            <div className="dispatch-card relative z-10 rotate-2 translate-x-4">
+            <div className="dispatch-card hero-glass relative z-10 rotate-2 translate-x-4">
               <div className="flex items-center justify-between mb-6">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-brand-muted">{t('hero.liveCard.label')}</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest hero-fg-soft">{t('hero.liveCard.label')}</span>
                 <span className="flex items-center gap-1.5 text-[10px] font-bold text-brand-neon">
                   <span className="w-1.5 h-1.5 rounded-full bg-brand-neon animate-pulse inline-block" />
                   {t('hero.liveCard.active')}
@@ -147,10 +147,10 @@ const Hero = () => {
                   { key: '2', time: '11:05', from: 'Downtown', to: 'Khalifa City', status: 'dispatched' },
                 ].map((job, i) => (
                   <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-brand-input border border-brand-input-border">
-                    <span className="text-[10px] font-mono text-brand-muted w-10 shrink-0">{job.time}</span>
+                    <span className="text-[10px] font-mono hero-fg-soft w-10 shrink-0">{job.time}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-brand-text truncate">{job.from} → {job.to}</p>
-                      <p className="text-[10px] text-brand-muted">{t(`hero.liveCard.jobs.${job.key}.item`)}</p>
+                      <p className="text-[10px] hero-fg-soft">{t(`hero.liveCard.jobs.${job.key}.item`)}</p>
                     </div>
                     <span className={cn(
                       'text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md shrink-0',
@@ -563,7 +563,7 @@ const FinalAction = () => {
           
           <a
             href={`tel:${PHONE_NUMBER}`}
-            onClick={trackPhoneClick}
+            onClick={() => trackPhoneClick('final_cta')}
             className="btn-secondary px-12 py-6 text-lg"
           >
             <Phone className="w-6 h-6" />

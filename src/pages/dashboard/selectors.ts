@@ -103,6 +103,126 @@ export function filterBusinessInquiries(
   });
 }
 
+// ==========================================
+// Business Accounts (jobs.business_id derived)
+// ==========================================
+// Pure derivations replacing the Business tab's former Math.random() mock
+// data. All of these operate on whatever job list the caller already has —
+// they don't fetch anything themselves.
+
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Every job linked to a given business account, from an already-fetched job list. */
+export function filterJobsByBusiness(jobs: JobWithDriver[], businessId?: string | null): JobWithDriver[] {
+  if (!businessId) return [];
+  return jobs.filter(j => j.business_id === businessId);
+}
+
+/** Count of a business's jobs that are still in an active (non-terminal) status. */
+export function getActiveJobCountForBusiness(jobs: JobWithDriver[], businessId?: string | null): number {
+  return filterJobsByBusiness(jobs, businessId).filter(
+    j => !['completed', 'cancelled', 'returned'].includes(j.status)
+  ).length;
+}
+
+export interface BusinessFinancials {
+  /** Sum of price_aed across jobs still owed (due or overdue) — reuses jobs.price_aed, no separate invoices ledger. */
+  outstanding: number;
+  overdueCount: number;
+  nextDueDate: string | null;
+}
+
+export function getBusinessFinancials(jobs: JobWithDriver[]): BusinessFinancials {
+  let outstanding = 0;
+  let overdueCount = 0;
+  let nextDueDate: string | null = null;
+
+  for (const job of jobs) {
+    if (job.payment_status === 'due' || job.payment_status === 'overdue') {
+      outstanding += job.price_aed || 0;
+      if (job.payment_status === 'overdue') overdueCount += 1;
+      if (job.payment_due_date && (!nextDueDate || job.payment_due_date < nextDueDate)) {
+        nextDueDate = job.payment_due_date;
+      }
+    }
+  }
+
+  return { outstanding, overdueCount, nextDueDate };
+}
+
+/**
+ * Job counts for the trailing N months (oldest first), for the drawer's
+ * monthly volume bar chart. Bucketed by jobs.created_at.
+ */
+export function getMonthlyVolumeByMonth(jobs: JobWithDriver[], months: number = 12): number[] {
+  const now = new Date();
+  const monthStarts: number[] = [];
+  for (let i = months - 1; i >= 0; i--) {
+    monthStarts.push(new Date(now.getFullYear(), now.getMonth() - i, 1).getTime());
+  }
+  const afterLastMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
+
+  const buckets = new Array(months).fill(0);
+  for (const job of jobs) {
+    if (!job.created_at) continue;
+    const created = new Date(job.created_at).getTime();
+    for (let i = 0; i < months; i++) {
+      const start = monthStarts[i];
+      const end = i < months - 1 ? monthStarts[i + 1] : afterLastMonthStart;
+      if (created >= start && created < end) {
+        buckets[i] += 1;
+        break;
+      }
+    }
+  }
+  return buckets;
+}
+
+export type RenewalTone = 'success' | 'warning' | 'neutral';
+
+export interface RenewalStatus {
+  label: string;
+  tone: RenewalTone;
+}
+
+/**
+ * Replaces the former `Math.random() > 0.7` branch. Purely a function of
+ * business.status / business.contract_expiry — no job data needed.
+ */
+export function getBusinessRenewalStatus(business: BusinessInquiry): RenewalStatus {
+  if (business.status === 'pending') return { label: 'Under Review', tone: 'warning' };
+  if (business.status === 'archived') return { label: 'Archived', tone: 'neutral' };
+
+  if (!business.contract_expiry) return { label: 'Active', tone: 'success' };
+
+  const msLeft = new Date(business.contract_expiry).getTime() - Date.now();
+  const daysLeft = Math.ceil(msLeft / (24 * 60 * 60 * 1000));
+
+  if (msLeft < 0) return { label: `Expired (${Math.abs(daysLeft)}d ago)`, tone: 'warning' };
+  if (msLeft <= THIRTY_DAYS_MS) return { label: `Renewal Due (${daysLeft}d)`, tone: 'warning' };
+  return { label: 'Active', tone: 'success' };
+}
+
+/** Whether a business's contract renews within the next 30 days (used for the Renewals filter/stat). */
+export function isRenewalDueSoon(business: BusinessInquiry): boolean {
+  if (business.status !== 'active' || !business.contract_expiry) return false;
+  const msLeft = new Date(business.contract_expiry).getTime() - Date.now();
+  return msLeft >= 0 && msLeft <= THIRTY_DAYS_MS;
+}
+
+/**
+ * On-time completion %, approximated per Decision 2 (no per-job SLA deadline
+ * exists in the schema): completed / (completed + cancelled + returned) over
+ * whatever job list is passed in. Returns null when there's no history yet
+ * to compute a rate from, rather than a fabricated 0%/100%.
+ */
+export function getCompletionRate(jobs: JobWithDriver[]): number | null {
+  const relevant = jobs.filter(j => ['completed', 'cancelled', 'returned'].includes(j.status));
+  if (relevant.length === 0) return null;
+  const completed = relevant.filter(j => j.status === 'completed').length;
+  return Math.round((completed / relevant.length) * 1000) / 10;
+}
+
 export function getApprovedDrivers(drivers: Driver[]): Driver[] {
   const statusSortWeight: Record<string, number> = { available: 0, on_job: 1, offline: 2 };
   return drivers
@@ -166,4 +286,85 @@ export function getDashboardStats(
     business: businessInquiries.length,
     pendingBusiness: businessInquiries.filter(b => b.status === 'pending').length,
   };
+}
+
+// ==========================================
+// Alerts
+// ==========================================
+// Local-only for now — there is no `alerts` table. These are computed fresh
+// from the live `jobs` collection on every render rather than persisted, so
+// there is nothing to fetch, subscribe to, or migrate. `now` is a parameter
+// (not a fresh Date.now() inline) purely so this stays a pure, unit-testable
+// (data, now) -> data function like everything else in this file.
+
+export type AlertType = 'slaBreach' | 'stalledJob' | 'failedHandoff' | 'signalLost';
+export type AlertSeverity = 'critical' | 'warning' | 'info';
+
+export interface Alert {
+  id: string;
+  jobId: string;
+  jobRef: string;
+  type: AlertType;
+  severity: AlertSeverity;
+  // ISO timestamp the condition was first true — used to render "x min ago"
+  // and to sort/expire alerts. Not a creation time for a stored row.
+  detectedAt: string;
+}
+
+// A driver actively en route (driver_pickup/driver_delivery) who hasn't
+// reported a GPS ping in this long is worth a dispatcher's attention.
+const STALLED_AFTER_MS = 20 * 60 * 1000;
+// Cancelled jobs stop being "alerts" (as opposed to just history) after this long.
+const RECENT_FAILURE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+export function getAlerts(jobs: JobWithDriver[], now: number = Date.now()): Alert[] {
+  const alerts: Alert[] = [];
+
+  for (const job of jobs) {
+    if (!job.id) continue;
+    const jobRef = job.job_ref || job.id;
+
+    // SLA breach — still waiting for a driver past the scheduled pickup window
+    if (job.status === 'pending' && job.scheduled_pickup_at) {
+      const scheduled = new Date(job.scheduled_pickup_at).getTime();
+      if (scheduled < now) {
+        alerts.push({ id: `${job.id}-slaBreach`, jobId: job.id, jobRef, type: 'slaBreach', severity: 'critical', detectedAt: job.scheduled_pickup_at });
+      }
+    }
+
+    // Driver is meant to be actively moving — check GPS signal
+    if (job.status === 'driver_pickup' || job.status === 'driver_delivery') {
+      if (job.driver_lat == null || job.driver_lng == null) {
+        alerts.push({
+          id: `${job.id}-signalLost`,
+          jobId: job.id,
+          jobRef,
+          type: 'signalLost',
+          severity: 'info',
+          detectedAt: job.driver_updated_at || job.updated_at || job.created_at || new Date(now).toISOString(),
+        });
+      } else if (job.driver_updated_at) {
+        const updated = new Date(job.driver_updated_at).getTime();
+        if (now - updated > STALLED_AFTER_MS) {
+          alerts.push({ id: `${job.id}-stalledJob`, jobId: job.id, jobRef, type: 'stalledJob', severity: 'warning', detectedAt: job.driver_updated_at });
+        }
+      }
+    }
+
+    // Recently failed / cancelled — surfaced briefly so a bad handoff doesn't
+    // get missed, then ages out of the alert feed (it's still in job history).
+    if (job.status === 'cancelled' && job.cancelled_at) {
+      const cancelled = new Date(job.cancelled_at).getTime();
+      if (now - cancelled < RECENT_FAILURE_WINDOW_MS) {
+        alerts.push({ id: `${job.id}-failedHandoff`, jobId: job.id, jobRef, type: 'failedHandoff', severity: 'critical', detectedAt: job.cancelled_at });
+      }
+    }
+  }
+
+  const severityWeight: Record<AlertSeverity, number> = { critical: 0, warning: 1, info: 2 };
+  return alerts.sort((a, b) => {
+    const diff = severityWeight[a.severity] - severityWeight[b.severity];
+    if (diff !== 0) return diff;
+    return new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime();
+  });
 }

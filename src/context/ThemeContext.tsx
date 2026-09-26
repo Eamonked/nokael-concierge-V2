@@ -5,12 +5,14 @@ type Theme = 'light' | 'dark';
 interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
+  /** Pick a theme explicitly (a "Dark" / "Light" button). Persisted like toggleTheme. */
+  setTheme: (theme: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>(() => {
+  const [theme, setThemeState] = useState<Theme>(() => {
     try {
       const savedTheme = localStorage.getItem('nokael-theme');
       if (savedTheme === 'light' || savedTheme === 'dark') {
@@ -27,8 +29,18 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     const root = window.document.documentElement;
+    const body = window.document.body;
+    
+    // Remove both theme classes
     root.classList.remove('light', 'dark');
+    body.classList.remove('light', 'dark');
+    
+    // Add current theme class to both
     root.classList.add(theme);
+    body.classList.add(theme);
+    
+    // Also set data attribute for easier CSS targeting
+    root.setAttribute('data-theme', theme);
   }, [theme]);
 
   // Listen to OS theme changes if user hasn't explicitly set a preference
@@ -40,7 +52,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       try {
         const savedTheme = localStorage.getItem('nokael-theme');
         if (!savedTheme) {
-          setTheme(e.matches ? 'dark' : 'light');
+          setThemeState(e.matches ? 'dark' : 'light');
         }
       } catch (err) {
         // Ignore storage access errors
@@ -51,8 +63,17 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
+  const setTheme = (next: Theme) => {
+    try {
+      localStorage.setItem('nokael-theme', next);
+    } catch (e) {
+      // Ignore storage access errors
+    }
+    setThemeState(next);
+  };
+
   const toggleTheme = () => {
-    setTheme((prev) => {
+    setThemeState((prev) => {
       const nextTheme = prev === 'dark' ? 'light' : 'dark';
       try {
         localStorage.setItem('nokael-theme', nextTheme);
@@ -64,7 +85,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

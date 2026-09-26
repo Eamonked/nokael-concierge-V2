@@ -1,32 +1,81 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { X, Loader2, Send, UserPlus } from 'lucide-react';
+import { X, Loader2, UserPlus, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { inviteTeamMember, type OrgRole } from '../../../lib/team';
 
-export const InviteModal = ({ orgId, onClose, onSuccess }: { orgId: string; onClose: () => void; onSuccess: () => void }) => {
+const ROLE_RANK: OrgRole[] = ['viewer', 'operator', 'admin', 'owner'];
+
+/** What each role can do — shown under the role picker (invite + edit). */
+export const useRolePermissions = () => {
+  const { t } = useTranslation('dashboard');
+  return (role: OrgRole): string[] => ({
+    owner: [
+      t('rolePermissions.owner.0', { defaultValue: 'Full access to jobs, drivers, quotes, businesses and settings' }),
+      t('rolePermissions.owner.1', { defaultValue: 'Invite, edit, disable and remove any member, including other owners' }),
+    ],
+    admin: [
+      t('rolePermissions.admin.0', { defaultValue: 'Full access to jobs, drivers, quotes, businesses and settings' }),
+      t('rolePermissions.admin.1', { defaultValue: 'Invite, edit, disable and remove members (not owners)' }),
+    ],
+    operator: [
+      t('rolePermissions.operator.0', { defaultValue: 'Create and dispatch jobs, manage drivers, quotes and businesses' }),
+      t('rolePermissions.operator.1', { defaultValue: 'Cannot manage the team' }),
+    ],
+    viewer: [
+      t('rolePermissions.viewer.0', { defaultValue: 'View jobs, drivers, quotes and the live map' }),
+      t('rolePermissions.viewer.1', { defaultValue: 'Cannot manage the team' }),
+    ],
+  })[role];
+};
+
+export const RolePermissionHint = ({ role }: { role: OrgRole }) => {
+  const permissions = useRolePermissions()(role);
+  return (
+    <ul className="mt-2 space-y-1">
+      {permissions.map((p) => (
+        <li key={p} className="flex items-start gap-1.5 text-[11px] text-brand-muted leading-snug">
+          <ShieldCheck className="w-3 h-3 mt-0.5 shrink-0 text-brand-neon" />
+          <span>{p}</span>
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+export const InviteModal = ({ orgId, currentRole, onClose, onSuccess }: {
+  orgId: string;
+  currentRole: OrgRole | null;
+  onClose: () => void;
+  onSuccess: (message: string) => void;
+}) => {
   const { t } = useTranslation('dashboard');
   const [email, setEmail] = React.useState('');
+  const [fullName, setFullName] = React.useState('');
   const [role, setRole] = React.useState<OrgRole>('operator');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
+
+  // You can only grant roles up to your own (the server enforces this too).
+  const grantable = ROLE_RANK.filter((r) => ROLE_RANK.indexOf(r) <= ROLE_RANK.indexOf(currentRole ?? 'viewer')).reverse();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    try {
-      await inviteTeamMember(email.trim(), role);
-      onSuccess();
-    } catch (err: any) {
-      setError(err.message || t('invite.sendFailed'));
-    } finally {
-      setLoading(false);
+    const result = await inviteTeamMember(email.trim(), role, fullName);
+    setLoading(false);
+    if (!result.ok) {
+      setError(result.error || t('invite.sendFailed'));
+      return;
     }
+    onSuccess(result.existing
+      ? t('invite.addedExisting', { email: email.trim(), defaultValue: '{{email}} already has an account and was added to the team. They sign in with their existing password.' })
+      : t('invite.sent', { email: email.trim(), defaultValue: 'Invite sent to {{email}}' }));
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" data-org={orgId}>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -46,6 +95,20 @@ export const InviteModal = ({ orgId, onClose, onSuccess }: { orgId: string; onCl
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div>
+            <label className="block text-[11px] font-semibold text-brand-muted uppercase mb-2">
+              {t('invite.nameLabel', { defaultValue: 'Full name' })}{' '}
+              <span className="normal-case font-normal">({t('invite.optional', { defaultValue: 'optional' })})</span>
+            </label>
+            <input
+              type="text"
+              value={fullName}
+              maxLength={100}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder={t('invite.namePlaceholder', { defaultValue: 'e.g. Sara Ahmed' })}
+              className="w-full bg-brand-input border border-brand-input-border rounded-xl px-4 py-3 text-sm focus:border-brand-neon/50 outline-none transition-all"
+            />
+          </div>
+          <div>
             <label className="block text-[11px] font-semibold text-brand-muted uppercase mb-2">{t('invite.emailLabel')}</label>
             <input
               required
@@ -63,11 +126,11 @@ export const InviteModal = ({ orgId, onClose, onSuccess }: { orgId: string; onCl
               onChange={(e) => setRole(e.target.value as OrgRole)}
               className="w-full bg-brand-input border border-brand-input-border rounded-xl px-4 py-3 text-sm outline-none"
             >
-              <option value="admin">{t('invite.roles.admin')}</option>
-              <option value="operator">{t('invite.roles.operator')}</option>
-              <option value="viewer">{t('invite.roles.viewer')}</option>
-              <option value="owner">{t('invite.roles.owner')}</option>
+              {grantable.map((r) => (
+                <option key={r} value={r}>{t(`invite.roles.${r}`)}</option>
+              ))}
             </select>
+            <RolePermissionHint role={role} />
           </div>
           {error && <p className="text-red-500 text-xs font-medium">{error}</p>}
           <button

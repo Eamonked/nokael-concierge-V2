@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'motion/react';
+import { createPortal } from 'react-dom';
 import {
   User,
   Phone,
@@ -13,12 +13,19 @@ import {
   Copy,
   X,
   CheckCircle2,
-  Trash2,
+  XCircle,
+  LogOut,
   Loader2,
+  MessageCircle,
+  IdCard,
+  Hash,
+  Circle,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { setDriverPin, type Driver, type DriverDocument } from '../../../lib/supabase';
-import { cn } from '../../../lib/utils';
+import { setDriverPin, revokeDriverSessions, type Driver, type DriverDocument } from '../../../lib/supabase';
+import { WriteGuard } from '../permissions';
+import { DOCUMENT_TYPES } from '../../driver-application/constants';
+import { driverInterEmirate, driverPhoneKey, driverEmailKey } from '../../../lib/driverAccess';
 
 interface DriverProfileModalProps {
   driver: Driver & { documents: DriverDocument[] };
@@ -26,11 +33,37 @@ interface DriverProfileModalProps {
   onDriverStatusUpdate: (id: string, updates: Partial<Driver>) => Promise<void>;
 }
 
+const InfoRow: React.FC<{ icon: React.ElementType; title?: string; children: React.ReactNode }> = ({ icon: RowIcon, title, children }) => (
+  <li className="driver-info-row">
+    <span aria-hidden="true"><RowIcon /></span>
+    <span title={title}>{children}</span>
+  </li>
+);
+
+const SectionHeading: React.FC<{ index: string; title: string; hint?: string }> = ({ index, title, hint }) => (
+  <div className="job-section-heading">
+    <span>{index}</span>
+    <div>
+      <h3>{title}</h3>
+      {hint && <p>{hint}</p>}
+    </div>
+  </div>
+);
+
 export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: DriverProfileModalProps) {
   const { t } = useTranslation('dashboard');
   const [isUpdating, setIsUpdating] = React.useState(false);
   const [pinDraft, setPinDraft] = React.useState('');
+  // has_pin comes from the generated column; flip it locally after a successful set.
+  const [hasPin, setHasPin] = React.useState(!!driver.has_pin);
+  React.useEffect(() => { setHasPin(!!driver.has_pin); }, [driver.id, driver.has_pin]);
   const [copiedDriverLink, setCopiedDriverLink] = React.useState(false);
+
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   const handleUpdate = async (updates: Partial<Driver>) => {
     setIsUpdating(true);
@@ -44,308 +77,348 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
   const cocDomain = (import.meta.env.VITE_COC_URL || 'https://nokael.ae').replace(/\/$/, '');
   const statusUrl = `${cocDomain}/driver/${driver.id}/status`;
 
-  const statusMap: Record<string, { label: string; dot: string; text: string }> = {
-    available: { label: t('driverProfileModal.dispatchStatus.availableNow'), dot: 'bg-emerald-400', text: 'text-emerald-400' },
-    on_job:    { label: t('driverProfileModal.dispatchStatus.onJob'),        dot: 'bg-amber-400',  text: 'text-amber-400'  },
-    offline:   { label: t('driverProfileModal.dispatchStatus.offline'),      dot: 'bg-brand-muted', text: 'text-brand-muted' },
+  const poolStatus: Record<string, { label: string; tone: string }> = {
+    available: { label: t('driverProfileModal.dispatchStatus.availableNow'), tone: 'ok' },
+    on_job:    { label: t('driverProfileModal.dispatchStatus.onJob'),        tone: 'warn' },
+    offline:   { label: t('driverProfileModal.dispatchStatus.offline'),      tone: 'idle' },
   };
-  const dispatchStatus = statusMap[driver.status || 'offline'] || statusMap.offline;
+  const dispatchStatus = poolStatus[driver.status || 'offline'] || poolStatus.offline;
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="absolute inset-0 bg-brand-bg/90 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="relative w-full max-w-4xl bg-brand-bg border border-brand-border rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+  const onboarding = driver.onboarding_status || 'pending';
+  const onboardingTone = onboarding === 'approved' ? 'ok' : onboarding === 'rejected' ? 'bad' : 'warn';
+  const reliability = isNaN(driver.reliability_score!) ? 0 : (driver.reliability_score || 0);
+  const pinValid = /^[0-9]{4,6}$/.test(pinDraft);
+  const initials = (driver.full_name || '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+
+  const handleSetPin = async () => {
+    if (!pinValid) return;
+    try {
+      await setDriverPin(driver.id!, pinDraft);
+      setPinDraft('');
+      setHasPin(true);
+      alert(t('driverProfileModal.pinSetAlert', { name: driver.full_name }));
+    } catch (err: any) {
+      alert(t('driverProfileModal.pinFailedAlert', { error: err.message || String(err) }));
+    }
+  };
+
+  const handleSignOutEverywhere = async () => {
+    if (!confirm(t('driverProfileModal.signOutConfirm', { defaultValue: 'Sign {{name}} out of the driver app on every device?', name: driver.full_name }))) return;
+    try {
+      await revokeDriverSessions(driver.id!);
+      alert(t('driverProfileModal.signOutDone', { defaultValue: '{{name}} has been signed out everywhere.', name: driver.full_name }));
+    } catch (err: any) {
+      alert(t('driverProfileModal.signOutFailed', { defaultValue: 'Could not sign out driver: {{error}}', error: err.message || String(err) }));
+    }
+  };
+
+  const copyStatusLink = () => {
+    navigator.clipboard.writeText(statusUrl);
+    setCopiedDriverLink(true);
+    setTimeout(() => setCopiedDriverLink(false), 2000);
+  };
+
+  const ti = (key: string, defaultValue?: string) => t(key, { ns: 'driverApplication', defaultValue });
+  const docTypeLabel = (type: string) => {
+    const known = DOCUMENT_TYPES.find(d => d.id === type);
+    return known ? ti(`step2.documentTypes.${known.i18nKey}.label`, type.replace(/_/g, ' ')) : type.replace(/_/g, ' ');
+  };
+  // Checklist of the four documents the intake form asks for, newest upload per type,
+  // plus anything else that was uploaded.
+  const docsByType = new Map<string, DriverDocument>();
+  [...(driver.documents || [])]
+    .sort((a, b) => (b.uploaded_at || '').localeCompare(a.uploaded_at || ''))
+    .forEach(doc => { if (!docsByType.has(doc.document_type)) docsByType.set(doc.document_type, doc); });
+  const docChecklist: { type: string; doc?: DriverDocument }[] = [
+    ...DOCUMENT_TYPES.map(d => ({ type: d.id, doc: docsByType.get(d.id) })),
+    ...[...docsByType.keys()].filter(type => !DOCUMENT_TYPES.some(d => d.id === type)).map(type => ({ type, doc: docsByType.get(type) })),
+  ];
+
+  const vehicleDetail = [driver.vehicle_make, driver.vehicle_model].filter(Boolean).join(' ');
+  const showWhatsapp = !!driver.whatsapp && driverPhoneKey(driver.whatsapp) !== driverPhoneKey(driver.phone);
+
+  // Mirrors the driver_login checks (see lib/driverAccess.ts). The PIN hash is
+  // not readable here; has_pin (generated column) only says whether one is set.
+  const signInChecks = [
+    { ok: onboarding === 'approved', label: t('driverProfileModal.signIn.approved', { defaultValue: 'Application approved' }) },
+    { ok: driver.active !== false, label: t('driverProfileModal.signIn.active', { defaultValue: 'Account active' }) },
+    { ok: !!driverPhoneKey(driver.phone) || !!driverEmailKey(driver.email), label: t('driverProfileModal.signIn.identifier', { defaultValue: 'Phone number on file (9+ digits)' }) },
+    { ok: hasPin, label: hasPin
+      ? t('driverProfileModal.signIn.pinSet', { defaultValue: 'PIN set' })
+      : t('driverProfileModal.signIn.pinMissing', { defaultValue: 'No PIN set yet' }) },
+  ];
+  const signInReady = signInChecks.every(c => c.ok);
+
+  return createPortal(
+    <>
+      <div className="modal-backdrop" onClick={onClose} />
+      <div
+        className="account-drawer job-form-drawer driver-profile-drawer enterprise-mode"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="driver-profile-title"
       >
-        {/* Header */}
-        <div className="p-8 border-b border-brand-border flex justify-between items-center bg-brand-surface/30">
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-brand-neon/10 flex items-center justify-center border border-brand-neon/20">
-              <User className="w-8 h-8 text-brand-neon" />
-            </div>
+        {/* Header: avatar, name, ID and onboarding status */}
+        <div className="job-form-header">
+          <div className="driver-hero">
+            <span className="driver-avatar" aria-hidden="true">{initials || <User className="w-5 h-5" />}</span>
             <div>
-              <h2 className="text-2xl font-display font-medium tracking-tighter mb-1">{driver.full_name}</h2>
-              <div className="flex items-center gap-3">
-                <p className="text-xs text-brand-muted uppercase tracking-wide font-medium">
-                  {t('driverProfileModal.driverIdLabel')}: {driver.id?.substring(0, 8)}
-                </p>
-                <div className={cn(
-                  "px-2 py-0.5 rounded text-xs font-medium border",
-                  driver.onboarding_status === 'approved'
-                    ? "bg-brand-neon/10 text-brand-neon border-brand-neon/20"
-                    : driver.onboarding_status === 'rejected'
-                    ? "bg-red-500/10 text-red-500 border-red-500/20"
-                    : "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-                )}>
-                  {t(`driverProfileModal.onboardingStatus.${driver.onboarding_status || 'pending'}`, {
-                    defaultValue: driver.onboarding_status || 'pending',
-                  })}
-                </div>
+              <span className="eyebrow">{t('driverProfileModal.internalManagement')}</span>
+              <h2 id="driver-profile-title" title={driver.full_name}>{driver.full_name}</h2>
+              <div className="driver-meta">
+                <span className="driver-id-pill">{t('driverProfileModal.driverIdLabel')} {driver.id?.substring(0, 8)}</span>
+                <span className={`driver-pill ${onboardingTone}`}>
+                  <i aria-hidden="true" />
+                  {t(`driverProfileModal.onboardingStatus.${onboarding}`, { defaultValue: onboarding })}
+                </span>
               </div>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-brand-muted hover:text-brand-text transition-colors bg-brand-input rounded-full"
-          >
-            <X className="w-6 h-6" />
+          <button type="button" className="icon-button" onClick={onClose} aria-label={t('businessDetailsModal.close', { defaultValue: 'Close' })}>
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="flex-grow overflow-y-auto p-8 no-scrollbar">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-
-            {/* Contact */}
-            <div className="space-y-6">
-              <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted border-b border-brand-border pb-2">
-                {t('driverProfileModal.contactDetails')}
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="p-2 bg-brand-input rounded-lg"><Phone className="w-4 h-4 text-brand-neon" /></div>
-                  <span className="text-sm font-mono tracking-tight">{driver.phone}</span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="p-2 bg-brand-input rounded-lg"><Mail className="w-4 h-4 text-brand-neon" /></div>
-                  <span className="text-sm truncate">{driver.email}</span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="p-2 bg-brand-input rounded-lg"><MapPin className="w-4 h-4 text-brand-neon" /></div>
-                  <span className="text-sm">{driver.base_location}</span>
-                </div>
+        <WriteGuard>
+        <div className="job-form-body">
+          {/* 01 Contact + vehicle */}
+          <section className="job-form-section">
+            <SectionHeading index="01" title={`${t('driverProfileModal.contactDetails')} · ${t('driverProfileModal.vehicleLogistics')}`} />
+            <div className="driver-info-grid">
+              <div className="driver-info-card">
+                <h4>{t('driverProfileModal.contactDetails')}</h4>
+                <ul>
+                  <InfoRow icon={Phone} title={driver.phone}><span className="mono">{driver.phone}</span></InfoRow>
+                  {showWhatsapp && (
+                    <InfoRow icon={MessageCircle} title={driver.whatsapp}><span className="mono">{driver.whatsapp}</span></InfoRow>
+                  )}
+                  <InfoRow icon={Mail} title={driver.email}>{driver.email || '—'}</InfoRow>
+                  <InfoRow icon={MapPin} title={driver.base_location}>{driver.base_location || '—'}</InfoRow>
+                  {driver.emirates_id && (
+                    <InfoRow icon={IdCard} title={driver.emirates_id}><span className="mono">{driver.emirates_id}</span></InfoRow>
+                  )}
+                </ul>
+              </div>
+              <div className="driver-info-card">
+                <h4>{t('driverProfileModal.vehicleLogistics')}</h4>
+                <ul>
+                  <InfoRow icon={Truck} title={[driver.vehicle_type, vehicleDetail].filter(Boolean).join(' · ')}>
+                    {driver.vehicle_type || '—'}{vehicleDetail && <span className="driver-sub"> · {vehicleDetail}</span>}
+                  </InfoRow>
+                  {driver.vehicle_plate && (
+                    <InfoRow icon={Hash} title={driver.vehicle_plate}><span className="mono">{driver.vehicle_plate}</span></InfoRow>
+                  )}
+                  <InfoRow icon={Navigation}>
+                    {t('driverProfileModal.interEmirate')}: {driverInterEmirate(driver) ? t('driverProfileModal.yes') : t('driverProfileModal.no')}
+                  </InfoRow>
+                  <InfoRow icon={Clock} title={driver.availability_hours}>{driver.availability_hours || '—'}</InfoRow>
+                </ul>
               </div>
             </div>
+          </section>
 
-            {/* Vehicle */}
-            <div className="space-y-6">
-              <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted border-b border-brand-border pb-2">
-                {t('driverProfileModal.vehicleLogistics')}
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="p-2 bg-brand-input rounded-lg"><Truck className="w-4 h-4 text-brand-neon" /></div>
-                  <span className="text-sm">{driver.vehicle_type}</span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="p-2 bg-brand-input rounded-lg"><Navigation className="w-4 h-4 text-brand-neon" /></div>
-                  <span className="text-sm">{t('driverProfileModal.interEmirate')}: {driver.inter_emirate ? t('driverProfileModal.yes') : t('driverProfileModal.no')}</span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="p-2 bg-brand-input rounded-lg"><Clock className="w-4 h-4 text-brand-neon" /></div>
-                  <span className="text-xs text-brand-muted">{driver.availability_hours}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Internal Management */}
-            <div className="space-y-6">
-              <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted border-b border-brand-border pb-2">
-                {t('driverProfileModal.internalManagement')}
-              </h3>
-              <div className="space-y-4">
-
-                {/* Tier */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-[11px] font-medium text-brand-muted">{t('driverProfileModal.tieringStrategy')}</label>
-                  <select
-                    value={driver.tier || 'D'}
-                    onChange={(e) => handleUpdate({ tier: e.target.value as any })}
-                    className="w-full bg-brand-input border border-brand-input-border rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-brand-neon/50 transition-all font-mono"
-                  >
-                    <option value="A">{t('driverProfileModal.tiers.elite')}</option>
-                    <option value="B">{t('driverProfileModal.tiers.priority')}</option>
-                    <option value="C">{t('driverProfileModal.tiers.standard')}</option>
-                    <option value="D">{t('driverProfileModal.tiers.newArrival')}</option>
-                  </select>
-                </div>
-
-                {/* Reliability score */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-[11px] font-medium text-brand-muted">{t('driverProfileModal.reliabilityScore')}</label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="number"
-                      min="0"
-                      max="10"
-                      value={isNaN(driver.reliability_score!) ? 0 : (driver.reliability_score || 0)}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value);
-                        handleUpdate({ reliability_score: isNaN(val) ? 0 : val });
-                      }}
-                      className="w-16 bg-brand-input border border-brand-input-border rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-brand-neon transition-all font-mono"
-                    />
-                    <div className="flex-1 bg-brand-input h-2 rounded-full overflow-hidden border border-brand-border">
-                      <div
-                        className="h-full bg-brand-neon transition-all"
-                        style={{ width: `${(isNaN(driver.reliability_score!) ? 0 : (driver.reliability_score || 0)) * 10}%` }}
-                      />
-                    </div>
+          {/* 02 Documents checklist */}
+          <section className="job-form-section">
+            <SectionHeading index="02" title={t('driverProfileModal.uploadedDocuments')} />
+            <ul className="driver-doc-list">
+              {docChecklist.map(({ type, doc }) => (
+                <li key={type} className={doc ? undefined : 'missing'}>
+                  {!doc
+                    ? <Circle aria-hidden="true" />
+                    : doc.verification_status === 'verified'
+                    ? <CheckCircle2 className="doc-ok" aria-hidden="true" />
+                    : doc.verification_status === 'rejected'
+                    ? <XCircle className="doc-bad" aria-hidden="true" />
+                    : <FileText aria-hidden="true" />}
+                  <div>
+                    <b title={docTypeLabel(type)}>{docTypeLabel(type)}</b>
+                    <small>
+                      {doc
+                        ? `${t('driverProfileModal.docStatusLabel')}: ${doc.verification_status || 'pending'}`
+                        : t('driverProfileModal.docMissing', { defaultValue: 'Not uploaded' })}
+                    </small>
                   </div>
-                </div>
-
-                {/* Dispatch pool status */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-[11px] font-medium text-brand-muted">{t('driverProfileModal.dispatchPoolStatus')}</label>
-                  <div className="flex items-center gap-2 px-3 py-2 bg-brand-input border border-brand-input-border rounded-lg w-fit">
-                    <span className={`w-2 h-2 rounded-full ${dispatchStatus.dot}`} />
-                    <span className={`text-xs font-medium ${dispatchStatus.text}`}>{dispatchStatus.label}</span>
-                  </div>
-                  <p className="text-[10px] text-brand-muted">
-                    {t('driverProfileModal.dispatchPoolHint')}
-                  </p>
-                </div>
-
-                {/* PIN management */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-[11px] font-medium text-brand-muted">{t('driverProfileModal.driverAppPin')}</label>
-                  <p className="text-[10px] text-brand-muted mb-1">
-                    {t('driverProfileModal.pinHint')}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={6}
-                      placeholder={t('driverProfileModal.pinPlaceholder')}
-                      value={pinDraft}
-                      onChange={(e) => setPinDraft(e.target.value.replace(/\D/g, ''))}
-                      className="w-28 bg-brand-input border border-brand-input-border rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-brand-neon transition-all font-mono"
-                    />
-                    <button
-                      type="button"
-                      disabled={!/^[0-9]{4,6}$/.test(pinDraft) || isUpdating}
-                      onClick={async () => {
-                        try {
-                          await setDriverPin(driver.id!, pinDraft);
-                          setPinDraft('');
-                          alert(t('driverProfileModal.pinSetAlert', { name: driver.full_name }));
-                        } catch (err: any) {
-                          alert(t('driverProfileModal.pinFailedAlert', { error: err.message || String(err) }));
-                        }
-                      }}
-                      className="px-4 py-2 bg-brand-neon/10 border border-brand-neon/20 text-brand-neon rounded-lg text-[11px] font-medium uppercase tracking-wide hover:bg-brand-neon/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      {t('driverProfileModal.setPin')}
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(statusUrl);
-                        setCopiedDriverLink(true);
-                        setTimeout(() => setCopiedDriverLink(false), 2000);
-                      }}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-input hover:bg-brand-border rounded-lg border border-brand-border text-xs font-semibold text-brand-neon tracking-wider uppercase transition-all hover:scale-105"
-                    >
-                      <Copy className="w-3 h-3" />
-                      {copiedDriverLink ? t('driverProfileModal.copied') : t('driverProfileModal.copyStatusLink')}
-                    </button>
+                  {doc && (
                     <a
-                      href={statusUrl}
+                      href={doc.file_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-input hover:bg-brand-border rounded-lg border border-brand-border text-xs font-semibold text-brand-muted hover:text-brand-text tracking-wider uppercase transition-all hover:scale-105"
+                      title={t('driverProfileModal.openLink')}
+                      aria-label={`${docTypeLabel(type)}: ${t('driverProfileModal.openLink')}`}
                     >
-                      <ExternalLink className="w-3 h-3" />
-                      {t('driverProfileModal.openLink')}
+                      <ExternalLink />
                     </a>
-                  </div>
-                </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
 
+          {/* 03 Dispatch controls */}
+          <section className="job-form-section">
+            <SectionHeading index="03" title={t('driverProfileModal.internalManagement')} hint={t('driverProfileModal.dispatchPoolHint')} />
+            <div className="driver-controls-grid">
+              <label className="field">
+                <span className="field-label" title={t('driverProfileModal.tieringStrategy')}>{t('driverProfileModal.tieringStrategy')}</span>
+                <select value={driver.tier || 'D'} onChange={(e) => handleUpdate({ tier: e.target.value as any })}>
+                  <option value="A">{t('driverProfileModal.tiers.elite')}</option>
+                  <option value="B">{t('driverProfileModal.tiers.priority')}</option>
+                  <option value="C">{t('driverProfileModal.tiers.standard')}</option>
+                  <option value="D">{t('driverProfileModal.tiers.newArrival')}</option>
+                </select>
+              </label>
+              <label className="field">
+                <span className="field-label" title={t('driverProfileModal.reliabilityScore')}>{t('driverProfileModal.reliabilityScore')}</span>
+                <div className="driver-score">
+                  <input
+                    type="number"
+                    min="0"
+                    max="10"
+                    value={reliability}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      handleUpdate({ reliability_score: isNaN(val) ? 0 : val });
+                    }}
+                  />
+                  <div className="driver-score-bar"><i style={{ width: `${Math.min(100, reliability * 10)}%` }} /></div>
+                </div>
+              </label>
+              <div className="field">
+                <span className="field-label" title={t('driverProfileModal.dispatchPoolStatus')}>{t('driverProfileModal.dispatchPoolStatus')}</span>
+                <span className={`driver-pool ${dispatchStatus.tone}`}>
+                  <i aria-hidden="true" />
+                  {dispatchStatus.label}
+                </span>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Documents */}
-          <div className="mb-8">
-            <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted border-b border-brand-border pb-4 mb-6">
-              {t('driverProfileModal.uploadedDocuments')}
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {driver.documents?.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="p-6 bg-brand-input border border-brand-input-border rounded-2xl flex items-center justify-between group hover:border-brand-neon/30 transition-all"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-brand-bg flex items-center justify-center text-brand-muted group-hover:text-brand-neon transition-all">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-medium text-brand-text mb-1">
-                        {doc.document_type.replace('_', ' ')}
-                      </div>
-                      <div className="text-[11px] text-brand-muted">{t('driverProfileModal.docStatusLabel')}: {doc.verification_status}</div>
-                    </div>
-                  </div>
-                  <a
-                    href={doc.file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-lg border border-brand-border flex items-center justify-center text-brand-muted hover:bg-brand-neon hover:text-brand-bg hover:border-brand-neon transition-all"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                </div>
-              ))}
-              {(!driver.documents || driver.documents.length === 0) && (
-                <div className="col-span-2 p-8 bg-brand-input rounded-3xl border border-dashed border-brand-border text-center opacity-50">
-                  <FileText className="w-10 h-10 text-brand-muted mx-auto mb-4" />
-                  <p className="text-xs font-medium text-brand-muted">{t('driverProfileModal.noDocuments')}</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Internal notes */}
-          <div>
-            <h3 className="text-xs font-medium uppercase tracking-wide text-brand-muted mb-6">{t('driverProfileModal.internalAuditNotes')}</h3>
-            <textarea
-              className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-6 text-sm outline-none focus:border-brand-neon/50 transition-all min-h-[150px] font-mono text-[11px]"
-              placeholder={t('driverProfileModal.notesPlaceholder')}
-              value={driver.internal_notes || ''}
-              onChange={(e) => handleUpdate({ internal_notes: e.target.value })}
+          {/* 04 Driver app access */}
+          <section className="job-form-section">
+            <SectionHeading
+              index="04"
+              title={t('driverProfileModal.driverAppPin')}
+              hint={t('driverProfileModal.pinLoginHint', {
+                defaultValue: 'The driver signs in to the Nokael Driver app with their phone number (or email) and uses this 4–6 digit PIN as the password. Send them the PIN over WhatsApp.',
+              })}
             />
-          </div>
+            <div className={`driver-signin ${signInReady ? 'ready' : 'blocked'}`}>
+              <div className="driver-signin-head">
+                <b>
+                  {signInReady
+                    ? t('driverProfileModal.signIn.readyWithPin', { defaultValue: 'Can sign in to the driver app' })
+                    : t('driverProfileModal.signIn.blocked', { defaultValue: 'Can’t sign in to the driver app yet' })}
+                </b>
+                {driverPhoneKey(driver.phone) && (
+                  <span>
+                    {t('driverProfileModal.signIn.with', { defaultValue: 'Signs in with' })} <span className="mono">{driver.phone}</span>
+                  </span>
+                )}
+              </div>
+              <ul>
+                {signInChecks.map(check => (
+                  <li key={check.label} className={check.ok ? 'ok' : 'bad'}>
+                    {check.ok ? <CheckCircle2 aria-hidden="true" /> : <XCircle aria-hidden="true" />}
+                    {check.label}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <form
+              className="driver-pin-row"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSetPin();
+              }}
+            >
+              <label className="field">
+                <input
+                  type="text"
+                  aria-label={t('driverProfileModal.driverAppPin')}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  maxLength={6}
+                  placeholder={t('driverProfileModal.pinPlaceholder')}
+                  value={pinDraft}
+                  onChange={(e) => setPinDraft(e.target.value.replace(/\D/g, ''))}
+                />
+              </label>
+              <button type="submit" className="dark-button" disabled={!pinValid || isUpdating}>
+                {t('driverProfileModal.setPin')}
+              </button>
+            </form>
+            <p className="driver-note">
+              {t('driverProfileModal.pinSignsOut', { defaultValue: 'Setting a new PIN also signs the driver out of every device.' })}
+            </p>
+            <div className="driver-access-actions">
+              <div className="driver-link-group">
+                <button type="button" className="outline-button" onClick={copyStatusLink}>
+                  {copiedDriverLink ? <CheckCircle2 className="doc-ok" aria-hidden="true" /> : <Copy aria-hidden="true" />}
+                  <span>{copiedDriverLink ? t('driverProfileModal.copied') : t('driverProfileModal.copyStatusLink')}</span>
+                </button>
+                <a
+                  className="outline-button"
+                  href={statusUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={t('driverProfileModal.openLink')}
+                  aria-label={t('driverProfileModal.openLink')}
+                >
+                  <ExternalLink aria-hidden="true" />
+                </a>
+              </div>
+              <button type="button" className="driver-signout" disabled={isUpdating} onClick={handleSignOutEverywhere}>
+                <LogOut aria-hidden="true" />
+                <span>{t('driverProfileModal.signOutEverywhere', { defaultValue: 'Sign out everywhere' })}</span>
+              </button>
+            </div>
+          </section>
+
+          {/* 05 Internal notes */}
+          <section className="job-form-section">
+            <SectionHeading index="05" title={t('driverProfileModal.internalAuditNotes')} />
+            <label className="field wide">
+              <textarea
+                rows={4}
+                aria-label={t('driverProfileModal.internalAuditNotes')}
+                placeholder={t('driverProfileModal.notesPlaceholder')}
+                value={driver.internal_notes || ''}
+                onChange={(e) => handleUpdate({ internal_notes: e.target.value })}
+              />
+            </label>
+          </section>
         </div>
 
-        {/* Footer actions */}
-        <div className="p-8 border-t border-brand-border bg-brand-surface/50 flex gap-4">
+        {/* Footer: quiet destructive action, one clear primary */}
+        <div className="job-form-footer">
           <button
+            type="button"
+            className="driver-reject-button"
             disabled={isUpdating}
-            onClick={() => handleUpdate({ onboarding_status: 'approved' })}
-            className="flex-1 py-5 bg-brand-neon text-brand-bg text-xs font-medium uppercase tracking-wide rounded-2xl hover:bg-white disabled:opacity-50 transition-all flex items-center justify-center gap-3 group shadow-lg shadow-brand-neon/10"
+            onClick={() => handleUpdate({ onboarding_status: 'rejected', pipeline_status: 'Rejected' })}
           >
-            {isUpdating ? (
-              <Loader2 className="w-4 h-4 animate-spin text-brand-bg" />
-            ) : (
-              <CheckCircle2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
-            )}
-            {driver.onboarding_status === 'approved' ? t('driverProfileModal.updateReapprove') : t('driverProfileModal.approveDriver')}
-          </button>
-          <button
-            disabled={isUpdating}
-            onClick={() => handleUpdate({ onboarding_status: 'rejected' })}
-            className="flex-1 py-5 bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-medium uppercase tracking-wide rounded-2xl hover:bg-red-500 hover:text-white disabled:opacity-50 transition-all flex items-center justify-center gap-3 group"
-          >
-            {isUpdating ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
-            )}
+            <XCircle aria-hidden="true" />
             {t('driverProfileModal.rejectApplication')}
           </button>
+          <button
+            type="button"
+            className="driver-approve-button"
+            disabled={isUpdating}
+            // Login needs active + approved; the dashboard's driver stats count pipeline_status 'Active'.
+            onClick={() => handleUpdate({ onboarding_status: 'approved', pipeline_status: 'Active', active: true })}
+          >
+            {isUpdating ? <Loader2 className="animate-spin" aria-hidden="true" /> : <CheckCircle2 aria-hidden="true" />}
+            {driver.onboarding_status === 'approved' ? t('driverProfileModal.updateReapprove') : t('driverProfileModal.approveDriver')}
+          </button>
         </div>
-      </motion.div>
-    </div>
+        </WriteGuard>
+      </div>
+    </>,
+    document.body
   );
 }

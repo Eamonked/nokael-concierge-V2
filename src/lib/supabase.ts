@@ -324,6 +324,13 @@ export interface BusinessInquiry {
   utm_content?: string;
   gclid?: string;
   organization_id?: string;
+  // Business-account fields the dashboard's Business tab displays. All
+  // default to a sane value at the DB level; contract_expiry has no default
+  // (no source data exists to derive it from) and is set manually, once,
+  // per real account by an operator.
+  service_tier?: 'Enterprise VIP' | 'Same-Day Premium' | 'Enterprise' | 'Standard';
+  contract_expiry?: string | null;
+  monthly_volume_target?: number;
 }
 
 export const submitBusinessInquiry = async (data: BusinessInquiry): Promise<BusinessInquiry> => {
@@ -375,6 +382,52 @@ export const getBusinessInquiries = async (): Promise<BusinessInquiry[]> => {
 };
 
 // ==========================================
+// Business Contacts
+// ==========================================
+
+export interface BusinessContact {
+  id?: string;
+  business_id: string;
+  name: string;
+  role?: string | null;
+  department?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  created_at?: string;
+  organization_id?: string;
+}
+
+export const getBusinessContacts = async (businessId: string): Promise<BusinessContact[]> => {
+  if (!supabase || !businessId) return [];
+  const { data, error } = await supabase
+    .from('business_contacts')
+    .select('*')
+    .eq('business_id', businessId)
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return data as BusinessContact[];
+};
+
+export const addBusinessContact = async (
+  contact: Omit<BusinessContact, 'id' | 'created_at' | 'organization_id'>
+): Promise<BusinessContact> => {
+  if (!supabase) throw new Error('Supabase not configured');
+  // Same reasoning as every other insert in this file — org_members_manage_business_contacts
+  // checks is_org_member(organization_id), which is always false for NULL.
+  const payload: Partial<BusinessContact> = { ...contact, organization_id: NOKAEL_ORG_ID };
+
+  const { data, error } = await supabase
+    .from('business_contacts')
+    .insert([payload])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as BusinessContact;
+};
+
+// ==========================================
 // Jobs
 // ==========================================
 
@@ -393,6 +446,12 @@ export interface Job {
   client_name?: string | null;
   client_whatsapp?: string | null;
   company_name?: string | null;
+  // FK to business_inquiries — only set when a job is created against a
+  // managed business account (see createJob() / JobCreateModal.tsx). Every
+  // job that existed before this column was added stays NULL permanently;
+  // there is no backfill and no company_name string-matching against old
+  // rows, to avoid mis-linking. A NULL business_id means "one-off job".
+  business_id?: string | null;
 
   // Driver — nullable, assigned later via assignDriverToJob()
   driver_id?: string | null;
@@ -412,6 +471,11 @@ export interface Job {
 
   // Pricing
   price_aed?: number | null;
+  // Per-job billing state for business accounts — reuses price_aed instead
+  // of a parallel invoices ledger that could drift from the job record.
+  // Meaningless (stays 'unbilled') for one-off jobs with no business_id.
+  payment_status?: 'unbilled' | 'due' | 'overdue' | 'paid';
+  payment_due_date?: string | null;
 
   // OTP — split by event
   otp_sender?: string | null;
@@ -428,6 +492,15 @@ export interface Job {
   // never leaves it. Dispatch does not set it from the dashboard.
   returned_at?: string | null;
   return_reason?: string | null;
+  // What the driver is paid (typed by dispatch, shown in the driver app).
+  // Separate from price_aed, which is what the client pays.
+  driver_payout_aed?: number | null;
+  // Free-text note the driver leaves from the app (driver_set_remark).
+  driver_remark?: string | null;
+  driver_arrived_pickup_lat?: number | null;
+  driver_arrived_pickup_lng?: number | null;
+  driver_arrived_delivery_lat?: number | null;
+  driver_arrived_delivery_lng?: number | null;
   // 'driver_only' (default): 2-step, driver confirms both pickup (otp_sender)
   // and delivery (otp_recipient) in NDP1 — no confirm.nokael.com portal step.
   // 'four_step': legacy — sender + driver + driver + recipient, portal steps
@@ -451,6 +524,9 @@ export interface Job {
   driver_delivery_confirmed_at?: string | null;
   client_delivery_confirmed_at?: string | null;
   driver_arrived_pickup_at?: string | null;
+  /** First GPS fix inside the pickup / drop-off geofence (set by driver_publish_location). */
+  driver_near_pickup_at?: string | null;
+  driver_near_delivery_at?: string | null;
   driver_arrived_delivery_at?: string | null;
   sender_ready_at?: string | null;
   scheduled_pickup_at?: string | null;
@@ -661,7 +737,7 @@ export const populateJobsDrivers = async (rawJobs: any[]): Promise<JobWithDriver
     try {
       const { data: driversData } = await supabase
         .from('drivers')
-        .select('id, full_name, phone, whatsapp, vehicle_type, status, rating, tier')
+        .select('id, full_name, phone, whatsapp, vehicle_type, vehicle_plate, status, rating, tier')
         .in('id', driverIds);
 
       if (driversData) {
@@ -731,6 +807,32 @@ export const getJobs = async (): Promise<JobWithDriver[]> => {
     return await populateJobsDrivers(data || []);
   } catch (err) {
     console.error('[Nokael] Exception in getJobs:', err);
+    return [];
+  }
+};
+
+/**
+ * Fetch every job linked to a business account (jobs.business_id), newest
+ * first, with driver details populated. Same query shape as getJobs(),
+ * just filtered. Used by the Business Accounts drawer for live shipments,
+ * Job History, and Billing — one fetch, reused across those tabs.
+ */
+export const getJobsForBusiness = async (businessId: string): Promise<JobWithDriver[]> => {
+  if (!supabase || !businessId) return [];
+  try {
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('business_id', businessId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[Nokael] Error fetching jobs for business:', error);
+      return [];
+    }
+    return await populateJobsDrivers(data || []);
+  } catch (err) {
+    console.error('[Nokael] Exception in getJobsForBusiness:', err);
     return [];
   }
 };
@@ -1214,6 +1316,8 @@ export interface Driver {
 
   // Coverage
   inter_emirate?: boolean;
+  /** The column both the intake form and Add Agent actually write; read it via driverInterEmirate(). */
+  inter_emirate_yes_no?: boolean;
   areas_covered?: string[];
   availability_hours?: string;
   availability?: DriverAvailability;
@@ -1258,8 +1362,18 @@ export interface Driver {
   // Session expiry (read-only from client; set via createDriverSession RPC)
   session_expires_at?: string;
 
-  // pin_hash is NEVER in this interface — it is write-only via set_driver_pin RPC
+  // Generated column (pin_hash IS NOT NULL). pin_hash itself is NEVER in this
+  // interface — it is write-only via set_driver_pin RPC and not SELECTable by
+  // anon/authenticated (see supabase-lockdown-driver-pin-hash.sql).
+  has_pin?: boolean;
 }
+
+// Every drivers read must use this list (or a narrower one) — never select('*')
+// or a bare .select() after insert/update. anon/authenticated have no SELECT on
+// pin_hash, so '*' fails with "permission denied for column pin_hash".
+// pin_failed_attempts / pin_locked_until are left out on purpose too.
+export const DRIVER_COLUMNS =
+  'id, created_at, organization_id, full_name, phone, whatsapp, email, emirates_id, base_location, vehicle_type, vehicle_make, vehicle_model, vehicle_plate, inter_emirate, inter_emirate_yes_no, availability_hours, availability, areas_covered, eid_front_url, eid_back_url, eid_verified, active, status, onboarding_status, pipeline_status, tier, reliability_score, rating, jobs_completed, on_time_rate, internal_notes, last_active_at, session_expires_at, has_pin';
 
 export interface DriverDocument {
   id?: string;
@@ -1353,7 +1467,7 @@ export const getDrivers = async (): Promise<Driver[]> => {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from('drivers')
-    .select('*')
+    .select(DRIVER_COLUMNS)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -1369,7 +1483,7 @@ export const getAvailableDrivers = async (emirate?: string): Promise<Driver[]> =
 
   let query = supabase
     .from('drivers')
-    .select('*')
+    .select(DRIVER_COLUMNS)
     .eq('status', 'available')
     .eq('active', true);
 
@@ -1389,7 +1503,7 @@ export const getDriverWithDocuments = async (
 
   const { data: driver, error: driverError } = await supabase
     .from('drivers')
-    .select('*')
+    .select(DRIVER_COLUMNS)
     .eq('id', id)
     .single();
 
@@ -1418,7 +1532,7 @@ export const updateDriverStatus = async (
     .from('drivers')
     .update(updates)
     .eq('id', id)
-    .select();
+    .select(DRIVER_COLUMNS);
 
   if (error) throw error;
   return data as Driver[];
@@ -1438,7 +1552,7 @@ export const updateDriverAvailability = async (
     .from('drivers')
     .update({ status, last_active_at: new Date().toISOString() })
     .eq('id', id)
-    .select()
+    .select(DRIVER_COLUMNS)
     .single();
 
   if (error) throw error;
@@ -1464,6 +1578,34 @@ export const setDriverPin = async (driverId: string, pin: string): Promise<void>
   });
 
   if (error) throw error;
+};
+
+/**
+ * Sign a driver out of every device (lost/stolen phone) without changing
+ * their password. Org members only; the app's next call sends it to login.
+ */
+export const revokeDriverSessions = async (driverId: string): Promise<number> => {
+  if (!supabase) throw new Error('Supabase not configured');
+
+  const { data, error } = await supabase.rpc('dispatch_revoke_driver_sessions', {
+    p_driver_id: driverId,
+  });
+
+  if (error) throw error;
+  return (data as { revoked?: number } | null)?.revoked ?? 0;
+};
+
+/**
+ * Unlock a job's hand-off code entry after 5 wrong codes (otp_attempts >= 5).
+ * Org members only.
+ */
+export const resetJobOtpAttempts = async (jobId: string): Promise<void> => {
+  if (!supabase) throw new Error('Supabase not configured');
+
+  const { data, error } = await supabase.rpc('reset_job_otp_attempts', { p_job_id: jobId });
+
+  if (error) throw error;
+  if ((data as { error?: string } | null)?.error) throw new Error((data as { error: string }).error);
 };
 
 /**

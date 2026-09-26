@@ -60,6 +60,8 @@
   },
   "errors": {
     "submitFailed": "Failed to submit application. Please try again.",
-    "uploadFailedPrefix": "Upload failed: "
+    "uploadFailedPrefix": "Upload failed: ",
+    "phoneTaken": "This phone number is already registered with Nokael. If you've applied before, contact us on WhatsApp instead of applying again.",
+    "emailTaken": "This email is already registered with Nokael. If you've applied before, contact us on WhatsApp instead of applying again."
   }
 }

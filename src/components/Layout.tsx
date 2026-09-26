@@ -293,7 +293,8 @@ import { StickyCTA } from './StickyCTA';
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
-  const isDashboard = location.pathname === '/dashboard' || location.pathname === '/login';
+  // App screens (dashboard + its sign-in / set-password pages) have their own chrome.
+  const isDashboard = ['/dashboard', '/admin', '/login', '/accept-invite'].includes(location.pathname);
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg selection:bg-brand-neon selection:text-brand-bg">

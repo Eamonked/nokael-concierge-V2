@@ -1,9 +1,10 @@
 import React from 'react';
-import { motion } from 'motion/react';
-import { Zap, User, Navigation, X, MapPin, Loader2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Loader2, MapPin, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { supabase, createJob, generateOtp, type Driver, type Job, type ItemType, type UrgencyType, type ServiceTier } from '../../../lib/supabase';
+import { supabase, createJob, updateJob, generateOtp, type Driver, type Job, type ItemType, type UrgencyType, type ServiceTier, type BusinessInquiry } from '../../../lib/supabase';
 import { sendTelegramNotification, formatJobAssignmentNotification } from '../../../lib/notifications';
+import { geocodeAddress, validCoord } from '../../../lib/geo';
 
 // Scheduled pickups are entered and displayed in UAE time (GST, UTC+4, no DST),
 // whatever timezone the operator's browser is in.
@@ -13,17 +14,78 @@ const isoToGstInput = (iso?: string | null): string =>
 const gstInputToIso = (v: string): string | null =>
   v ? new Date(`${v}:00+04:00`).toISOString() : null;
 
-export const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => void, initialData?: Partial<Job>, drivers: Driver[] }> = ({ onClose, onSuccess, initialData, drivers }) => {
+const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'RAK', 'Fujairah', 'UMM Al Quwain'];
+
+// Legacy jobs may hold concatenated values like "Dubai → Abu Dhabi" in an emirate field.
+const cleanEmirate = (value: string | null | undefined, part: 0 | 1, fallback: string): string => {
+  if (!value) return fallback;
+  if (value.includes('→')) return value.split('→')[part]?.trim() || fallback;
+  return value;
+};
+
+const Field: React.FC<{ label: string; wide?: boolean; span2?: boolean; required?: boolean; children: React.ReactNode }> = ({ label, wide, span2, required, children }) => (
+  <label className={`field${wide ? ' wide' : ''}${span2 ? ' span-2' : ''}`}>
+    {/* Labels truncate to one line; the full text stays available on hover. */}
+    <span className="field-label" title={label}>{label}{required ? ' *' : ''}</span>
+    {children}
+  </label>
+);
+
+interface JobCreateModalProps {
+  onClose: () => void;
+  onSuccess: () => void | Promise<void>;
+  initialData?: Partial<Job>;
+  drivers: Driver[];
+  /** When set, the drawer edits this existing job instead of creating a new one. */
+  editJob?: Job;
+  /** When set, the drawer creates a NEW job pre-filled from this one (fresh tokens/OTPs, no driver, no quote link). */
+  duplicateFrom?: Job;
+  /** Tracking ref of the source quote request (e.g. NK-1234), shown when converting a quote. */
+  quoteRef?: string;
+  /**
+   * Business accounts, used only to resolve jobs.business_id from the
+   * existing Company Account free-text field (matched by company_name) so
+   * a job created/edited against a known business account gets linked
+   * automatically. No UI change: same text input, smarter save.
+   */
+  businessInquiries?: BusinessInquiry[];
+}
+
+export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSuccess, initialData: prefill, drivers, editJob, duplicateFrom, quoteRef, businessInquiries }) => {
   const { t } = useTranslation('dashboard');
+  const isEdit = !!editJob;
+  const isDuplicate = !!duplicateFrom;
+  const isQuoteConversion = !editJob && !duplicateFrom && !!prefill?.quote_id;
+  // A duplicate copies only the reusable commercial/route details. Driver, internal
+  // notes, quote link, status, schedule time and every token/OTP are deliberately
+  // NOT carried over — the create path issues fresh ones.
+  const duplicateData: Partial<Job> | undefined = duplicateFrom && {
+    sender_name: duplicateFrom.sender_name,
+    sender_phone: duplicateFrom.sender_phone,
+    recipient_name: duplicateFrom.recipient_name,
+    recipient_phone: duplicateFrom.recipient_phone,
+    pickup_emirate: duplicateFrom.pickup_emirate,
+    pickup_location: duplicateFrom.pickup_location,
+    delivery_emirate: duplicateFrom.delivery_emirate,
+    delivery_location: duplicateFrom.delivery_location,
+    item_type: duplicateFrom.item_type,
+    urgency: duplicateFrom.urgency,
+    company_name: duplicateFrom.company_name,
+    service_tier: duplicateFrom.service_tier,
+    price_aed: duplicateFrom.price_aed,
+    special_instructions: duplicateFrom.special_instructions,
+    confirmation_mode: duplicateFrom.confirmation_mode,
+  };
+  const initialData: Partial<Job> | undefined = editJob ?? duplicateData ?? prefill;
   const [loading, setLoading] = React.useState(false);
   const [formData, setFormData] = React.useState({
     sender_name: initialData?.sender_name || '',
     sender_phone: initialData?.sender_phone || '',
     recipient_name: initialData?.recipient_name || '',
     recipient_phone: initialData?.recipient_phone || '',
-    pickup_emirate: initialData?.pickup_emirate || 'Dubai',
+    pickup_emirate: cleanEmirate(initialData?.pickup_emirate, 0, 'Dubai'),
     pickup_location: initialData?.pickup_location || '',
-    delivery_emirate: initialData?.delivery_emirate || 'Abu Dhabi',
+    delivery_emirate: cleanEmirate(initialData?.delivery_emirate, 1, 'Abu Dhabi'),
     delivery_location: initialData?.delivery_location || '',
     item_type: initialData?.item_type || 'parcel' as ItemType,
     urgency: initialData?.urgency || 'immediate' as UrgencyType,
@@ -33,6 +95,7 @@ export const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => vo
     operator_notes: initialData?.operator_notes || '',
     scheduled_pickup_at: isoToGstInput(initialData?.scheduled_pickup_at),
     company_name: initialData?.company_name || '',
+    price_aed: initialData?.price_aed != null ? String(initialData.price_aed) : '',
     service_tier: (initialData?.service_tier || 'standard') as ServiceTier,
     quote_id: initialData?.quote_id || null,
     // 'driver_only' (2-step, driver-confirmed) is the default going forward.
@@ -40,6 +103,21 @@ export const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => vo
     // steps for jobs that specifically need them.
     confirmation_mode: (initialData?.confirmation_mode || 'driver_only') as 'four_step' | 'driver_only'
   });
+
+  // Reference-drawer fields that have no Job column yet (payment mode, driver payout, building/gate,
+  // per-stop company, time windows, per-stop notes, cargo specs, handling flags, attachments).
+  // They are layout-only: kept in local state and deliberately NOT part of the create/update
+  // payloads below, so nothing here can reach Supabase until matching columns exist.
+  const [extra, setExtra] = React.useState({
+    payment_mode: '', agent_payout: '',
+    pickup_building: '', pickup_company: '', pickup_window_start: '', pickup_window_end: '', pickup_notes: '',
+    delivery_building: '', delivery_company: '', delivery_eta_start: '', delivery_guaranteed_by: '', delivery_notes: '',
+    vehicle_required: '', quantity: '1', weight_kg: '', dim_l: '', dim_w: '', dim_h: '',
+    handling: [] as string[],
+  });
+  const setX = <K extends keyof typeof extra>(key: K, value: (typeof extra)[K]) =>
+    setExtra(prev => ({ ...prev, [key]: value }));
+  const [files, setFiles] = React.useState<File[]>([]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +128,50 @@ export const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => vo
     setLoading(true);
     
     try {
+      // Put both stops on the map (live map, ETA, geofence alerts). Only looked up
+      // for a new job or when an address changed; a failed lookup just leaves them
+      // empty, and the map retries later.
+      const stopMoved = (field: 'pickup' | 'delivery') =>
+        !editJob ||
+        formData[`${field}_location`] !== editJob[`${field}_location`] ||
+        formData[`${field}_emirate`] !== editJob[`${field}_emirate`] ||
+        !validCoord(editJob[`${field}_lat`], editJob[`${field}_lng`]);
+      const [pickupCoord, deliveryCoord] = await Promise.all([
+        stopMoved('pickup') ? geocodeAddress(formData.pickup_location, formData.pickup_emirate) : Promise.resolve(undefined),
+        stopMoved('delivery') ? geocodeAddress(formData.delivery_location, formData.delivery_emirate) : Promise.resolve(undefined),
+      ]);
+      // undefined = unchanged (leave the column alone); null = moved but not found (clear the old point).
+      const coords: Partial<Job> = {
+        ...(pickupCoord !== undefined && { pickup_lat: pickupCoord?.[0] ?? null, pickup_lng: pickupCoord?.[1] ?? null }),
+        ...(deliveryCoord !== undefined && { delivery_lat: deliveryCoord?.[0] ?? null, delivery_lng: deliveryCoord?.[1] ?? null }),
+      };
+
+      if (editJob?.id) {
+        const editedPrice = formData.price_aed.trim() === '' ? null : Number(formData.price_aed);
+        await updateJob(editJob.id, {
+          sender_name: formData.sender_name,
+          sender_phone: formData.sender_phone,
+          recipient_name: formData.recipient_name,
+          recipient_phone: formData.recipient_phone,
+          pickup_emirate: formData.pickup_emirate,
+          pickup_location: formData.pickup_location,
+          delivery_emirate: formData.delivery_emirate,
+          delivery_location: formData.delivery_location,
+          item_type: formData.item_type,
+          urgency: formData.urgency,
+          scheduled_pickup_at: formData.urgency === 'scheduled' ? gstInputToIso(formData.scheduled_pickup_at) : null,
+          company_name: formData.company_name.trim() || null,
+          business_id: resolveBusinessId(formData.company_name),
+          service_tier: formData.service_tier,
+          price_aed: editedPrice !== null && Number.isFinite(editedPrice) && editedPrice >= 0 ? editedPrice : null,
+          special_instructions: formData.special_instructions.trim() || null,
+          ...coords,
+        });
+        await onSuccess();
+        onClose();
+        return;
+      }
+
       const genOtp = generateOtp;
       const tokens = {
         token_client_pickup: crypto.randomUUID(),
@@ -59,7 +181,10 @@ export const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => vo
       };
 
       const otpVal = genOtp();
+      const parsedPrice = formData.price_aed.trim() === '' ? null : Number(formData.price_aed);
+      const priceValue = parsedPrice !== null && Number.isFinite(parsedPrice) && parsedPrice >= 0 ? parsedPrice : null;
       const payload: Partial<Job> = {
+        ...coords,
         sender_name: formData.sender_name,
         sender_phone: formData.sender_phone,
         recipient_name: formData.recipient_name,
@@ -75,6 +200,8 @@ export const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => vo
         operator_notes: formData.operator_notes.trim() || null,
         scheduled_pickup_at: formData.urgency === 'scheduled' ? gstInputToIso(formData.scheduled_pickup_at) : null,
         company_name: formData.company_name.trim() || null,
+        business_id: resolveBusinessId(formData.company_name),
+        price_aed: priceValue,
         service_tier: formData.service_tier,
         quote_id: formData.quote_id,
         confirmation_mode: formData.confirmation_mode,
@@ -112,196 +239,402 @@ export const JobCreateModal: React.FC<{ onClose: () => void, onSuccess: () => vo
       onSuccess();
       onClose();
     } catch (err) {
-      console.error('Error creating job:', err);
-      alert(t('jobCreateModal.createFailedAlert'));
+      console.error(isEdit ? 'Error updating job:' : 'Error creating job:', err);
+      alert(isEdit ? t('jobCreateModal.updateFailedAlert') : t('jobCreateModal.createFailedAlert'));
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-brand-bg/90 backdrop-blur-md"
-        onClick={onClose}
-      />
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-4xl bg-brand-bg border border-brand-border rounded-[40px] shadow-3xl overflow-hidden max-h-[90vh] flex flex-col"
-      >
-        <div className="p-6 border-b border-brand-border flex justify-between items-center bg-brand-surface/20">
-           <div>
-              <h2 className="text-2xl font-display font-medium tracking-tighter mb-1">{t('jobCreateModal.title')}</h2>
-              <p className="text-xs text-brand-muted uppercase tracking-wide font-medium font-mono">{t('jobCreateModal.subtitle')}</p>
-           </div>
-           <button onClick={onClose} className="p-2 bg-brand-input rounded-full text-brand-muted hover:text-brand-text transition-colors">
-              <X className="w-6 h-6" />
-           </button>
+  const set = <K extends keyof typeof formData>(key: K, value: (typeof formData)[K]) =>
+    setFormData(prev => ({ ...prev, [key]: value }));
+
+  /**
+   * Resolve jobs.business_id by matching the free-text Company Account field
+   * against a known business_inquiries.company_name (case-insensitive, exact).
+   * This is the ONLY way business_id ever gets set (see supabase.ts) — no
+   * fuzzy matching, no backfill against historical jobs.
+   */
+  const resolveBusinessId = (companyName: string): string | null => {
+    const trimmed = companyName.trim();
+    if (!trimmed || !businessInquiries) return null;
+    const match = businessInquiries.find(
+      b => b.company_name.trim().toLowerCase() === trimmed.toLowerCase()
+    );
+    return match?.id || null;
+  };
+  const priceNumber = Number(formData.price_aed);
+  const clientTotal = formData.price_aed.trim() !== '' && Number.isFinite(priceNumber)
+    ? `AED ${priceNumber.toFixed(2)}`
+    : t('jobCreateModal.notSetLabel');
+
+  const priceAed = Number.isFinite(priceNumber) && priceNumber > 0 ? priceNumber : 0;
+  const payoutNumber = Number(extra.agent_payout);
+  const payoutAed = Number.isFinite(payoutNumber) && payoutNumber > 0 ? payoutNumber : 0;
+  const marginAed = Math.max(0, priceAed - payoutAed);
+  const marginPct = priceAed > 0 ? Math.round((marginAed / priceAed) * 100) : 0;
+
+  const MAX_FILE_BYTES = 10 * 1024 * 1024;
+  const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked: File[] = e.target.files ? Array.from(e.target.files) : [];
+    e.target.value = '';
+    const accepted = picked.filter(f => f.size <= MAX_FILE_BYTES);
+    if (accepted.length < picked.length) alert(t('jobCreateModal.attachTooLarge'));
+    if (accepted.length) setFiles(prev => [...prev, ...accepted]);
+  };
+  const formatFileSize = (bytes: number) =>
+    bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  const HANDLING_FLAGS: { key: string; label: string }[] = [
+    { key: 'fragile', label: t('jobCreateModal.handlingFragile') },
+    { key: 'refrigerated', label: t('jobCreateModal.handlingRefrigerated') },
+    { key: 'two_person', label: t('jobCreateModal.handlingTwoPerson') },
+    { key: 'hazmat', label: t('jobCreateModal.handlingHazmat') },
+  ];
+
+  const emirateOptions = (current: string) => (current && !EMIRATES.includes(current) ? [current, ...EMIRATES] : EMIRATES);
+
+  const confirmationModes: { value: 'driver_only' | 'four_step'; title: string; desc: string }[] = [
+    { value: 'driver_only', title: t('jobCreateModal.twoStepTitle'), desc: t('jobCreateModal.twoStepDesc') },
+    { value: 'four_step', title: t('jobCreateModal.fourStepTitle'), desc: t('jobCreateModal.fourStepDesc') },
+  ];
+
+  return createPortal(
+    <>
+      <div className="modal-backdrop" onClick={onClose} />
+      <form className="account-drawer job-form-drawer job-create-drawer enterprise-mode" onSubmit={handleSubmit}>
+        <div className="job-form-header">
+          <div>
+            <span className="eyebrow">{isEdit ? (editJob?.job_ref || t('jobCreateModal.editTitle')) : isDuplicate ? t('jobCreateModal.duplicateEyebrow', { ref: duplicateFrom?.job_ref || '' }) : isQuoteConversion ? t('jobCreateModal.quoteEyebrow', { ref: quoteRef || '' }).trim() : t('jobCreateModal.newDispatchEyebrow')}</span>
+            <h2>{isEdit ? t('jobCreateModal.editTitle') : isDuplicate ? t('jobCreateModal.duplicateTitle') : isQuoteConversion ? t('jobCreateModal.quoteTitle') : t('jobCreateModal.title')}</h2>
+            <p>{isEdit ? t('jobCreateModal.editSubtitle') : isDuplicate ? t('jobCreateModal.duplicateSubtitle') : isQuoteConversion ? t('jobCreateModal.quoteSubtitle') : t('jobCreateModal.subtitle')}</p>
+          </div>
+          <button type="button" className="icon-button" onClick={onClose} aria-label={t('jobCreateModal.cancelLabel')}>
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto no-scrollbar space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               <div className="space-y-6">
-                 <h3 className="text-xs font-medium text-brand-neon flex items-center gap-2">
-                   <User className="w-3 h-3" />
-                   {t('jobCreateModal.senderInfo')}
-                 </h3>
-                 <div className="space-y-4">
-                   <input required value={formData.sender_name} onChange={e => setFormData({...formData, sender_name: e.target.value})} type="text" placeholder={t('jobCreateModal.fullNamePlaceholder')} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
-                   <input required value={formData.sender_phone} onChange={e => setFormData({...formData, sender_phone: e.target.value})} type="tel" placeholder={t('jobCreateModal.whatsappPlaceholder')} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
-                 </div>
-               </div>
-               <div className="space-y-6">
-                 <h3 className="text-xs font-medium text-brand-neon flex items-center gap-2">
-                   <User className="w-3 h-3" />
-                   {t('jobCreateModal.recipientInfo')}
-                 </h3>
-                 <div className="space-y-4">
-                   <input required value={formData.recipient_name} onChange={e => setFormData({...formData, recipient_name: e.target.value})} type="text" placeholder={t('jobCreateModal.fullNamePlaceholder')} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
-                   <input required value={formData.recipient_phone} onChange={e => setFormData({...formData, recipient_phone: e.target.value})} type="tel" placeholder={t('jobCreateModal.whatsappPlaceholder')} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
-                 </div>
-               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               <div className="space-y-6">
-                 <h3 className="text-xs font-medium text-brand-neon flex items-center gap-2">
-                   <MapPin className="w-3 h-3" />
-                   {t('jobCreateModal.pickupLogistics')}
-                 </h3>
-                 <div className="space-y-4">
-                   <select required value={formData.pickup_emirate} onChange={e => setFormData({...formData, pickup_emirate: e.target.value})} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none">
-                     {['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'RAK', 'Fujairah', 'UMM Al Quwain'].map(e => <option key={e} value={e}>{e}</option>)}
-                   </select>
-                   <input required value={formData.pickup_location} onChange={e => setFormData({...formData, pickup_location: e.target.value})} type="text" placeholder={t('jobCreateModal.pickupAddressPlaceholder')} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
-                 </div>
-               </div>
-               <div className="space-y-6">
-                 <h3 className="text-xs font-medium text-brand-neon flex items-center gap-2">
-                   <Navigation className="w-3 h-3" />
-                   {t('jobCreateModal.deliveryLogistics')}
-                 </h3>
-                 <div className="space-y-4">
-                    <select required value={formData.delivery_emirate} onChange={e => setFormData({...formData, delivery_emirate: e.target.value})} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none">
-                     {['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'RAK', 'Fujairah', 'UMM Al Quwain'].map(e => <option key={e} value={e}>{e}</option>)}
-                   </select>
-                   <input required value={formData.delivery_location} onChange={e => setFormData({...formData, delivery_location: e.target.value})} type="text" placeholder={t('jobCreateModal.deliveryAddressPlaceholder')} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
-                 </div>
-               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-               <div className="space-y-4">
-                  <p className="text-xs font-medium text-brand-muted">{t('jobCreateModal.itemCategory')}</p>
-                  <select value={formData.item_type} onChange={e => setFormData({...formData, item_type: e.target.value as any})} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none">
-                    <option value="parcel">{t('jobCreateModal.itemTypes.parcel')}</option>
-                    <option value="document">{t('jobCreateModal.itemTypes.document')}</option>
-                    <option value="spare_part">{t('jobCreateModal.itemTypes.sparePart')}</option>
-                    <option value="other">{t('jobCreateModal.itemTypes.other')}</option>
-                  </select>
-               </div>
-               <div className="space-y-4">
-                  <p className="text-xs font-medium text-brand-muted">{t('jobCreateModal.urgencyStatus')}</p>
-                  <select value={formData.urgency} onChange={e => setFormData({...formData, urgency: e.target.value as any})} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none">
-                    <option value="immediate">{t('jobCreateModal.urgencyOptions.immediate')}</option>
-                    <option value="today">{t('jobCreateModal.urgencyOptions.today')}</option>
-                    <option value="scheduled">{t('jobCreateModal.urgencyOptions.scheduled')}</option>
-                  </select>
-               </div>
-               <div className="space-y-4">
-                  <p className="text-xs font-medium text-brand-muted">{t('jobCreateModal.driverAssignment')}</p>
-                  <select
-                    value={formData.driver_id}
-                    onChange={e => setFormData({...formData, driver_id: e.target.value})}
-                    className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none"
-                  >
-                    <option value="">{t('jobCreateModal.unassignedOption')}</option>
-                    {drivers.map(d => {
-                      const statusIcon = d.status === 'available' ? '🟢' : d.status === 'on_job' ? '🟠' : '⚪';
-                      return (
-                        <option key={d.id} value={d.id}>{statusIcon} {d.full_name} ({t('jobCreateModal.tierShort')} {d.tier || 'D'} · {d.vehicle_type})</option>
-                      );
-                    })}
-                  </select>
-               </div>
-            </div>
-
-            {formData.urgency === 'scheduled' && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-brand-muted">{t('jobCreateModal.scheduledPickup')}</p>
-                <input
-                  required
-                  type="datetime-local"
-                  value={formData.scheduled_pickup_at}
-                  onChange={e => setFormData({...formData, scheduled_pickup_at: e.target.value})}
-                  aria-label={t('jobCreateModal.scheduledPickupPlaceholder')}
-                  className="w-full md:w-1/2 bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none"
-                />
-                <p className="text-[11px] text-brand-muted">{t('jobCreateModal.scheduledPickupHint')}</p>
+        <div className="job-form-body">
+          <section className="job-form-section">
+            <div className="job-section-heading">
+              <span>01</span>
+              <div>
+                <h3>{t('jobCreateModal.pricingTitle')}</h3>
+                <p>{t('jobCreateModal.pricingHint')}</p>
               </div>
-            )}
+            </div>
+            <div className="pricing-grid">
+              {/* Row 1: money in, money out, what's left. Row 2: how it's billed. */}
+              <Field label={t('jobCreateModal.priceLabel')}>
+                <div className="money-input">
+                  <span className="money-prefix" aria-hidden="true">AED</span>
+                  <input type="number" min="0" step="0.01" inputMode="decimal" value={formData.price_aed} onChange={e => set('price_aed', e.target.value)} placeholder="0.00" />
+                </div>
+              </Field>
+              <Field label={t('jobCreateModal.agentPayout')}>
+                <div className="money-input">
+                  <span className="money-prefix" aria-hidden="true">AED</span>
+                  <input type="number" min="0" step="0.01" inputMode="decimal" value={extra.agent_payout} onChange={e => setX('agent_payout', e.target.value)} placeholder={t('jobCreateModal.optionalPlaceholder')} />
+                </div>
+              </Field>
+              <div className="margin-card" aria-live="polite">
+                <span>{t('jobCreateModal.netMargin')}</span>
+                <strong>AED {marginAed.toFixed(2)}</strong>
+                <em>{t('jobCreateModal.marginPercent', { percent: marginPct })}</em>
+                <div><i style={{ width: `${Math.min(100, marginPct)}%` }} /></div>
+              </div>
+              <Field label={t('jobCreateModal.paymentMode')}>
+                <select value={extra.payment_mode} onChange={e => setX('payment_mode', e.target.value)}>
+                  <option value="">{t('jobCreateModal.paymentModePlaceholder')}</option>
+                  <option value="cod">{t('jobCreateModal.paymentModeCod')}</option>
+                  <option value="invoice">{t('jobCreateModal.paymentModeInvoice')}</option>
+                  <option value="card">{t('jobCreateModal.paymentModeCard')}</option>
+                </select>
+              </Field>
+              <Field label={t('jobCreateModal.companyAccount')}>
+                <input type="text" value={formData.company_name} onChange={e => set('company_name', e.target.value)} placeholder={t('jobCreateModal.companyPlaceholder')} />
+              </Field>
+              <Field label={t('jobCreateModal.serviceTier')}>
+                <select value={formData.service_tier} onChange={e => set('service_tier', e.target.value as ServiceTier)}>
+                  <option value="express">{t('jobCreateModal.serviceTiers.express')}</option>
+                  <option value="priority">{t('jobCreateModal.serviceTiers.priority')}</option>
+                  <option value="standard">{t('jobCreateModal.serviceTiers.standard')}</option>
+                </select>
+              </Field>
+            </div>
+            {!isEdit && (<>
+            <p className="confirmation-mode-label" id="coc-mode-label">{t('jobCreateModal.cocConfirmation')}</p>
+            <div className="confirmation-mode-grid" role="radiogroup" aria-labelledby="coc-mode-label">
+              {confirmationModes.map(mode => (
+                <button
+                  key={mode.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={formData.confirmation_mode === mode.value}
+                  className={`confirmation-mode-card${formData.confirmation_mode === mode.value ? ' selected' : ''}`}
+                  onClick={() => set('confirmation_mode', mode.value)}
+                  title={mode.desc}
+                >
+                  <i className="confirmation-mode-dot" aria-hidden="true" />
+                  <b>{mode.title}</b>
+                  <small>{mode.desc}</small>
+                </button>
+              ))}
+            </div>
+            </>)}
+          </section>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               <div className="space-y-4">
-                  <p className="text-xs font-medium text-brand-muted">{t('jobCreateModal.companyAccount')}</p>
-                  <input value={formData.company_name} onChange={e => setFormData({...formData, company_name: e.target.value})} type="text" placeholder={t('jobCreateModal.companyPlaceholder')} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
-               </div>
-               <div className="space-y-4">
-                  <p className="text-xs font-medium text-brand-muted">{t('jobCreateModal.serviceTier')}</p>
-                  <select value={formData.service_tier} onChange={e => setFormData({...formData, service_tier: e.target.value as ServiceTier})} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm outline-none">
-                    <option value="express">{t('jobCreateModal.serviceTiers.express')}</option>
-                    <option value="priority">{t('jobCreateModal.serviceTiers.priority')}</option>
-                    <option value="standard">{t('jobCreateModal.serviceTiers.standard')}</option>
+          <div className="route-form-grid">
+            <section className="route-form-section pickup">
+              <div className="job-section-heading">
+                <span>02</span>
+                <div>
+                  <h3>{t('jobCreateModal.pickupDetailsTitle')}</h3>
+                  <p>{t('jobCreateModal.pickupDetailsHint')}</p>
+                </div>
+              </div>
+              <div className="leg-fields leg-fields-3">
+                <Field label={t('jobCreateModal.mapLocation')} span2 required>
+                  <div className="location-input">
+                    <MapPin className="w-3.5 h-3.5" />
+                    <input required type="text" value={formData.pickup_location} onChange={e => set('pickup_location', e.target.value)} placeholder={t('jobCreateModal.pickupAddressPlaceholder')} />
+                    <button type="button" disabled title={t('jobCreateModal.pickOnMap')}>{t('jobCreateModal.pickOnMap')}</button>
+                  </div>
+                </Field>
+                <Field label={t('jobCreateModal.emirateLabel')} required>
+                  <select required value={formData.pickup_emirate} onChange={e => set('pickup_emirate', e.target.value)}>
+                    {emirateOptions(formData.pickup_emirate).map(em => <option key={em} value={em}>{em}</option>)}
                   </select>
-               </div>
-            </div>
+                </Field>
+                <Field label={t('jobCreateModal.contactPerson')} required>
+                  <input required type="text" value={formData.sender_name} onChange={e => set('sender_name', e.target.value)} placeholder={t('jobCreateModal.fullNamePlaceholder')} />
+                </Field>
+                <Field label={t('jobCreateModal.directMobile')} required>
+                  <input required type="tel" value={formData.sender_phone} onChange={e => set('sender_phone', e.target.value)} placeholder={t('jobCreateModal.whatsappPlaceholder')} />
+                </Field>
+                <Field label={t('jobCreateModal.buildingUnitGate')}>
+                  <input type="text" value={extra.pickup_building} onChange={e => setX('pickup_building', e.target.value)} placeholder={t('jobCreateModal.buildingPlaceholder')} />
+                </Field>
+                <Field label={t('jobCreateModal.companyEntity')}>
+                  <input type="text" value={extra.pickup_company} onChange={e => setX('pickup_company', e.target.value)} placeholder={t('jobCreateModal.companyEntityPlaceholder')} />
+                </Field>
+                <Field label={t('jobCreateModal.windowStart')}>
+                  <input type="datetime-local" value={extra.pickup_window_start} onChange={e => setX('pickup_window_start', e.target.value)} />
+                </Field>
+                <Field label={t('jobCreateModal.windowEnd')}>
+                  <input type="datetime-local" value={extra.pickup_window_end} onChange={e => setX('pickup_window_end', e.target.value)} />
+                </Field>
+                <Field label={t('jobCreateModal.gateNotes')} wide>
+                  <textarea rows={2} value={extra.pickup_notes} onChange={e => setX('pickup_notes', e.target.value)} placeholder={t('jobCreateModal.gateNotesPlaceholder')} />
+                </Field>
+              </div>
+            </section>
+            <section className="route-form-section dropoff">
+              <div className="job-section-heading">
+                <span>03</span>
+                <div>
+                  <h3>{t('jobCreateModal.dropoffDetailsTitle')}</h3>
+                  <p>{t('jobCreateModal.dropoffDetailsHint')}</p>
+                </div>
+              </div>
+              <div className="leg-fields leg-fields-3">
+                <Field label={t('jobCreateModal.mapLocation')} span2 required>
+                  <div className="location-input">
+                    <MapPin className="w-3.5 h-3.5" />
+                    <input required type="text" value={formData.delivery_location} onChange={e => set('delivery_location', e.target.value)} placeholder={t('jobCreateModal.deliveryAddressPlaceholder')} />
+                    <button type="button" disabled title={t('jobCreateModal.pickOnMap')}>{t('jobCreateModal.pickOnMap')}</button>
+                  </div>
+                </Field>
+                <Field label={t('jobCreateModal.emirateLabel')} required>
+                  <select required value={formData.delivery_emirate} onChange={e => set('delivery_emirate', e.target.value)}>
+                    {emirateOptions(formData.delivery_emirate).map(em => <option key={em} value={em}>{em}</option>)}
+                  </select>
+                </Field>
+                <Field label={t('jobCreateModal.contactPerson')} required>
+                  <input required type="text" value={formData.recipient_name} onChange={e => set('recipient_name', e.target.value)} placeholder={t('jobCreateModal.fullNamePlaceholder')} />
+                </Field>
+                <Field label={t('jobCreateModal.directMobile')} required>
+                  <input required type="tel" value={formData.recipient_phone} onChange={e => set('recipient_phone', e.target.value)} placeholder={t('jobCreateModal.whatsappPlaceholder')} />
+                </Field>
+                <Field label={t('jobCreateModal.buildingUnitGate')}>
+                  <input type="text" value={extra.delivery_building} onChange={e => setX('delivery_building', e.target.value)} placeholder={t('jobCreateModal.buildingPlaceholder')} />
+                </Field>
+                <Field label={t('jobCreateModal.companyEntity')}>
+                  <input type="text" value={extra.delivery_company} onChange={e => setX('delivery_company', e.target.value)} placeholder={t('jobCreateModal.companyEntityPlaceholder')} />
+                </Field>
+                <Field label={t('jobCreateModal.deliveryEtaStart')}>
+                  <input type="datetime-local" value={extra.delivery_eta_start} onChange={e => setX('delivery_eta_start', e.target.value)} />
+                </Field>
+                <Field label={t('jobCreateModal.guaranteedBy')}>
+                  <input type="datetime-local" value={extra.delivery_guaranteed_by} onChange={e => setX('delivery_guaranteed_by', e.target.value)} />
+                </Field>
+                <Field label={t('jobCreateModal.gateNotes')} wide>
+                  <textarea rows={2} value={extra.delivery_notes} onChange={e => setX('delivery_notes', e.target.value)} placeholder={t('jobCreateModal.gateNotesPlaceholder')} />
+                </Field>
+              </div>
+            </section>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               <div className="space-y-2">
-                  <p className="text-xs font-medium text-brand-muted">{t('jobCreateModal.driverInstructions')}</p>
-                  <textarea rows={3} value={formData.special_instructions} onChange={e => setFormData({...formData, special_instructions: e.target.value})} placeholder={t('jobCreateModal.driverInstructionsPlaceholder')} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
-                  <p className="text-[11px] text-brand-muted">{t('jobCreateModal.driverInstructionsHint')}</p>
-               </div>
-               <div className="space-y-2">
-                  <p className="text-xs font-medium text-brand-muted">{t('jobCreateModal.internalNotes')}</p>
-                  <textarea rows={3} value={formData.operator_notes} onChange={e => setFormData({...formData, operator_notes: e.target.value})} placeholder={t('jobCreateModal.internalNotesPlaceholder')} className="w-full bg-brand-input border border-brand-input-border rounded-2xl p-5 text-sm focus:border-brand-neon/50 outline-none" />
-                  <p className="text-[11px] text-brand-muted">{t('jobCreateModal.internalNotesHint')}</p>
-               </div>
+          <section className="job-form-section">
+            <div className="job-section-heading">
+              <span>04</span>
+              <div>
+                <h3>{t('jobCreateModal.cargoSpecialTitle')}</h3>
+                <p>{t('jobCreateModal.cargoSpecialHint')}</p>
+              </div>
             </div>
-
-            <div className="space-y-4">
-               <p className="text-xs font-medium text-brand-muted">{t('jobCreateModal.cocConfirmation')}</p>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, confirmation_mode: 'driver_only' })}
-                    className={`text-left p-5 rounded-2xl border transition-all ${formData.confirmation_mode === 'driver_only' ? 'border-brand-neon bg-brand-neon/10' : 'border-brand-input-border bg-brand-input'}`}
-                  >
-                     <p className="text-sm font-semibold text-brand-text mb-1">{t('jobCreateModal.twoStepTitle')}</p>
-                     <p className="text-xs text-brand-muted leading-relaxed">{t('jobCreateModal.twoStepDesc')}</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, confirmation_mode: 'four_step' })}
-                    className={`text-left p-5 rounded-2xl border transition-all ${formData.confirmation_mode === 'four_step' ? 'border-brand-neon bg-brand-neon/10' : 'border-brand-input-border bg-brand-input'}`}
-                  >
-                     <p className="text-sm font-semibold text-brand-text mb-1">{t('jobCreateModal.fourStepTitle')}</p>
-                     <p className="text-xs text-brand-muted leading-relaxed">{t('jobCreateModal.fourStepDesc')}</p>
-                  </button>
-               </div>
+            <div className="cargo-grid">
+              <Field label={t('jobCreateModal.cargoType')}>
+                <select value={formData.item_type} onChange={e => set('item_type', e.target.value as ItemType)}>
+                  <option value="parcel">{t('jobCreateModal.itemTypes.parcel')}</option>
+                  <option value="document">{t('jobCreateModal.itemTypes.document')}</option>
+                  <option value="spare_part">{t('jobCreateModal.itemTypes.sparePart')}</option>
+                  <option value="other">{t('jobCreateModal.itemTypes.other')}</option>
+                </select>
+              </Field>
+              <Field label={t('jobCreateModal.requiredVehicle')}>
+                <select value={extra.vehicle_required} onChange={e => setX('vehicle_required', e.target.value)}>
+                  <option value="">{t('jobCreateModal.vehiclePlaceholder')}</option>
+                  <option value="motorbike">{t('jobCreateModal.vehicleMotorbike')}</option>
+                  <option value="cargo_van">{t('jobCreateModal.vehicleVan')}</option>
+                  <option value="flatbed_3t">{t('jobCreateModal.vehicleFlatbed')}</option>
+                  <option value="refrigerated">{t('jobCreateModal.vehicleReefer')}</option>
+                </select>
+              </Field>
+              <Field label={t('jobCreateModal.quantity')}>
+                <input type="number" min="1" value={extra.quantity} onChange={e => setX('quantity', e.target.value)} />
+              </Field>
+              <Field label={t('jobCreateModal.totalWeight')}>
+                <input type="number" min="0" step="0.1" value={extra.weight_kg} onChange={e => setX('weight_kg', e.target.value)} placeholder="0.0" />
+              </Field>
+              <Field label={t('jobCreateModal.dimensions')} wide>
+                <div className="dimension-inputs">
+                  <input type="number" min="0" value={extra.dim_l} onChange={e => setX('dim_l', e.target.value)} placeholder={t('jobCreateModal.dimLength')} />
+                  <span>×</span>
+                  <input type="number" min="0" value={extra.dim_w} onChange={e => setX('dim_w', e.target.value)} placeholder={t('jobCreateModal.dimWidth')} />
+                  <span>×</span>
+                  <input type="number" min="0" value={extra.dim_h} onChange={e => setX('dim_h', e.target.value)} placeholder={t('jobCreateModal.dimHeight')} />
+                </div>
+              </Field>
+              <div className="handling-field">
+                <span>{t('jobCreateModal.handlingRequirements')}</span>
+                <div>
+                  {HANDLING_FLAGS.map(flag => (
+                    <label key={flag.key}>
+                      <input
+                        type="checkbox"
+                        checked={extra.handling.includes(flag.key)}
+                        onChange={e => setX('handling', e.target.checked ? [...extra.handling, flag.key] : extra.handling.filter(k => k !== flag.key))}
+                      />
+                      {flag.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
+            <div className="leg-fields leg-fields-3 dispatch-row">
+              <Field label={t('jobCreateModal.urgencyStatus')}>
+                <select value={formData.urgency} onChange={e => set('urgency', e.target.value as UrgencyType)}>
+                  <option value="immediate">{t('jobCreateModal.urgencyOptions.immediate')}</option>
+                  <option value="today">{t('jobCreateModal.urgencyOptions.today')}</option>
+                  <option value="scheduled">{t('jobCreateModal.urgencyOptions.scheduled')}</option>
+                </select>
+              </Field>
+              {!isEdit && (
+              <Field label={t('jobCreateModal.driverAssignment')}>
+                <select value={formData.driver_id} onChange={e => set('driver_id', e.target.value)}>
+                  <option value="">{t('jobCreateModal.unassignedOption')}</option>
+                  {drivers.map(d => {
+                    const statusIcon = d.status === 'available' ? '🟢' : d.status === 'on_job' ? '🟠' : '⚪';
+                    return (
+                      <option key={d.id} value={d.id}>{statusIcon} {d.full_name} ({t('jobCreateModal.tierShort')} {d.tier || 'D'} · {d.vehicle_type})</option>
+                    );
+                  })}
+                </select>
+              </Field>
+              )}
+              {formData.urgency === 'scheduled' && (
+                <Field label={t('jobCreateModal.scheduledPickup')} required>
+                  <input
+                    required
+                    type="datetime-local"
+                    value={formData.scheduled_pickup_at}
+                    onChange={e => set('scheduled_pickup_at', e.target.value)}
+                    aria-label={t('jobCreateModal.scheduledPickupPlaceholder')}
+                  />
+                  <small>{t('jobCreateModal.scheduledPickupHint')}</small>
+                </Field>
+              )}
+            </div>
+          </section>
 
-            <button disabled={loading} type="submit" className="btn-primary w-full py-6 flex items-center justify-center gap-4 text-sm font-semibold transition-all">
-               {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Zap className="w-6 h-6" />}
-               {t('jobCreateModal.commitDispatch')}
-            </button>
-        </form>
-      </motion.div>
-    </div>
+          <section className="job-form-section">
+            <div className="job-section-heading">
+              <span>05</span>
+              <div>
+                <h3>{t('jobCreateModal.notesTitle')}</h3>
+                <p>{t('jobCreateModal.notesHint')}</p>
+              </div>
+            </div>
+            <div className="leg-fields">
+              <Field label={t('jobCreateModal.driverInstructions')} wide={isEdit}>
+                <textarea rows={3} value={formData.special_instructions} onChange={e => set('special_instructions', e.target.value)} placeholder={t('jobCreateModal.driverInstructionsPlaceholder')} />
+                <small>{t('jobCreateModal.driverInstructionsHint')}</small>
+              </Field>
+              {!isEdit && (
+              <Field label={t('jobCreateModal.internalNotes')}>
+                <textarea rows={3} value={formData.operator_notes} onChange={e => set('operator_notes', e.target.value)} placeholder={t('jobCreateModal.internalNotesPlaceholder')} />
+                <small>{t('jobCreateModal.internalNotesHint')}</small>
+              </Field>
+              )}
+            </div>
+          </section>
+
+          <section className="job-form-section">
+            <div className="job-section-heading">
+              <span>06</span>
+              <div>
+                <h3>{t('jobCreateModal.attachmentsTitle')}</h3>
+                <p>{t('jobCreateModal.attachmentsHint')}</p>
+              </div>
+            </div>
+            <label className="attachment-drop">
+              <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={handleFiles} />
+              <span><Plus className="w-4 h-4" /></span>
+              <div>
+                <b>{t('jobCreateModal.attachDrop')}</b>
+                <small>{t('jobCreateModal.attachTypes')}</small>
+              </div>
+            </label>
+            {files.map((file, index) => (
+              <div className="attached-file" key={`${file.name}-${index}`}>
+                <span className="pdf-icon">{(file.name.split('.').pop() || 'FILE').slice(0, 4).toUpperCase()}</span>
+                <div>
+                  <b title={file.name}>{file.name}</b>
+                  <small>{formatFileSize(file.size)}</small>
+                </div>
+                <button type="button" aria-label={t('jobCreateModal.removeFile')} onClick={() => setFiles(prev => prev.filter((_, i) => i !== index))}>
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </section>
+        </div>
+
+        <div className="job-form-footer">
+          <div>
+            <span>{t('jobCreateModal.clientTotalLabel')}</span>
+            <strong>{clientTotal}</strong>
+          </div>
+          <button type="button" className="outline-button" onClick={onClose} disabled={loading}>
+            {isEdit ? t('jobCreateModal.discardChanges') : t('jobCreateModal.cancelLabel')}
+          </button>
+          <button type="submit" className="dark-button" disabled={loading}>
+            {loading && <Loader2 className="w-3 h-3 animate-spin" />}
+            {isEdit ? t('jobCreateModal.saveChanges') : isDuplicate ? t('jobCreateModal.createDuplicate') : isQuoteConversion ? t('jobCreateModal.convertAndCreate') : t('jobCreateModal.commitDispatch')}
+          </button>
+        </div>
+      </form>
+    </>,
+    document.body
   );
 };

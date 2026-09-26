@@ -12,19 +12,56 @@ import { supabase } from './supabase';
 
 export type OrgRole = 'owner' | 'admin' | 'operator' | 'viewer';
 
+export type MemberStatus = 'active' | 'invited' | 'disabled';
+
 export interface OrgMember {
   id: string;               // org_members.id
   user_id: string;
   email: string;
+  full_name: string | null;
   role: OrgRole;
-  created_at: string;
+  status: MemberStatus;
+  created_at: string;       // when they were added to the org
+  invited_at: string | null;
+  last_sign_in_at: string | null;
+  mfa_enabled: boolean;
+  is_self: boolean;
 }
+
+export type TeamResult = { ok: boolean; error?: string; existing?: boolean };
+
+// Every write goes through here: attaches the caller's session and turns
+// any failure into { ok: false, error } so the UI can always show it.
+const teamRequest = async (path: string, method: string, body?: unknown): Promise<TeamResult> => {
+  try {
+    if (!supabase) return { ok: false, error: 'Supabase not configured.' };
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return { ok: false, error: 'Not authenticated.' };
+
+    const res = await fetch(`/api/team${path}`, {
+      method,
+      headers: {
+        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: json.error ?? `Request failed (${res.status}).` };
+    return { ok: true, existing: json.existing };
+  } catch (err: any) {
+    return { ok: false, error: err.message ?? 'Network error.' };
+  }
+};
 
 // ---------------------------------------------------------------------------
 // getCurrentUserOrg
 // ---------------------------------------------------------------------------
 // Returns the first org the logged-in user belongs to, plus their role in it.
 // For Nokael today (single org) this is always tenant zero.
+// null  = signed in but not a member of any org (removed / never added).
+// throws = the lookup itself failed (network etc.) — don't treat as "no access".
 export const getCurrentUserOrg = async (): Promise<{
   orgId: string;
   orgName: string;
@@ -37,9 +74,10 @@ export const getCurrentUserOrg = async (): Promise<{
     .from('org_members')
     .select('role, organization_id, organizations(name)')
     .limit(1)
-    .single();
+    .maybeSingle();
 
-  if (error || !data) return null;
+  if (error) throw error;
+  if (!data) return null;
 
   const org = data as any;
   return {
@@ -52,116 +90,48 @@ export const getCurrentUserOrg = async (): Promise<{
 // ---------------------------------------------------------------------------
 // getTeamMembers
 // ---------------------------------------------------------------------------
-// Calls GET /api/team/members which uses the service-role key to call
-// the list_org_members RPC and join auth.users for emails.
-// Falls back gracefully to an empty array so the UI can still render.
+// GET /api/team/members — members of the caller's org, enriched from Supabase
+// Auth (name, status, last sign-in, 2FA). Throws on failure so the panel can
+// show the reason instead of an empty list.
 export const getTeamMembers = async (): Promise<OrgMember[]> => {
-  try {
-    if (!supabase) return [];
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return [];
+  if (!supabase) throw new Error('Supabase not configured.');
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated.');
 
-    const res = await fetch('/api/team/members', {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
-
-    if (!res.ok) {
-      console.warn('[team] getTeamMembers:', res.status, await res.text());
-      return [];
-    }
-
-    const json = await res.json();
-    return (json.members ?? []) as OrgMember[];
-  } catch (err) {
-    console.warn('[team] getTeamMembers error:', err);
-    return [];
-  }
+  const res = await fetch('/api/team/members', {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error ?? `Could not load team (${res.status}).`);
+  return (json.members ?? []) as OrgMember[];
 };
 
 // ---------------------------------------------------------------------------
-// inviteTeamMember
+// Member management — all via /api/team (service role, server-side)
 // ---------------------------------------------------------------------------
-// POST /api/team/invite  { email, role }
-// Server calls supabase.auth.admin.inviteUserByEmail then inserts an
-// org_members row (role = 'operator' if not specified).
-export const inviteTeamMember = async (
-  email: string,
-  role: OrgRole = 'operator'
-): Promise<{ ok: boolean; error?: string }> => {
-  try {
-    if (!supabase) return { ok: false, error: 'Supabase not configured.' };
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return { ok: false, error: 'Not authenticated.' };
+// New address: Supabase emails an invite link. Existing account: added to the
+// org directly (result.existing = true) and signs in with their own password.
+export const inviteTeamMember = (email: string, role: OrgRole = 'operator', fullName?: string) =>
+  teamRequest('/invite', 'POST', { email, role, full_name: fullName?.trim() || undefined });
 
-    const res = await fetch('/api/team/invite', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ email, role }),
-    });
+export const updateTeamMemberRole = (userId: string, role: OrgRole) =>
+  teamRequest(`/members/${userId}`, 'PATCH', { role });
 
-    const json = await res.json();
-    if (!res.ok) return { ok: false, error: json.error ?? 'Invite failed.' };
-    return { ok: true };
-  } catch (err: any) {
-    return { ok: false, error: err.message ?? 'Network error.' };
-  }
-};
+export const updateTeamMemberName = (userId: string, fullName: string) =>
+  teamRequest(`/members/${userId}`, 'PATCH', { full_name: fullName });
 
-// ---------------------------------------------------------------------------
-// updateTeamMemberRole
-// ---------------------------------------------------------------------------
-// PATCH /api/team/members/:userId  { role }
-export const updateTeamMemberRole = async (
-  userId: string,
-  role: OrgRole
-): Promise<{ ok: boolean; error?: string }> => {
-  try {
-    if (!supabase) return { ok: false, error: 'Supabase not configured.' };
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return { ok: false, error: 'Not authenticated.' };
+/** Re-sends the invite email; only for members who haven't accepted yet. */
+export const resendTeamInvite = (userId: string) =>
+  teamRequest(`/members/${userId}/resend-invite`, 'POST');
 
-    const res = await fetch(`/api/team/members/${userId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ role }),
-    });
+/** Emails the member a password-reset link. The admin never sees the password. */
+export const sendTeamPasswordReset = (userId: string) =>
+  teamRequest(`/members/${userId}/reset-password`, 'POST');
 
-    const json = await res.json();
-    if (!res.ok) return { ok: false, error: json.error ?? 'Update failed.' };
-    return { ok: true };
-  } catch (err: any) {
-    return { ok: false, error: err.message ?? 'Network error.' };
-  }
-};
+/** Blocks / restores sign-in without removing the membership. */
+export const setTeamMemberDisabled = (userId: string, disabled: boolean) =>
+  teamRequest(`/members/${userId}/${disabled ? 'disable' : 'enable'}`, 'POST');
 
-// ---------------------------------------------------------------------------
-// removeTeamMember
-// ---------------------------------------------------------------------------
-// DELETE /api/team/members/:userId
-// Server removes the org_members row; optionally disables the auth user.
-export const removeTeamMember = async (
-  userId: string
-): Promise<{ ok: boolean; error?: string }> => {
-  try {
-    if (!supabase) return { ok: false, error: 'Supabase not configured.' };
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return { ok: false, error: 'Not authenticated.' };
-
-    const res = await fetch(`/api/team/members/${userId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
-
-    const json = await res.json();
-    if (!res.ok) return { ok: false, error: json.error ?? 'Remove failed.' };
-    return { ok: true };
-  } catch (err: any) {
-    return { ok: false, error: err.message ?? 'Network error.' };
-  }
-};
+/** Removes the org membership (the login itself is kept). */
+export const removeTeamMember = (userId: string) =>
+  teamRequest(`/members/${userId}`, 'DELETE');

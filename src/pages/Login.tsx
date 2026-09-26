@@ -1,24 +1,30 @@
 import React from 'react';
-import { motion } from 'motion/react';
-import { Lock, ArrowRight, Loader2, Terminal } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, ArrowLeft } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase, getSafeSession, clearStaleAuthSession } from '../lib/supabase';
+import { AuthLayout, AuthNotice } from '../components/AuthLayout';
+
+type Mode = 'signin' | 'forgot';
 
 export default function Login() {
+  const [mode, setMode] = React.useState<Mode>('signin');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
   const [resetSent, setResetSent] = React.useState(false);
-  const [resetLoading, setResetLoading] = React.useState(false);
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  // Set by the dashboard when a signed-in account has no team membership.
+  const noAccess = params.get('reason') === 'no_access';
 
   // Redirect if already authenticated
   React.useEffect(() => {
     let isMounted = true;
     getSafeSession()
       .then((session) => {
-        if (isMounted && session) {
+        if (isMounted && session && !noAccess) {
           navigate('/dashboard');
         }
       })
@@ -29,25 +35,32 @@ export default function Login() {
     return () => {
       isMounted = false;
     };
-  }, [navigate]);
+  }, [navigate, noAccess]);
 
-  const handleForgotPassword = async () => {
-    if (!email) {
-      setError('Enter your email above first, then tap Forgot password.');
-      return;
-    }
-    setResetLoading(true);
+  const switchMode = (next: Mode) => {
+    setMode(next);
+    setError('');
+    setResetSent(false);
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
     setError('');
     try {
       if (!supabase) throw new Error('Supabase not configured.');
       const redirectTo = `${window.location.origin}/accept-invite`;
-      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-      if (error) throw error;
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+      if (error) {
+        throw new Error(/rate limit/i.test(error.message)
+          ? 'Too many reset emails requested. Wait a few minutes and try again.'
+          : error.message);
+      }
       setResetSent(true);
     } catch (err: any) {
       setError(err.message || 'Failed to send reset link.');
     } finally {
-      setResetLoading(false);
+      setLoading(false);
     }
   };
 
@@ -58,122 +71,155 @@ export default function Login() {
 
     try {
       if (!supabase) {
-        throw new Error('Supabase not configured. Terminal access unavailable.');
+        throw new Error('Sign-in is unavailable right now (Supabase not configured).');
       }
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
       if (error) {
-        setError('Invalid dispatch credentials. Access denied.');
+        // Say why when it isn't simply a wrong password, so members know who to ask.
+        if (/banned/i.test(error.message)) {
+          setError('Your access has been disabled. Contact your team admin.');
+        } else if (/not confirmed/i.test(error.message)) {
+          setError('Please accept your invite email first, or use "Forgot password" to get a new link.');
+        } else if (/rate limit|too many/i.test(error.message)) {
+          setError('Too many attempts. Wait a minute and try again.');
+        } else {
+          setError('Incorrect email or password.');
+        }
       } else {
         navigate('/dashboard');
       }
     } catch (err: any) {
-      setError(err.message || 'Authentication failed. Please try again.');
+      setError(err.message || 'Sign-in failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-brand-bg flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Background Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand-neon/5 blur-[120px] rounded-full pointer-events-none" />
-      
-      <motion.div 
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full dispatch-card p-12 relative z-10"
+  if (mode === 'forgot') {
+    return (
+      <AuthLayout
+        title="Reset your password"
+        subtitle="Enter the email you sign in with and we'll send you a link to set a new password."
       >
-        <div className="text-center mb-12">
-          <div className="w-16 h-16 bg-brand-neon/10 rounded-2xl flex items-center justify-center mx-auto mb-8 border border-brand-neon/20">
-            <Terminal className="w-8 h-8 text-brand-neon" />
+        {resetSent ? (
+          <div className="auth-form">
+            <AuthNotice kind="success">
+              If <b>{email.trim()}</b> has an account, a reset link is on its way. It works once and expires after a while. Check your spam folder if it doesn't arrive.
+            </AuthNotice>
+            <button type="button" className="auth-secondary" onClick={() => switchMode('signin')}>
+              Back to sign in
+            </button>
           </div>
-          <h1 className="text-3xl font-display font-medium tracking-tighter mb-2">Dispatch Access.</h1>
-          <p className="text-brand-muted text-[10px] uppercase tracking-[0.3em] font-bold">Authorized Personnel Only</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-[10px] uppercase tracking-[0.3em] font-bold text-brand-muted mb-4">Admin Email</label>
-              <input
-                required
-                type="email"
-                placeholder="admin@example.com"
-                className="w-full bg-brand-input border border-brand-input-border rounded-2xl py-5 px-6 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-all font-display tracking-tight"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] uppercase tracking-[0.3em] font-bold text-brand-muted mb-4">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-muted" />
+        ) : (
+          <form onSubmit={handleForgotPassword} className="auth-form">
+            <div className="auth-field">
+              <label htmlFor="reset-email">Email</label>
+              <div className="auth-input">
+                <Mail size={17} />
                 <input
+                  id="reset-email"
                   required
-                  type="password"
-                  placeholder="Enter Access Key"
-                  className="w-full bg-brand-input border border-brand-input-border rounded-2xl py-5 pl-14 pr-6 text-brand-text focus:outline-none focus:border-brand-neon/50 transition-all font-display tracking-tight"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  type="email"
+                  autoComplete="email"
+                  autoFocus
+                  placeholder="you@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
             </div>
+
+            {error && <AuthNotice kind="error">{error}</AuthNotice>}
+
+            <button type="submit" disabled={loading} className="auth-submit">
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send reset link'}
+            </button>
+            <button type="button" className="auth-link" onClick={() => switchMode('signin')} style={{ alignSelf: 'center' }}>
+              <ArrowLeft size={13} style={{ display: 'inline', verticalAlign: '-2px', marginInlineEnd: 4 }} />
+              Back to sign in
+            </button>
+          </form>
+        )}
+      </AuthLayout>
+    );
+  }
+
+  return (
+    <AuthLayout
+      title="Sign in"
+      subtitle="Welcome back. Sign in to the Nokael operations dashboard."
+      footer={<>New to the team? Ask an admin to invite you. The invite email lets you set your password.</>}
+    >
+      <form onSubmit={handleSubmit} className="auth-form">
+        {noAccess && (
+          <AuthNotice kind="info">
+            That account isn't on the team anymore. Ask an admin to invite you again.
+          </AuthNotice>
+        )}
+
+        <div className="auth-field">
+          <label htmlFor="login-email">Email</label>
+          <div className="auth-input">
+            <Mail size={17} />
+            <input
+              id="login-email"
+              required
+              type="email"
+              autoComplete="email"
+              autoFocus
+              placeholder="you@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
-
-          {error && (
-            <motion.p 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-red-500 text-[10px] font-bold uppercase tracking-widest text-center"
-            >
-              {error}
-            </motion.p>
-          )}
-
-          {resetSent ? (
-            <p className="text-brand-neon text-[10px] font-bold uppercase tracking-widest text-center">
-              Reset link sent — check your inbox.
-            </p>
-          ) : (
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={handleForgotPassword}
-                disabled={resetLoading}
-                className="text-brand-muted text-[10px] uppercase tracking-[0.2em] font-bold hover:text-brand-neon transition-colors disabled:opacity-50"
-              >
-                {resetLoading ? 'Sending...' : 'Forgot password?'}
-              </button>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary w-full py-5 text-[10px]"
-          >
-            {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <>
-                <span>Initialize Command Center</span>
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-        </form>
-
-        <div className="mt-12 pt-10 border-t border-brand-border text-center">
-          <p className="text-[9px] text-brand-muted uppercase tracking-[0.3em] font-bold leading-relaxed">
-            All access attempts are logged.<br />
-            Emergency logistics protocol active.
-          </p>
         </div>
-      </motion.div>
-    </div>
+
+        <div className="auth-field">
+          <div className="auth-field-row">
+            <label htmlFor="login-password">Password</label>
+            <button type="button" className="auth-link" onClick={() => switchMode('forgot')}>
+              Forgot password?
+            </button>
+          </div>
+          <div className="auth-input">
+            <Lock size={17} />
+            <input
+              id="login-password"
+              required
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              placeholder="Your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              className="auth-reveal"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+        </div>
+
+        {error && <AuthNotice kind="error">{error}</AuthNotice>}
+
+        <button type="submit" disabled={loading} className="auth-submit">
+          {loading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <>
+              Sign in
+              <ArrowRight size={16} />
+            </>
+          )}
+        </button>
+      </form>
+    </AuthLayout>
   );
 }
