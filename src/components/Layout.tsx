@@ -83,15 +83,6 @@ export const Navigation = () => {
                 {t('nav.about')}
               </Link>
               <Link
-                to="/get-quote"
-                className={cn(
-                  "text-sm font-semibold transition-colors hover:text-brand-neon",
-                  location.pathname === "/get-quote" ? "text-brand-neon" : "text-brand-muted"
-                )}
-              >
-                {t('nav.bookNow')}
-              </Link>
-              <Link
                 to="/track"
                 className={cn(
                   "text-sm font-semibold transition-colors hover:text-brand-neon",
@@ -105,9 +96,14 @@ export const Navigation = () => {
             <div className="hidden md:flex items-center gap-4 border-l border-brand-border pl-8">
               <LanguageToggle />
               <ThemeToggle />
+              {/* Single primary action — the duplicate "Book Now" text link was removed from the nav links */}
               <Link
                 to="/get-quote"
-                className="px-6 py-2.5 bg-brand-neon text-brand-bg font-bold rounded-xl text-sm hover:opacity-90 transition-all shadow-lg shadow-brand-neon/20"
+                aria-current={location.pathname === "/get-quote" ? "page" : undefined}
+                className={cn(
+                  "px-6 py-2.5 bg-brand-neon text-brand-bg font-bold rounded-xl text-sm hover:opacity-90 transition-all shadow-lg shadow-brand-neon/20",
+                  location.pathname === "/get-quote" && "ring-2 ring-brand-neon/40 ring-offset-2 ring-offset-brand-bg"
+                )}
               >
                 {t('nav.bookNow')}
               </Link>
@@ -198,7 +194,8 @@ export const Navigation = () => {
 export const Footer = () => {
   const { t } = useTranslation('common');
   return (
-    <footer className="bg-brand-bg border-t border-brand-border pt-24 pb-12">
+    // pb-28 clears the fixed StickyCTA pill / mobile bar
+    <footer className="bg-brand-bg border-t border-brand-border pt-24 pb-28">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-16 mb-24">
           <div className="md:col-span-5">

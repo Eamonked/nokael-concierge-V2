@@ -1,12 +1,15 @@
 import React from 'react';
 import { Search, Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { Driver } from '../../lib/supabase';
+import { formatDistanceToNow } from 'date-fns';
+import type { Driver, DriverPresence } from '../../lib/supabase';
 import type { DriverPoolSummary } from './selectors';
 
 interface DriversViewProps {
   driverPoolSummary: DriverPoolSummary;
   filteredDrivers: Driver[];
+  /** Live presence from the driver app, keyed by driver id (get_driver_presence). */
+  driverPresence?: Record<string, DriverPresence>;
   searchTerm: string;
   setSearchTerm: (v: string) => void;
   filterStatus: string;
@@ -21,6 +24,7 @@ interface DriversViewProps {
 export function DriversView({
   driverPoolSummary,
   filteredDrivers,
+  driverPresence = {},
   searchTerm,
   setSearchTerm,
   filterStatus,
@@ -33,11 +37,27 @@ export function DriversView({
 }: DriversViewProps) {
   const { t } = useTranslation('dashboard');
   
+  // "Online" comes from the driver app itself (GPS / app activity), not from
+  // drivers.status, which only tracks whether they are on a job.
+  const presenceOf = (d: Driver) => driverPresence[d.id!]?.presence ?? 'offline';
+  const PRESENCE_FILTERS = ['online', 'app_open', 'offline', 'on_job'];
+  const visibleDrivers = !PRESENCE_FILTERS.includes(filterStatus)
+    ? filteredDrivers
+    : filteredDrivers.filter(d => filterStatus === 'on_job' ? d.status === 'on_job' : presenceOf(d) === filterStatus);
+
   // Calculate metrics
   const totalFleet = filteredDrivers.length;
-  const activeAgents = filteredDrivers.filter(d => d.status === 'available').length;
+  const activeAgents = filteredDrivers.filter(d => presenceOf(d) === 'online').length;
   const pendingAgents = filteredDrivers.filter(d => d.pipeline_status === 'Screening' || d.pipeline_status === 'Docs Pending').length;
   const slaWarning = filteredDrivers.filter(d => d.status === 'on_job').length;
+
+  const lastSeenOf = (d: Driver) => {
+    const p = driverPresence[d.id!];
+    const times = [p?.location_at, p?.app_last_seen_at].filter(Boolean) as string[];
+    if (times.length === 0) return null;
+    const latest = times.reduce((a, b) => (new Date(a) > new Date(b) ? a : b));
+    return formatDistanceToNow(new Date(latest), { addSuffix: true });
+  };
   
   return (
     <>
@@ -70,12 +90,12 @@ export function DriversView({
           <small>All registered agents</small>
         </button>
         <button
-          className={filterStatus === 'Active' ? 'selected' : ''}
-          onClick={() => setFilterStatus('Active')}
+          className={filterStatus === 'online' ? 'selected' : ''}
+          onClick={() => setFilterStatus('online')}
         >
-          <span>Active / Online</span>
+          <span>Online now</span>
           <strong>{activeAgents}</strong>
-          <small>Available now</small>
+          <small>Sharing live location</small>
         </button>
         <button
           className={slaWarning > 0 ? '' : ''}
@@ -116,10 +136,11 @@ export function DriversView({
                 onChange={(e) => setFilterStatus(e.target.value)}
               >
                 <option value="all">All statuses</option>
-                <option value="available">Active / Online</option>
-                <option value="on_job">SLA Risk</option>
-                <option value="Docs Pending">Pending Review</option>
+                <option value="online">Online</option>
+                <option value="app_open">App open · no GPS</option>
                 <option value="offline">Offline</option>
+                <option value="on_job">On delivery</option>
+                <option value="Docs Pending">Pending Review</option>
               </select>
             </label>
             <label>
@@ -154,7 +175,7 @@ export function DriversView({
             <span>LOCATION / LAST ACTIVE</span>
             <span>ACTION</span>
           </div>
-          {filteredDrivers.map((driver, index) => (
+          {visibleDrivers.map((driver, index) => (
             <div
               key={driver.id}
               className="enterprise-row"
@@ -182,13 +203,28 @@ export function DriversView({
                 {driver.vehicle_registration || '—'}
               </span>
               <span>
-                <span className={`plain-status ${driver.status === 'available' ? '' : driver.status === 'on_job' ? 'sla-risk' : 'offline'}`}>
-                  <i />
-                  {driver.status === 'available' ? 'Available' : driver.status === 'on_job' ? 'On Delivery' : 'Offline'}
-                </span>
+                {(() => {
+                  const presence = presenceOf(driver);
+                  const onJob = driver.status === 'on_job';
+                  const label = presence === 'online'
+                    ? (onJob ? 'Online · on delivery' : 'Online')
+                    : presence === 'app_open'
+                      ? 'App open · no GPS'
+                      : (onJob ? 'Offline · on delivery' : 'Offline');
+                  const hint = presence === 'app_open'
+                    ? 'The app is open but not sharing location: the driver switched to Offline, or precise location is turned off on the phone.'
+                    : presence === 'online' ? 'Sharing live location from the driver app.' : 'Not using the driver app right now.';
+                  return (
+                    <span className={`plain-status ${presence === 'online' ? '' : presence === 'app_open' ? 'sla-risk' : 'offline'}`} title={hint}>
+                      <i />
+                      {label}
+                    </span>
+                  );
+                })()}
               </span>
               <span className="context-cell">
                 {driver.base_location || 'No location'}
+                {lastSeenOf(driver) && <small style={{ display: 'block', opacity: .75 }}>Seen {lastSeenOf(driver)}</small>}
               </span>
               <span>
                 <button

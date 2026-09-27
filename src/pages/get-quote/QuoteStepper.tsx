@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { itemTypes, urgencyLevels, STEP_LABEL_KEYS } from './constants';
 
@@ -9,16 +10,17 @@ interface QuoteStepperProps {
   deliveryEmirate: string;
   itemType?: string;
   urgency?: string;
+  onStepClick: (step: number) => void;
 }
 
-export default function QuoteStepper({ step, estimatedPrice, pickupEmirate, deliveryEmirate, itemType, urgency }: QuoteStepperProps) {
+export default function QuoteStepper({ step, estimatedPrice, pickupEmirate, deliveryEmirate, itemType, urgency, onStepClick }: QuoteStepperProps) {
   const { t } = useTranslation('getQuote');
 
   return (
     <>
       {/* Stepper — labeled so the visitor knows what's still ahead, not just "3/4" */}
       <div className="mb-10 pb-6 border-b border-brand-border">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-5">
           <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted">
             {t('stepper.stepLabel', { step, total: 4, label: t(STEP_LABEL_KEYS[step - 1]) })}
           </p>
@@ -28,24 +30,55 @@ export default function QuoteStepper({ step, estimatedPrice, pickupEmirate, deli
             </p>
           )}
         </div>
-        <div className="flex gap-1.5">
-          {STEP_LABEL_KEYS.map((labelKey, i) => (
-            <div key={labelKey} className="flex-1">
-              <div
-                className={cn(
-                  "h-1 rounded-full transition-all mb-1.5",
-                  i + 1 <= step ? "bg-brand-neon" : "bg-brand-input-border"
+        <ol className="flex items-start">
+          {STEP_LABEL_KEYS.map((labelKey, i) => {
+            const n = i + 1;
+            const done = n < step;
+            const active = n === step;
+            return (
+              <li key={labelKey} className="flex-1 flex items-start last:flex-none">
+                <button
+                  type="button"
+                  disabled={!done}
+                  onClick={() => onStepClick(n)}
+                  aria-current={active ? 'step' : undefined}
+                  aria-label={done ? t('stepper.goToStep', { label: t(labelKey) }) : undefined}
+                  className={cn(
+                    "group flex flex-col items-center gap-1.5 shrink-0 w-16",
+                    done ? "cursor-pointer" : "cursor-default"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all",
+                      done && "bg-brand-neon border-brand-neon text-brand-on-neon group-hover:opacity-80",
+                      active && "border-brand-neon text-brand-neon bg-brand-neon/10 ring-4 ring-brand-neon/15",
+                      !done && !active && "border-brand-field-border text-brand-muted/60"
+                    )}
+                  >
+                    {done ? <Check className="w-4 h-4" strokeWidth={3} /> : n}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-[9px] uppercase tracking-widest font-bold",
+                      active ? "text-brand-text" : done ? "text-brand-muted group-hover:text-brand-neon" : "text-brand-muted/50"
+                    )}
+                  >
+                    {t(labelKey)}
+                  </span>
+                </button>
+                {n < STEP_LABEL_KEYS.length && (
+                  <div
+                    className={cn(
+                      "flex-1 h-0.5 mt-4 mx-2 rounded-full transition-colors",
+                      done ? "bg-brand-neon" : "bg-brand-field-border"
+                    )}
+                  />
                 )}
-              />
-              <p className={cn(
-                "text-[8px] uppercase tracking-widest font-bold hidden sm:block",
-                i + 1 <= step ? "text-brand-muted" : "text-brand-muted/40"
-              )}>
-                {t(labelKey)}
-              </p>
-            </div>
-          ))}
-        </div>
+              </li>
+            );
+          })}
+        </ol>
       </div>
 
       {/* Running summary of prior answers — reduces "what did I even pick" anxiety

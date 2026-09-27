@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Bell,
   Settings,
+  RefreshCw,
 } from 'lucide-react';
 import {
   type QuoteRequest,
@@ -42,7 +43,6 @@ const LiveMapView = React.lazy(() => import('./dashboard/LiveMapView').then(m =>
 import { TeamPanel } from './dashboard/TeamPanel';
 import { AlertsView } from './dashboard/AlertsView';
 import { SettingsView } from './dashboard/SettingsView';
-import { JobDetailModal } from './dashboard/modals/JobDetailModal';
 import { JobCreateModal } from './dashboard/modals/JobCreateModal';
 import { LostQuoteModal } from './dashboard/modals/LostQuoteModal';
 import { DriverProfileModal } from './dashboard/modals/DriverProfileModal';
@@ -84,6 +84,10 @@ export default function Dashboard() {
     setDrivers,
     setBusinessInquiries,
     refetch: fetchData,
+    driverPresence,
+    refreshing,
+    lastSyncedAt,
+    syncAll,
   } = useDashboardData();
 
   // ── Shell state (sidebar collapse, profile menu) ────────────
@@ -115,7 +119,9 @@ export default function Dashboard() {
   // ── Modal / selection state ──────────────────────────────────────────────────
   const [selectedDriver, setSelectedDriver] = React.useState<(Driver & { documents: DriverDocument[] }) | null>(null);
   const [selectedBusiness, setSelectedBusiness] = React.useState<BusinessInquiry | null>(null);
-  const [selectedJob, setSelectedJob] = React.useState<JobWithDriver | null>(null);
+  // The job open in the Jobs workspace. Anywhere else that "opens" a job (map,
+  // alerts, geofence toasts) switches to that tab with the job selected.
+  const [selectedJobId, setSelectedJobId] = React.useState<string | null>(null);
   const [showJobCreateModal, setShowJobCreateModal] = React.useState(false);
   const [showAddAgentModal, setShowAddAgentModal] = React.useState(false);
   const [editingJob, setEditingJob] = React.useState<JobWithDriver | null>(null);
@@ -130,12 +136,11 @@ export default function Dashboard() {
   const [filterStatus, setFilterStatus] = React.useState<string>('active');
   const [filterVehicle, setFilterVehicle] = React.useState<string>('all');
 
-  // Keep the open job detail modal in sync with live realtime updates.
-  React.useEffect(() => {
-    if (!selectedJob?.id) return;
-    const updated = jobs.find(j => j.id === selectedJob.id);
-    if (updated && updated !== selectedJob) setSelectedJob(updated);
-  }, [jobs, selectedJob]);
+  const openJob = React.useCallback((jobId: string | undefined) => {
+    if (!jobId) return;
+    setSelectedJobId(jobId);
+    setActiveTab('pipeline');
+  }, []);
 
   // ── Actions ──────────────────────────────────────────────────────────────────
   const {
@@ -321,6 +326,17 @@ export default function Dashboard() {
             <p>{TAB_META[activeTab].subtitle}</p>
           </div>
           <div className="top-actions">
+            <button
+              className="notification"
+              onClick={() => syncAll()}
+              disabled={refreshing}
+              aria-label={t('profile.sync', { defaultValue: 'Sync now' })}
+              title={lastSyncedAt
+                ? t('profile.lastSynced', { time: lastSyncedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), defaultValue: 'Sync now · last synced {{time}}' })
+                : t('profile.sync', { defaultValue: 'Sync now' })}
+            >
+              <RefreshCw className={cn('w-[17px] h-[17px]', refreshing && 'animate-spin')} />
+            </button>
             {currentRole === 'viewer' && (
               <span className="neutral-badge" title={READ_ONLY_MESSAGE} style={{ fontSize: 11, padding: '5px 10px' }}>
                 {t('profile.viewOnly', { defaultValue: 'View only' })}
@@ -380,12 +396,22 @@ export default function Dashboard() {
               <p className="text-xs text-brand-muted truncate">{TAB_META[activeTab].subtitle}</p>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="p-2 text-brand-muted hover:text-brand-text transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => syncAll()}
+              disabled={refreshing}
+              aria-label={t('profile.sync', { defaultValue: 'Sync now' })}
+              className="p-2 text-brand-muted hover:text-brand-text transition-colors"
+            >
+              <RefreshCw className={cn('w-5 h-5', refreshing && 'animate-spin')} />
+            </button>
+            <button
+              onClick={handleLogout}
+              className="p-2 text-brand-muted hover:text-brand-text transition-colors"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Mobile tab switcher */}
@@ -436,13 +462,14 @@ export default function Dashboard() {
               onUpdate={fetchData}
               onNewJob={guard(() => setShowJobCreateModal(true))}
               onOpenMap={() => setActiveTab('map')}
-              onManageJob={setSelectedJob}
+              selectedId={selectedJobId}
+              onSelectJob={setSelectedJobId}
               onEditJob={guard(setEditingJob)}
               onDuplicateJob={guard(setDuplicatingJob)}
             />
           ) : activeTab === 'map' ? (
             <React.Suspense fallback={<div className="h-[420px] rounded-2xl border border-brand-border bg-brand-input animate-pulse" />}>
-              <LiveMapView jobs={jobs} drivers={drivers} orgId={orgId} onJobClick={setSelectedJob} onChanged={fetchData} />
+              <LiveMapView jobs={jobs} drivers={drivers} orgId={orgId} onJobClick={job => openJob(job.id)} onChanged={fetchData} />
             </React.Suspense>
           ) : activeTab === 'quotes' ? (
             <QuotesView
@@ -472,10 +499,7 @@ export default function Dashboard() {
           ) : activeTab === 'alerts' ? (
             <AlertsView
               alerts={alerts}
-              onOpenJob={(jobId) => {
-                const job = jobs.find(j => j.id === jobId);
-                if (job) setSelectedJob(job);
-              }}
+              onOpenJob={openJob}
             />
           ) : activeTab === 'settings' ? (
             <SettingsView
@@ -489,6 +513,7 @@ export default function Dashboard() {
             <DriversView
               driverPoolSummary={driverPoolSummary}
               filteredDrivers={filteredDrivers}
+              driverPresence={driverPresence}
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
               filterStatus={filterStatus}
@@ -505,7 +530,7 @@ export default function Dashboard() {
       </main>
 
       {/* Driver near pickup / drop-off, on any tab */}
-      <GeofenceAlerts jobs={jobs} onOpenJob={setSelectedJob} />
+      <GeofenceAlerts jobs={jobs} onOpenJob={job => openJob(job.id)} />
 
       {/* ── Modals ──────────────────────────────────────────────────────────── */}
       <AnimatePresence>
@@ -521,14 +546,6 @@ export default function Dashboard() {
             business={selectedBusiness}
             onClose={() => setSelectedBusiness(null)}
             onUpdate={guard(handleBusinessUpdate)}
-          />
-        )}
-        {selectedJob && (
-          <JobDetailModal
-            job={selectedJob}
-            drivers={approvedDrivers}
-            onClose={() => setSelectedJob(null)}
-            onUpdate={fetchData}
           />
         )}
         {editingJob && (

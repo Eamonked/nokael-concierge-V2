@@ -69,6 +69,8 @@
   --nk-glass: rgba(255, 255, 255, 0.03);
   --nk-input: rgba(255, 255, 255, 0.03);
   --nk-input-border: rgba(255, 255, 255, 0.08);
+  /* higher-contrast edge for form fields that must read as distinct boxes */
+  --nk-field-border: rgba(255, 255, 255, 0.2);
   --nk-on-neon: var(--nk-bg);
   /* text/icon colour sitting on a neon fill */
 }
@@ -85,6 +87,8 @@
   --nk-glass: rgba(0, 0, 0, 0.02);
   --nk-input: rgba(0, 0, 0, 0.02);
   --nk-input-border: rgba(0, 0, 0, 0.08);
+  --nk-field-border: #d1d5db;
+  /* ≈ gray-300 */
   --nk-on-neon: var(--nk-bg);
 }
 
@@ -139,6 +143,7 @@
   --color-brand-glass: var(--nk-glass);
   --color-brand-input: var(--nk-input);
   --color-brand-input-border: var(--nk-input-border);
+  --color-brand-field-border: var(--nk-field-border);
   --color-brand-on-neon: var(--nk-on-neon);
 }
 
@@ -161,6 +166,7 @@
   --color-brand-glass: var(--nk-glass);
   --color-brand-input: var(--nk-input);
   --color-brand-input-border: var(--nk-input-border);
+  --color-brand-field-border: var(--nk-field-border);
   --color-brand-on-neon: var(--nk-on-neon);
 }
 
@@ -9103,6 +9109,574 @@ a:not(.btn-primary):not(.btn-secondary):hover {
     min-height: 260px;
   }
 }
+
+/* Job operations (JobOperations): the mission-control sections under the
+   route in the Jobs detail panel — parties, hand-offs, messages, overrides. */
+.jo {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.jo svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
+
+.jo-section {
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scroll-margin-top: 16px;
+}
+
+.jo-section h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -.01em;
+}
+
+.jo-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.jo-sub,
+.jo-field > small,
+.jo-party > small,
+.jo-note > small,
+.jo-facts dt {
+  color: var(--faint);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.jo-flash {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--ent-success-bg);
+  color: var(--ent-success-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.jo-banner {
+  padding: 12px 14px;
+  border-radius: 14px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.jo-banner svg {
+  margin-top: 2px;
+}
+
+.jo-banner > div:not(.jo-banner-actions) {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.jo-banner small {
+  opacity: .8;
+}
+
+.jo-banner.danger {
+  border: 1px solid var(--ent-danger-line);
+  background: var(--ent-danger-bg);
+  color: var(--ent-danger-text);
+}
+
+.jo-banner.warn {
+  border: 1px solid var(--ent-warning-line);
+  background: var(--ent-warning-bg);
+  color: var(--ent-warning-text);
+}
+
+.jo-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.jo-parties {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.jo-party {
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.jo-party b {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.jo-party a {
+  width: max-content;
+  color: var(--accent-ink);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.jo-party p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.jo-party p strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.jo-facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.jo-facts > div {
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.jo-facts dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+  text-transform: capitalize;
+}
+
+.jo-note {
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.jo-note p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.jo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.jo-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.jo input[type="text"],
+.jo select,
+.jo-dialog select,
+.jo-dialog textarea {
+  min-width: 0;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.jo-inline input[type="text"],
+.jo-inline select {
+  flex: 1 1 180px;
+}
+
+.jo input:focus,
+.jo select:focus,
+.jo-dialog select:focus,
+.jo-dialog textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.jo input[aria-invalid="true"] {
+  border-color: var(--ent-danger-strong);
+}
+
+.jo-dialog textarea {
+  height: auto;
+  padding: 8px 12px;
+  resize: vertical;
+}
+
+.jo-btn {
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.jo-btn:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.jo-btn.warn {
+  border-color: var(--ent-warning-line);
+  background: var(--ent-warning-bg);
+  color: var(--ent-warning-text);
+}
+
+.jo-btn:disabled,
+.jo-icon:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.jo-icon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+}
+
+.jo-icon:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.jo-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-style: normal;
+  line-height: 1.45;
+}
+
+.jo-hint.warn {
+  color: var(--ent-warning-text);
+}
+
+.jo-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.jo-codes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.jo-codes li {
+  position: relative;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.jo-codes small {
+  color: var(--faint);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.jo-codes b {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: .12em;
+}
+
+.jo-codes em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.jo-code-actions {
+  position: absolute;
+  top: 6px;
+  inset-inline-end: 6px;
+  display: flex;
+}
+
+.jo-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.jo-steps li {
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.jo-steps li + li {
+  border-top: 1px solid var(--line);
+}
+
+.jo-step-mark {
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.jo-steps li.done .jo-step-mark {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #171719;
+}
+
+.jo-step-mark svg {
+  width: 12px;
+  height: 12px;
+}
+
+.jo-step-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.jo-step-main b {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.jo-step-main small {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.jo-wa {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.jo-wa button {
+  padding: 12px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 13px;
+}
+
+.jo-wa button:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.jo-wa button svg {
+  color: var(--accent-ink);
+}
+
+.jo-wa button small {
+  color: var(--accent-ink);
+  font-size: 11.5px;
+}
+
+.jo-wa button.sent {
+  border-color: var(--line);
+}
+
+.jo-wa button.sent svg,
+.jo-wa button.sent small {
+  color: var(--faint);
+}
+
+.jo-wa button:disabled {
+  opacity: .45;
+}
+
+.jo-links {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.jo-links li {
+  padding: 4px 4px 4px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.jo-links b {
+  width: 76px;
+  flex: 0 0 auto;
+  font-weight: 600;
+}
+
+.jo-links span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.jo-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  padding: 16px;
+  background: rgba(15, 23, 42, .45);
+  display: grid;
+  place-items: center;
+}
+
+.jo-dialog {
+  width: min(420px, 100%);
+  padding: 22px;
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 24px 60px -12px rgba(15, 23, 42, .4);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.jo-dialog h3 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 500;
+}
+
+.jo-dialog > p {
+  margin: -6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.jo-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.jo-dialog .jw-ghost {
+  height: 40px;
+  padding: 0 18px;
+}
+
+.jo-danger {
+  height: 40px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ent-danger-strong);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.jo-danger:disabled {
+  opacity: .6;
+}
+
+@media (max-width: 720px) {
+  .jo-parties,
+  .jo-facts,
+  .jo-wa {
+    grid-template-columns: 1fr;
+  }
+
+  .jo-banner {
+    grid-template-columns: 18px minmax(0, 1fr);
+  }
+
+  .jo-banner-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
 /* ══ 8 · AUTH PAGES (/login, /accept-invite) ═══════════════════════════════
    Same look as the ops dashboard: navy brand panel (= the sidebar), lime
    accent, --ent-* surfaces so light/dark follow ThemeContext. Deliberately
@@ -9819,9 +10393,9 @@ a:not(.btn-primary):not(.btn-secondary):hover {
   z-index: 600;
   top: 12px;
   inset-inline-end: 12px;
-  bottom: 12px;
   width: min(340px, calc(100% - 24px));
-  padding: 14px;
+  max-height: calc(100% - 24px);
+  padding: 12px;
   border: 1px solid var(--ent-line-strong);
   border-radius: 12px;
   background: var(--ent-surface);
@@ -9829,7 +10403,7 @@ a:not(.btn-primary):not(.btn-secondary):hover {
   box-shadow: 0 16px 40px -8px rgba(15, 23, 42, .3);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   overflow-y: auto;
 }
 
@@ -9847,8 +10421,9 @@ a:not(.btn-primary):not(.btn-secondary):hover {
 }
 
 .dm-panel-head h3 {
-  margin: 2px 0 0;
-  font-size: 17px;
+  margin: 1px 0 0;
+  font-size: 16px;
+  line-height: 1.25;
   letter-spacing: -.01em;
 }
 
@@ -9884,7 +10459,7 @@ a:not(.btn-primary):not(.btn-secondary):hover {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
 }
 
 .dm-facts li {
@@ -9981,8 +10556,15 @@ a:not(.btn-primary):not(.btn-secondary):hover {
   line-height: 1.4;
 }
 
+.dm-panel .dm-empty {
+  padding: 10px 8px;
+  border: 1px dashed var(--ent-line);
+  border-radius: 10px;
+  font-size: 12px;
+}
+
 .dm-section-title {
-  margin: 4px 0 0;
+  margin: 6px 0 -3px;
   color: var(--ent-faint);
   font-size: 11px;
   font-weight: 700;
@@ -10064,7 +10646,7 @@ a:not(.btn-primary):not(.btn-secondary):hover {
 }
 
 .dm-open {
-  margin-top: auto;
+  margin-top: 2px;
   height: 36px;
   border: 1px solid var(--ent-line-strong);
   border-radius: 8px;

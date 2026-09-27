@@ -1,6 +1,6 @@
 import React from 'react';
 import type { JobWithDriver, Driver, JobStatus } from '../../lib/supabase';
-import { assignDriverToJob, overrideJobLevel, cancelJob } from '../../lib/supabase';
+import { assignDriverToJob, overrideJobLevel } from '../../lib/supabase';
 import { useCanWrite, READ_ONLY_MESSAGE } from './permissions';
 import { generateJobPOC } from '../../lib/pdf-export';
 import { STAGE_ORDER, getStageConfig } from './constants';
@@ -17,6 +17,7 @@ import { Avatar } from './components/Avatar';
 import { DateRangeSelector, useDateRange } from './components/DateRangeSelector';
 import { Status } from './components/StatusBadge';
 import { StatCard } from './components/StatCard';
+import { JobOperations, JOB_CONTROLS_ID } from './components/JobOperations';
 import { useTranslation } from 'react-i18next';
 
 /* ------------------------------------------------------------------ */
@@ -182,17 +183,18 @@ function JobList({
 }
 
 function JobDetailPanel({
-  job, drivers, onOpenMap, onAdvance, onAssign, onManage, onEdit, onDuplicate, onCancel,
+  job, drivers, onOpenMap, onAdvance, onAssign, onEdit, onDuplicate, onUpdate, canCancel,
 }: {
   job: JobWithDriver;
   drivers: Driver[];
   onOpenMap: () => void;
   onAdvance: () => void;
   onAssign: (driverId: string | null) => void;
-  onManage: () => void;
   onEdit: () => void;
   onDuplicate: () => void;
-  onCancel: () => void;
+  onUpdate: () => void | Promise<void>;
+  /** False for viewers: explains why instead of opening the dialog. */
+  canCancel: () => boolean;
   key?: React.Key;
 }) {
   const { t } = useTranslation('dashboard');
@@ -200,6 +202,7 @@ function JobDetailPanel({
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
+  const [cancelOpen, setCancelOpen] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
   const pickerRef = React.useRef<HTMLDivElement>(null);
   useClickAway(menuRef, menuOpen, () => setMenuOpen(false));
@@ -261,11 +264,11 @@ function JobDetailPanel({
                   <Icon name="copy" size={15} />
                   Duplicate job
                 </button>
-                <button role="menuitem" onClick={choose(onManage)}>
+                <button role="menuitem" onClick={choose(() => document.getElementById(JOB_CONTROLS_ID)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))}>
                   <Icon name="settings" size={15} />
                   <span>
-                    Advanced controls
-                    <small>Stage override &amp; chain-of-custody audit</small>
+                    Dispatch controls
+                    <small>Stage override &amp; audit notes</small>
                   </span>
                 </button>
                 {(job.status === 'completed' || !!job.client_delivery_at) && (
@@ -278,7 +281,7 @@ function JobDetailPanel({
                   </button>
                 )}
                 {job.status !== 'cancelled' && job.status !== 'returned' && (
-                  <button role="menuitem" className="danger" onClick={choose(onCancel)}>
+                  <button role="menuitem" className="danger" onClick={choose(() => { if (canCancel()) setCancelOpen(true); })}>
                     <Icon name="close" size={15} />
                     Cancel job
                   </button>
@@ -405,25 +408,28 @@ function JobDetailPanel({
           })}
         </ol>
       </div>
+
+      <JobOperations job={job} onUpdate={onUpdate} cancelOpen={cancelOpen} onCancelClose={() => setCancelOpen(false)} />
     </section>
   );
 }
 
 export function JobsView({
-  jobs, drivers, onUpdate, onNewJob, onOpenMap, onManageJob, onEditJob, onDuplicateJob,
+  jobs, drivers, onUpdate, onNewJob, onOpenMap, onEditJob, onDuplicateJob, selectedId, onSelectJob,
 }: {
   jobs: JobWithDriver[];
   drivers: Driver[];
-  onUpdate: () => void;
+  onUpdate: () => void | Promise<void>;
   onNewJob: () => void;
   onOpenMap: () => void;
-  onManageJob: (job: JobWithDriver) => void;
   onEditJob: (job: JobWithDriver) => void;
   onDuplicateJob: (job: JobWithDriver) => void;
+  /** Owned by the dashboard so the map, alerts and geofence toasts can open a job here. */
+  selectedId: string | null;
+  onSelectJob: (id: string) => void;
 }) {
   const [filter, setFilter] = React.useState<JobFilter>('All');
   const [search, setSearch] = React.useState('');
-  const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const dateRange = useDateRange();
 
   const query = search.trim().toLowerCase();
@@ -478,18 +484,6 @@ export function JobsView({
     }
   };
 
-  const handleCancel = async (job: JobWithDriver) => {
-    if (denyIfViewer()) return;
-    const reason = window.prompt('Reason for cancelling this job?');
-    if (reason == null) return;
-    try {
-      await cancelJob(job.id!, reason || 'Cancelled from Jobs view');
-      onUpdate();
-    } catch (err: any) {
-      alert(`Could not cancel job: ${err.message || err}`);
-    }
-  };
-
   return (
     <>
       {/* Metric Cards Row */}
@@ -532,7 +526,7 @@ export function JobsView({
               search={search}
               setSearch={setSearch}
               dateRange={dateRange}
-              onSelect={setSelectedId}
+              onSelect={onSelectJob}
               onNew={onNewJob}
             />
           </div>
@@ -544,10 +538,10 @@ export function JobsView({
               onOpenMap={onOpenMap}
               onAdvance={() => handleAdvance(selected)}
               onAssign={(driverId) => handleAssign(selected, driverId)}
-              onManage={() => onManageJob(selected)}
               onEdit={() => onEditJob(selected)}
               onDuplicate={() => onDuplicateJob(selected)}
-              onCancel={() => handleCancel(selected)}
+              onUpdate={onUpdate}
+              canCancel={() => !denyIfViewer()}
             />
           ) : (
             <section className="jw-card jw-detail jw-detail-empty">

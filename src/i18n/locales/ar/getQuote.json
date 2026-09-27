@@ -4,6 +4,7 @@
   "stepper": {
     "stepLabel": "الخطوة {{step}} / {{total}} — {{label}}",
     "estFrom": "بدءًا من {{price}} درهم تقريبًا",
+    "goToStep": "العودة إلى {{label}}",
     "labels": {
       "route": "المسار",
       "item": "الشحنة",
@@ -17,7 +18,10 @@
     "emirateLabel": "الإمارة",
     "specificLocationLabel": "الموقع التفصيلي",
     "pickupPlaceholder": "مثال: JLT، مجمع A، برج 1",
-    "deliveryPlaceholder": "مثال: جزيرة الريم، برج البوابة"
+    "deliveryPlaceholder": "مثال: جزيرة الريم، برج البوابة",
+    "useMyLocation": "استخدم موقعي الحالي",
+    "locating": "جارٍ تحديد الموقع…",
+    "locationUnavailable": "تعذّر تحديد الموقع — يُرجى كتابة العنوان"
   },
   "step2": {
     "itemTypes": {

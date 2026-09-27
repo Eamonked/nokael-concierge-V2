@@ -8,6 +8,8 @@ import {
   getJobs,
   subscribeToJobs,
   getSafeSession,
+  getDriverPresence,
+  type DriverPresence,
   clearStaleAuthSession,
   type QuoteRequest,
   type Driver,
@@ -36,9 +38,16 @@ export function useDashboardData() {
   const [businessInquiries, setBusinessInquiries] = React.useState<BusinessInquiry[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  // Background refreshes (sync button, after edits) keep the page on screen;
+  // only the very first load shows the full-screen loader.
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = React.useState<Date | null>(null);
+  const [driverPresence, setDriverPresence] = React.useState<Record<string, DriverPresence>>({});
+  const hasLoadedRef = React.useRef(false);
 
   const fetchData = React.useCallback(async () => {
-    setLoading(true);
+    if (hasLoadedRef.current) setRefreshing(true);
+    else setLoading(true);
     setError(null);
     try {
       // Always fetch everything for cross-referencing
@@ -52,11 +61,14 @@ export function useDashboardData() {
       setDrivers(driversData);
       setBusinessInquiries(businessData);
       setJobs(jobsData);
+      setLastSyncedAt(new Date());
     } catch (err: any) {
       console.error('Error fetching data:', err);
       setError(err.message || 'Failed to fetch data.');
     } finally {
+      hasLoadedRef.current = true;
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -112,6 +124,36 @@ export function useDashboardData() {
     };
   }, [navigate, fetchData]);
 
+  const fetchPresence = React.useCallback(async () => {
+    if (!orgId) return;
+    try {
+      setDriverPresence(await getDriverPresence(orgId));
+    } catch (err) {
+      console.warn('[Dashboard] Could not load driver presence:', err);
+    }
+  }, [orgId]);
+
+  // Presence changes without any row event the dashboard can subscribe to
+  // (drivers' GPS table is not exposed), so poll it while the tab is visible.
+  React.useEffect(() => {
+    if (!orgId) return;
+    fetchPresence();
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') fetchPresence();
+    }, 30_000);
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchPresence(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [orgId, fetchPresence]);
+
+  /** The Sync button: everything, including live driver presence. */
+  const syncAll = React.useCallback(async () => {
+    await Promise.all([fetchData(), fetchPresence()]);
+  }, [fetchData, fetchPresence]);
+
   return {
     orgId,
     currentRole,
@@ -126,6 +168,10 @@ export function useDashboardData() {
     setDrivers,
     setBusinessInquiries,
     setJobs,
-    refetch: fetchData
+    refetch: fetchData,
+    driverPresence,
+    refreshing,
+    lastSyncedAt,
+    syncAll,
   };
 }

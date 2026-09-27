@@ -1463,6 +1463,31 @@ export const updateDriverDocumentVerification = async (
   if (error) throw error;
 };
 
+/**
+ * Live presence per driver, derived from what the driver app actually does
+ * (get_driver_presence): 'online' = sharing GPS in the last 2 min,
+ * 'app_open' = app in use in the last 3 min but no recent GPS (switched
+ * Offline, or precise location off), 'offline' = neither.
+ * drivers.status is job-derived and does NOT reflect the app's Online switch.
+ */
+export type DriverPresenceState = 'online' | 'app_open' | 'offline';
+export interface DriverPresence {
+  driver_id: string;
+  presence: DriverPresenceState;
+  location_at: string | null;
+  app_last_seen_at: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  accuracy_meters: number | null;
+}
+
+export const getDriverPresence = async (organizationId: string): Promise<Record<string, DriverPresence>> => {
+  if (!supabase) return {};
+  const { data, error } = await supabase.rpc('get_driver_presence', { p_organization_id: organizationId });
+  if (error) throw error;
+  return Object.fromEntries(((data ?? []) as DriverPresence[]).map((p) => [p.driver_id, p]));
+};
+
 export const getDrivers = async (): Promise<Driver[]> => {
   if (!supabase) return [];
   const { data, error } = await supabase

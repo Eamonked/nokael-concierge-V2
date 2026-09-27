@@ -54,6 +54,9 @@ export function useQuoteForm(formTopRef: React.RefObject<HTMLDivElement>) {
 
   const nextStep = () => setStep(s => Math.min(s + 1, 4));
   const prevStep = () => setStep(s => Math.max(s - 1, 1));
+  // Stepper jumps are backwards-only: moving forward must go through the form
+  // submit so the current step's required fields are validated.
+  const goToStep = (target: number) => setStep(s => (target >= 1 && target < s ? target : s));
 
   // Live estimate shown throughout steps 2-4 so the price is never a surprise at the end.
   // Spare parts run on the dedicated-fleet tier; everything else is the same-day tier.
@@ -124,6 +127,7 @@ export function useQuoteForm(formTopRef: React.RefObject<HTMLDivElement>) {
     updateDeliveryEmirate,
     nextStep,
     prevStep,
+    goToStep,
     estimatedPrice,
     handleSubmit,
   };

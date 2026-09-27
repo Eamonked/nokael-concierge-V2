@@ -1,6 +1,6 @@
 import React from 'react';
 import { AnimatePresence } from 'motion/react';
-import { ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Loader2, MessageSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useQuoteForm } from './get-quote/useQuoteForm';
 import QuoteStepper from './get-quote/QuoteStepper';
@@ -9,7 +9,8 @@ import QuoteStepItem from './get-quote/QuoteStepItem';
 import QuoteStepUrgency from './get-quote/QuoteStepUrgency';
 import QuoteStepContact from './get-quote/QuoteStepContact';
 import QuoteSidebar from './get-quote/QuoteSidebar';
-import { PRICE_TIER_SAME_DAY, PRICE_TIER_DEDICATED } from '../constants';
+import { PRICE_TIER_SAME_DAY, PRICE_TIER_DEDICATED, WHATSAPP_NUMBER } from '../constants';
+import { trackWhatsAppClick } from '../lib/analytics';
 
 export default function GetQuote() {
   const { t } = useTranslation('getQuote');
@@ -25,22 +26,23 @@ export default function GetQuote() {
     updatePickupEmirate,
     updateDeliveryEmirate,
     prevStep,
+    goToStep,
     estimatedPrice,
     handleSubmit,
   } = useQuoteForm(formTopRef);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24 md:pt-20">
       <div className="asymmetric-grid items-start">
-        <div ref={formTopRef}>
-          <div className="mb-12">
+        <div ref={formTopRef} className="scroll-mt-32">
+          <div className="mb-10">
             <h1 className="text-4xl md:text-6xl font-display font-medium tracking-tighter mb-6">{t('title')}</h1>
             <p className="text-brand-muted text-sm max-w-md leading-relaxed">
               {t('subtitle')}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="dispatch-card relative overflow-hidden">
+          <form onSubmit={handleSubmit} className="relative rounded-2xl border border-brand-field-border bg-brand-surface shadow-sm px-5 py-8 sm:px-10 sm:py-12">
             {error && (
               <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-xs leading-relaxed">
                 <p className="font-bold mb-1 uppercase tracking-widest">{t('errors.dispatchErrorTitle')}</p>
@@ -55,6 +57,7 @@ export default function GetQuote() {
               deliveryEmirate={deliveryEmirate}
               itemType={formData.item_type}
               urgency={formData.urgency}
+              onStepClick={goToStep}
             />
 
             <AnimatePresence mode="wait">
@@ -118,6 +121,19 @@ export default function GetQuote() {
               </p>
             )}
           </form>
+
+          {/* The sticky WhatsApp CTA is hidden on this page and the sidebar is desktop-only,
+              so small screens get a quiet inline fallback instead. */}
+          <a
+            href={`https://wa.me/${WHATSAPP_NUMBER}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => trackWhatsAppClick('quote_inline_mobile')}
+            className="lg:hidden mt-6 flex items-center justify-center gap-2 text-xs font-bold text-brand-muted hover:text-brand-neon"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>{t('sidebar.urgentSupport')} · {t('sidebar.chatWithDispatch')}</span>
+          </a>
         </div>
 
         <QuoteSidebar formData={formData} />

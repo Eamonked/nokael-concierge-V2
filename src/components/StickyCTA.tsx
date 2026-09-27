@@ -12,8 +12,10 @@ export const StickyCTA = () => {
   const [isHovered, setIsHovered] = React.useState(false);
   const { pathname } = useLocation();
 
-  // Hide CTA on specific pages if needed (e.g., login, dashboard)
-  const isExcludedPage = pathname === '/login' || pathname === '/dashboard';
+  // Hide CTA on specific pages if needed (e.g., login, dashboard). The quote flow is
+  // excluded so the pill doesn't compete with its Continue button; that page keeps
+  // a WhatsApp link in its sidebar.
+  const isExcludedPage = ['/login', '/dashboard', '/get-quote'].includes(pathname);
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -34,7 +36,7 @@ export const StickyCTA = () => {
   return (
     <>
       {/* Desktop Floating CTA */}
-      <div className="hidden md:block fixed bottom-8 right-8 z-[100]">
+      <div className="hidden md:block fixed bottom-6 end-6 mb-4 me-4 z-[100]">
         <AnimatePresence>
           {isVisible && (
             <motion.div

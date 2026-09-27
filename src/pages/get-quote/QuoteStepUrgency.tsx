@@ -29,8 +29,8 @@ export default function QuoteStepUrgency({ urgency, updateForm, estimatedPrice }
           className={cn(
             "w-full p-6 rounded-xl border transition-all text-left flex items-center justify-between group",
             urgency === level.id
-              ? "bg-brand-neon/5 border-brand-neon/30"
-              : "bg-white/[0.02] border-white/[0.05] hover:border-white/[0.1]"
+              ? "bg-brand-neon/5 border-brand-neon ring-2 ring-brand-neon/15"
+              : "bg-brand-input border-brand-field-border hover:border-brand-neon/50"
           )}
         >
           <div className="flex items-center gap-5">

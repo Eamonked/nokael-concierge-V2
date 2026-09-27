@@ -27,8 +27,8 @@ export default function QuoteStepItem({ itemType, updateForm }: QuoteStepItemPro
           className={cn(
             "p-6 rounded-xl border transition-all text-left",
             itemType === type.id
-              ? "bg-brand-neon/5 border-brand-neon/30"
-              : "bg-white/[0.02] border-white/[0.05] hover:border-white/[0.1]"
+              ? "bg-brand-neon/5 border-brand-neon ring-2 ring-brand-neon/15"
+              : "bg-brand-input border-brand-field-border hover:border-brand-neon/50"
           )}
         >
           <type.icon className={cn("w-6 h-6 mb-4", itemType === type.id ? "text-brand-neon" : "text-brand-muted")} />
