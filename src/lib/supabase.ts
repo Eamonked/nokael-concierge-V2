@@ -427,6 +427,15 @@ export const addBusinessContact = async (
   return data as BusinessContact;
 };
 
+export const deleteBusinessContact = async (id: string): Promise<void> => {
+  if (!supabase) throw new Error('Supabase not configured');
+  // RLS (business_contacts_delete_writers) silently matches 0 rows for viewers,
+  // so ask for the deleted row back to tell "not allowed" apart from success.
+  const { data, error } = await supabase.from('business_contacts').delete().eq('id', id).select('id');
+  if (error) throw error;
+  if (!data?.length) throw new Error('You don’t have permission to delete this contact.');
+};
+
 // ==========================================
 // Jobs
 // ==========================================

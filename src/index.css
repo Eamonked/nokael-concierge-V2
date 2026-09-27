@@ -4970,7 +4970,7 @@ a:not(.btn-primary):not(.btn-secondary):hover {
   padding: 6px 10px;
   border-bottom: 1px solid var(--ent-line-soft);
   display: grid;
-  grid-template-columns: 27px 1fr 28px 28px;
+  grid-template-columns: 27px 1fr 28px 28px 28px;
   align-items: center;
   gap: 8px;
 }
@@ -10813,4 +10813,279 @@ a:not(.btn-primary):not(.btn-secondary):hover {
 .geofence-permission svg {
   width: 13px;
   height: 13px;
+}
+
+/* ── Client portal access (business drawer) ─────────────────────────────── */
+.client-access {
+  margin-top: 17px;
+}
+
+.client-access-form {
+  display: flex;
+  gap: 6px;
+}
+
+.client-access-form input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--ent-line-strong);
+  border-radius: 4px;
+  background: var(--ent-surface);
+  color: var(--ent-text);
+  font-size: 10px;
+}
+
+.client-access-primary {
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--ent-strong);
+  color: var(--ent-on-strong);
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.client-access-primary:hover:not(:disabled) {
+  background: var(--ent-strong-hover);
+}
+
+.client-access-primary:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+.client-access-notice {
+  margin: 7px 0 0;
+  padding: 7px 9px;
+  border-radius: 4px;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.client-access-notice.success {
+  background: var(--ent-success-bg);
+  color: var(--ent-success-text);
+}
+
+.client-access-notice.error {
+  background: var(--ent-danger-bg);
+  color: var(--ent-danger-text);
+}
+
+.client-access-suggest {
+  margin-top: 7px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  color: var(--ent-faint);
+  font-size: 8px;
+}
+
+.client-access-list {
+  margin-top: 9px;
+  border: 1px solid var(--ent-line);
+  border-radius: 6px;
+}
+
+.client-access-list>div {
+  min-height: 48px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--ent-line-soft);
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.client-access-list>div:last-child {
+  border-bottom: 0;
+}
+
+.client-access-list>div>span:first-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.client-access-list b {
+  font-size: 9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.client-access-list small {
+  color: var(--ent-faint);
+  font-size: 8px;
+}
+
+.client-access-empty {
+  margin: 0;
+  padding: 14px 16px;
+  color: var(--ent-muted);
+  font-size: 10px;
+}
+
+@media (max-width: 520px) {
+  .client-access-list>div {
+    grid-template-columns: 1fr auto;
+  }
+}
+
+/* ── Add contact drawer (stacks over the business drawer) ───────────────── */
+.contact-drawer-backdrop {
+  z-index: 115;
+  background: rgba(7, 7, 8, .28);
+  backdrop-filter: none;
+}
+
+.account-drawer.contact-drawer {
+  z-index: 120;
+  width: min(420px, 100vw);
+  margin: 0;
+}
+
+.contact-drawer .drawer-header {
+  min-height: 72px;
+  align-items: center;
+}
+
+.contact-drawer .business-eyebrow {
+  color: var(--ent-faint);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+.contact-drawer .drawer-header h2 {
+  margin: 3px 0 0;
+  font-size: 18px;
+  letter-spacing: -.02em;
+}
+
+.contact-drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.contact-drawer-body label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--ent-muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.contact-drawer-body label > span[aria-hidden] {
+  display: none;
+}
+
+.contact-drawer-body input:not([type="checkbox"]) {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--ent-line-strong);
+  border-radius: 5px;
+  background: var(--ent-surface);
+  color: var(--ent-text);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.contact-drawer-body input:not([type="checkbox"]):focus {
+  outline: 2px solid var(--ent-strong);
+  outline-offset: -1px;
+}
+
+.contact-drawer-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.contact-drawer-body .contact-drawer-check {
+  margin-top: 4px;
+  padding: 11px 12px;
+  border: 1px solid var(--ent-line);
+  border-radius: 6px;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.contact-drawer-check.disabled {
+  cursor: default;
+  opacity: .6;
+}
+
+.contact-drawer-check input {
+  margin-top: 2px;
+}
+
+.contact-drawer-check span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.contact-drawer-check b {
+  color: var(--ent-text);
+  font-size: 11px;
+}
+
+.contact-drawer-check small {
+  color: var(--ent-faint);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.contact-drawer-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--ent-line);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.contact-drawer-footer .icon-action,
+.contact-drawer-footer .client-access-primary {
+  height: 34px;
+  padding: 0 14px;
+  font-size: 11px;
+}
+
+@media (max-width: 520px) {
+  .contact-drawer-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Contact directory: delete ──────────────────────────────────────────── */
+.contacts-list .contact-delete:hover:not(:disabled) {
+  border-color: var(--ent-danger-line);
+  color: var(--ent-danger-text);
+}
+
+.contacts-list>div.contact-confirm {
+  grid-template-columns: 1fr auto auto;
+  background: var(--ent-danger-bg);
+}
+
+.contacts-list .contact-confirm button {
+  width: auto;
+  padding: 0 10px;
+}
+
+.contacts-list .contact-confirm .danger {
+  border-color: var(--ent-danger-line);
+  color: var(--ent-danger-text);
 }

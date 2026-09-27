@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, MapPin, Phone } from 'lucide-react';
+import { X, MapPin, Phone, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   type BusinessInquiry,
@@ -8,7 +8,7 @@ import {
   type JobWithDriver,
   getJobsForBusiness,
   getBusinessContacts,
-  addBusinessContact,
+  deleteBusinessContact,
 } from '../../../lib/supabase';
 import { getEtaMinutes } from '../../../lib/eta';
 import {
@@ -17,6 +17,8 @@ import {
   getCompletionRate,
 } from '../selectors';
 import { WriteGuard } from '../permissions';
+import { ClientPortalAccess } from '../components/ClientPortalAccess';
+import { ContactDrawer } from './ContactDrawer';
 
 interface BusinessAccountDrawerProps {
   business: BusinessInquiry;
@@ -148,6 +150,11 @@ export const BusinessAccountDrawer: React.FC<BusinessAccountDrawerProps> = ({
   const [jobsLoading, setJobsLoading] = React.useState(true);
   const [contacts, setContacts] = React.useState<BusinessContact[]>([]);
   const [contactsLoading, setContactsLoading] = React.useState(true);
+  const [addingContact, setAddingContact] = React.useState(false);
+  const [confirmingDelete, setConfirmingDelete] = React.useState<string | null>(null); // contact id
+  const [deleting, setDeleting] = React.useState(false);
+  const [contactError, setContactError] = React.useState<string | null>(null);
+  const [accessVersion, setAccessVersion] = React.useState(0); // bumped when a contact is invited to the portal
 
   React.useEffect(() => {
     let cancelled = false;
@@ -208,28 +215,18 @@ export const BusinessAccountDrawer: React.FC<BusinessAccountDrawerProps> = ({
     console.log('Opening live map');
   };
 
-  const handleAddContact = async () => {
-    if (!business.id) return;
-    const name = window.prompt('Contact name:');
-    if (!name || !name.trim()) return;
-    const role = window.prompt('Role (e.g. Operations Manager):') || '';
-    const department = window.prompt('Department (e.g. Operations, Finance):') || '';
-    const phone = window.prompt('Phone number:') || '';
-    const email = window.prompt('Email address:') || '';
-
+  const handleDeleteContact = async (id: string) => {
+    setDeleting(true);
+    setContactError(null);
     try {
-      const newContact = await addBusinessContact({
-        business_id: business.id,
-        name: name.trim(),
-        role: role.trim() || null,
-        department: department.trim() || null,
-        phone: phone.trim() || null,
-        email: email.trim() || null,
-      });
-      setContacts(prev => [...prev, newContact]);
+      await deleteBusinessContact(id);
+      setContacts((prev) => prev.filter((c) => c.id !== id));
+      setConfirmingDelete(null);
     } catch (err) {
-      console.error('[Nokael] Error adding business contact:', err);
-      alert('Failed to add contact. Please try again.');
+      console.error('[Nokael] Error deleting business contact:', err);
+      setContactError((err as Error).message || 'Could not delete the contact. Please try again.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -341,7 +338,7 @@ export const BusinessAccountDrawer: React.FC<BusinessAccountDrawerProps> = ({
                   <h3>Contact directory</h3>
                   <p>Operations and finance stakeholders</p>
                 </div>
-                <button className="text-action" onClick={handleAddContact}>
+                <button className="text-action" onClick={() => setAddingContact(true)}>
                   Add contact
                 </button>
               </div>
@@ -352,7 +349,20 @@ export const BusinessAccountDrawer: React.FC<BusinessAccountDrawerProps> = ({
                 ) : contacts.length === 0 ? (
                   <p style={{ padding: '16px', fontSize: '13px', color: '#64748b' }}>No contacts added yet.</p>
                 ) : (
-                  contacts.map((contact) => (
+                  contacts.map((contact) => confirmingDelete === contact.id ? (
+                    <div key={contact.id} className="contact-confirm">
+                      <span>
+                        <b>Delete {contact.name}?</b>
+                        <small>This removes them from the contact directory. Any client portal access is kept.</small>
+                      </span>
+                      <button type="button" className="icon-action" onClick={() => setConfirmingDelete(null)} disabled={deleting}>
+                        Cancel
+                      </button>
+                      <button type="button" className="icon-action danger" onClick={() => contact.id && handleDeleteContact(contact.id)} disabled={deleting}>
+                        {deleting ? 'Deleting…' : 'Delete'}
+                      </button>
+                    </div>
+                  ) : (
                     <div key={contact.id}>
                       <div className="avatar">{getInitials(contact.name)}</div>
                       <span>
@@ -374,10 +384,23 @@ export const BusinessAccountDrawer: React.FC<BusinessAccountDrawerProps> = ({
                       >
                         @
                       </button>
+                      <button
+                        title="Delete contact"
+                        aria-label={`Delete ${contact.name}`}
+                        className="contact-delete"
+                        onClick={() => { setContactError(null); setConfirmingDelete(contact.id ?? null); }}
+                        disabled={!contact.id}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
                     </div>
                   ))
                 )}
               </div>
+
+              {contactError && <p className="client-access-notice error" role="alert">{contactError}</p>}
+
+              {business.id && <ClientPortalAccess businessId={business.id} contacts={contacts} version={accessVersion} />}
             </>
           )}
 
@@ -389,6 +412,18 @@ export const BusinessAccountDrawer: React.FC<BusinessAccountDrawerProps> = ({
         </div>
         </WriteGuard>
       </div>
+
+      {addingContact && business.id && (
+        <ContactDrawer
+          businessId={business.id}
+          companyName={business.company_name}
+          onClose={() => setAddingContact(false)}
+          onSaved={(contact, invited) => {
+            setContacts((prev) => [...prev, contact]);
+            if (invited) setAccessVersion((v) => v + 1);
+          }}
+        />
+      )}
     </>,
     document.body
   );

@@ -7,7 +7,7 @@ import { rateLimit } from "../middleware/security.js";
 // ---------------------------------------------------------------------------
 let serviceClient: SupabaseClient | null = null;
 
-function getServiceClient(): SupabaseClient | null {
+export function getServiceClient(): SupabaseClient | null {
   if (serviceClient) return serviceClient;
   const url = process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -27,20 +27,20 @@ const acceptInviteUrl = () => `${process.env.SITE_URL ?? "https://www.nokael.com
 // session-token auth: the dashboard user sends their access_token, we
 // verify it against Supabase and look up their org_members row.
 // ---------------------------------------------------------------------------
-type OrgRole = "owner" | "admin" | "operator" | "viewer";
+export type OrgRole = "owner" | "admin" | "operator" | "viewer";
 const ROLES: OrgRole[] = ["viewer", "operator", "admin", "owner"]; // ascending rank
-const rankOf = (role: string | undefined) => ROLES.indexOf(role as OrgRole);
+export const rankOf = (role: string | undefined) => ROLES.indexOf(role as OrgRole);
 
 type MemberStatus = "active" | "invited" | "disabled";
 
-interface TeamRequest extends Request {
+export interface TeamRequest extends Request {
   callerId?: string;
   orgId?: string;
   callerRole?: OrgRole;
   targetRole?: OrgRole;
 }
 
-async function requireOrgSession(
+export async function requireOrgSession(
   req: TeamRequest,
   res: Response,
   next: NextFunction
@@ -117,7 +117,7 @@ async function countOwners(client: SupabaseClient, orgId: string): Promise<numbe
   return count ?? 0;
 }
 
-function statusOf(user: User | null | undefined): MemberStatus {
+export function statusOf(user: User | null | undefined): MemberStatus {
   if (!user) return "invited";
   const bannedUntil = (user as User & { banned_until?: string | null }).banned_until;
   if (bannedUntil && new Date(bannedUntil).getTime() > Date.now()) return "disabled";
@@ -125,7 +125,7 @@ function statusOf(user: User | null | undefined): MemberStatus {
   return "active";
 }
 
-const cleanName = (value: unknown): string | null | undefined => {
+export const cleanName = (value: unknown): string | null | undefined => {
   if (value === undefined) return undefined;
   if (value === null) return null;
   if (typeof value !== "string") return undefined;
@@ -133,7 +133,7 @@ const cleanName = (value: unknown): string | null | undefined => {
   return trimmed || null;
 };
 
-async function findUserByEmail(client: SupabaseClient, email: string): Promise<User | null> {
+export async function findUserByEmail(client: SupabaseClient, email: string): Promise<User | null> {
   const wanted = email.trim().toLowerCase();
   for (let page = 1; page <= 20; page++) {
     const { data, error } = await client.auth.admin.listUsers({ page, perPage: 200 });
