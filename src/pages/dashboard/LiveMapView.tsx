@@ -9,10 +9,11 @@ import {
   Crosshair, WifiOff, Truck, Users, PackageOpen, X, Phone, MapPin, Flag, Loader2, ExternalLink, AlertTriangle,
 } from 'lucide-react';
 import { supabase, assignDriverToJob, updateJob, type Driver, type JobWithDriver } from '../../lib/supabase';
+import { jobStage, STAGE_LABEL } from '../../lib/jobStage';
 import { getDriverPositions, isOnline, type DriverPosition } from '../../lib/dispatch';
 import { validCoord, distanceMeters, formatDistance, geocodeAddress, type LatLng } from '../../lib/geo';
 import { getEtaMinutes } from '../../lib/eta';
-import { TERMINAL_STATUSES, getStageConfig } from './constants';
+import { TERMINAL_STATUSES } from './constants';
 import { useCanWrite } from './permissions';
 
 // Driver positions refresh this often while the map is open.
@@ -79,7 +80,6 @@ interface LiveMapViewProps {
 
 export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, onJobClick, onChanged }) => {
   const { t, i18n } = useTranslation('dashboard');
-  const STAGE_CONFIG = getStageConfig(t);
   const dateLocale = i18n.language?.startsWith('ar') ? arLocale : undefined;
   const canWrite = useCanWrite();
 
@@ -242,7 +242,8 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
 
   const ago = (ms: number | null) => ms == null ? '—' : formatDistanceToNow(new Date(ms), { addSuffix: true, locale: dateLocale });
   const ref = (j: JobWithDriver) => `#${j.job_ref?.toString().padStart(4, '0') ?? '—'}`;
-  const stage = (j: JobWithDriver) => STAGE_CONFIG[j.status]?.label || j.status;
+  // Same wording as the driver app (see lib/jobStage).
+  const stage = (j: JobWithDriver) => STAGE_LABEL[jobStage(j)];
 
   const assign = async (job: JobWithDriver, driver: Driver) => {
     if (!canWrite || !job.id || !driver.id) return;

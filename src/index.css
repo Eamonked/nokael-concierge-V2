@@ -8506,6 +8506,10 @@ a:not(.btn-primary):not(.btn-secondary):hover {
   overflow: auto;
 }
 
+.jw-detail > * {
+  flex-shrink: 0;
+}
+
 .jw-detail-empty {
   align-items: center;
   justify-content: center;
@@ -8950,7 +8954,7 @@ a:not(.btn-primary):not(.btn-secondary):hover {
 
 /* map + custody timeline */
 .jw-route-body {
-  flex: 1;
+  flex: 1 0 auto;
   min-height: 300px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -8996,7 +9000,7 @@ a:not(.btn-primary):not(.btn-secondary):hover {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .jw-timeline:before {
@@ -9038,7 +9042,7 @@ a:not(.btn-primary):not(.btn-secondary):hover {
 }
 
 .jw-stop-place {
-  margin-top: 3px;
+  margin-top: 1px;
   display: flex;
   align-items: baseline;
   gap: 7px;
@@ -9060,7 +9064,7 @@ a:not(.btn-primary):not(.btn-secondary):hover {
 }
 
 .jw-stop-card {
-  padding: 13px 15px;
+  padding: 10px 14px;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--surface-2);
@@ -9113,6 +9117,7 @@ a:not(.btn-primary):not(.btn-secondary):hover {
 /* Job operations (JobOperations): the mission-control sections under the
    route in the Jobs detail panel — parties, hand-offs, messages, overrides. */
 .jo {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;

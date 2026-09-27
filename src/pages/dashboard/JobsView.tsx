@@ -1,10 +1,11 @@
 import React from 'react';
-import type { JobWithDriver, Driver, JobStatus } from '../../lib/supabase';
-import { assignDriverToJob, overrideJobLevel } from '../../lib/supabase';
+import type { JobWithDriver, Driver } from '../../lib/supabase';
+import { assignDriverToJob, updateJob, overrideCocStep } from '../../lib/supabase';
+import {
+  jobStage, stageSteps, nextAction, noteLocalStageChange, STAGE_LABEL, STAGE_TONE, NEXT_ACTION_LABEL, type JobStage, type NextAction,
+} from '../../lib/jobStage';
 import { useCanWrite, READ_ONLY_MESSAGE } from './permissions';
 import { generateJobPOC } from '../../lib/pdf-export';
-import { STAGE_ORDER, getStageConfig } from './constants';
-import { getVerificationSteps } from './verificationSteps';
 import { formatDate } from './utils';
 import { Zap, Clock, CheckCircle2, Users, Truck } from 'lucide-react';
 
@@ -15,10 +16,9 @@ const clock = (value: string) =>
 import { Icon } from './components/Icon';
 import { Avatar } from './components/Avatar';
 import { DateRangeSelector, useDateRange } from './components/DateRangeSelector';
-import { Status } from './components/StatusBadge';
+import { Status, type StatusKind } from './components/StatusBadge';
 import { StatCard } from './components/StatCard';
 import { JobOperations, JOB_CONTROLS_ID } from './components/JobOperations';
-import { useTranslation } from 'react-i18next';
 
 /* ------------------------------------------------------------------ */
 /* Jobs workspace — list + active card on the left, job detail on the  */
@@ -40,12 +40,21 @@ function matchesFilter(job: JobWithDriver, filter: JobFilter): boolean {
   return true;
 }
 
-function statusDotClass(status: JobStatus) {
-  if (status === 'completed') return 'completed';
-  if (status === 'cancelled') return 'cancelled';
-  if (status === 'returned') return 'returned';
-  if (status === 'pending') return '';
-  return 'in-transit'; // client_pickup / driver_pickup / driver_delivery
+function statusDotClass(stage: JobStage) {
+  if (stage === 'completed' || stage === 'dropped_off') return 'completed';
+  if (stage === 'cancelled') return 'cancelled';
+  if (stage === 'returned') return 'returned';
+  if (stage === 'unassigned') return '';
+  return 'in-transit';
+}
+
+const TONE_KIND: Record<(typeof STAGE_TONE)[JobStage], StatusKind> = {
+  neutral: 'neutral', moving: 'info', attention: 'warning', done: 'success', bad: 'danger',
+};
+
+export function StageBadge({ job }: { job: JobWithDriver }) {
+  const stage = jobStage(job);
+  return <Status kind={stage === 'cancelled' ? 'neutral' : TONE_KIND[STAGE_TONE[stage]]}>{STAGE_LABEL[stage]}</Status>;
 }
 
 // Rough emirate positions for the corridor sketch — the same static geography
@@ -166,7 +175,7 @@ function JobList({
         {jobs.map((job) => (
           <button key={job.id} className={`jw-row ${selectedRef === job.id ? 'selected' : ''}`} onClick={() => onSelect(job.id!)}>
             <span className="jw-id">
-              <i className={`jw-dot ${statusDotClass(job.status)}`} title={job.status} />
+              <i className={`jw-dot ${statusDotClass(jobStage(job))}`} title={STAGE_LABEL[jobStage(job)]} />
               {job.job_ref || job.id?.slice(0, 8)}
             </span>
             <span className="jw-route" title={`${job.pickup_location} → ${job.delivery_location}`}>
@@ -197,8 +206,6 @@ function JobDetailPanel({
   canCancel: () => boolean;
   key?: React.Key;
 }) {
-  const { t } = useTranslation('dashboard');
-  const STAGE_CONFIG = getStageConfig(t);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
@@ -208,15 +215,14 @@ function JobDetailPanel({
   useClickAway(menuRef, menuOpen, () => setMenuOpen(false));
   useClickAway(pickerRef, pickerOpen, () => setPickerOpen(false));
 
-  const currentIndex = STAGE_ORDER.indexOf(job.status as any);
-  const isTerminalBad = job.status === 'cancelled' || job.status === 'returned';
-  const nextStatus = !isTerminalBad && currentIndex >= 0 && currentIndex < STAGE_ORDER.length - 1 ? STAGE_ORDER[currentIndex + 1] : null;
+  const next = nextAction(job);
+  const closed = ['completed', 'cancelled', 'returned'].includes(jobStage(job));
 
-  const steps = getVerificationSteps(job).map((def) => ({
-    ...def,
-    label: STAGE_CONFIG[def.stepKey === 'client_pickup_at' ? 'client_pickup' : def.stepKey === 'driver_pickup_at' ? 'driver_pickup' : def.stepKey === 'driver_delivery_at' ? 'driver_delivery' : 'completed']?.short || def.i18nKey,
-    at: job[def.stepKey] as string | null | undefined,
-    place: def.stepKey === 'client_pickup_at' || def.stepKey === 'driver_pickup_at' ? job.pickup_emirate : job.delivery_emirate,
+  // Same steps, in the same words, as the driver app's progress tracker.
+  const pickupSide = new Set(['heading', 'at_pickup', 'picked_up']);
+  const steps = stageSteps(job).map(step => ({
+    ...step,
+    place: step.key === 'booked' ? null : pickupSide.has(step.key) ? job.pickup_emirate : job.delivery_emirate,
   }));
 
   const copyRef = () => {
@@ -242,13 +248,14 @@ function JobDetailPanel({
             <button className="jw-copy" onClick={copyRef} aria-label="Copy job ID" title="Copy job ID">
               <Icon name={copied ? 'check' : 'copy'} size={17} />
             </button>
-            <Status>{STAGE_CONFIG[job.status]?.label || job.status}</Status>
+            <StageBadge job={job} />
           </div>
         </div>
         <div className="jw-head-actions">
           <button className="jw-ghost" onClick={onEdit}>Edit details</button>
-          <button className="jw-primary" disabled={!nextStatus} onClick={onAdvance}>
-            {nextStatus ? `Advance: ${STAGE_CONFIG[nextStatus]?.short || nextStatus}` : 'Job closed'}
+          <button className="jw-primary" disabled={!next} onClick={onAdvance}
+            title={next ? 'Record this step for the driver (use only if they can\'t do it in the app)' : undefined}>
+            {next ? NEXT_ACTION_LABEL[next] : closed ? 'Job closed' : 'Waiting for driver'}
           </button>
           <div className="jw-menu-wrap" ref={menuRef}>
             <button className="jw-round" onClick={() => setMenuOpen((o) => !o)} aria-label={`More actions for ${job.job_ref}`} aria-expanded={menuOpen}>
@@ -372,8 +379,8 @@ function JobDetailPanel({
         <RouteMap from={job.pickup_emirate} to={job.delivery_emirate} onExpand={onOpenMap} />
         <ol className="jw-timeline" aria-label="Chain of custody">
           {steps.map((step, index) => {
-            const reached = !!step.at;
-            const current = !reached && index === steps.findIndex((s) => !s.at);
+            const reached = step.done;
+            const current = !closed && !reached && index === steps.findIndex((s) => !s.done);
             const body = (
               <>
                 <div className="jw-stop-time">
@@ -382,6 +389,10 @@ function JobDetailPanel({
                       {shortDate(step.at)}
                       <span>{clock(step.at)}</span>
                     </>
+                  ) : reached ? (
+                    'Done'
+                  ) : current ? (
+                    'Next'
                   ) : (
                     'Pending'
                   )}
@@ -393,7 +404,7 @@ function JobDetailPanel({
               </>
             );
             return (
-              <li key={step.stepKey} className={`jw-stop ${reached ? 'reached' : ''} ${current ? 'current' : ''}`}>
+              <li key={step.key} className={`jw-stop ${reached ? 'reached' : ''} ${current ? 'current' : ''}`}>
                 <i className="jw-stop-dot" />
                 {current ? (
                   <div className="jw-stop-card">
@@ -461,16 +472,34 @@ export function JobsView({
     return true;
   };
 
+  /** Records the driver's next step for them — the same columns the driver apps write. */
   const handleAdvance = async (job: JobWithDriver) => {
     if (denyIfViewer()) return;
-    const currentIndex = STAGE_ORDER.indexOf(job.status as any);
-    if (currentIndex === -1 || currentIndex >= STAGE_ORDER.length - 1) return;
-    const nextStatus = STAGE_ORDER[currentIndex + 1];
+    const action = nextAction(job);
+    if (!action) return;
+    if (!window.confirm(`${NEXT_ACTION_LABEL[action]} for ${job.job_ref}?\n\nOnly do this if the driver can't record it in the app.`)) return;
+    const now = new Date().toISOString();
+    const entry = `[${clock(now)}] ${NEXT_ACTION_LABEL[action]} by dispatch`;
+    const notes = job.operator_notes ? `${job.operator_notes}\n${entry}` : entry;
+    const run: Record<NextAction, () => Promise<unknown>> = {
+      arrive_pickup: () => updateJob(job.id!, { driver_arrived_pickup_at: now, operator_notes: notes }),
+      collect: async () => {
+        // Four-step jobs also record the sender's own hand-over first.
+        if (job.confirmation_mode !== 'driver_only' && !job.client_pickup_at) {
+          await overrideCocStep(job.id!, 'client_pickup_at', true, undefined, job.confirmation_mode);
+        }
+        await overrideCocStep(job.id!, 'driver_pickup_at', true, notes, job.confirmation_mode);
+      },
+      arrive_dropoff: () => updateJob(job.id!, { driver_arrived_delivery_at: now, operator_notes: notes }),
+      deliver: () => overrideCocStep(job.id!, 'driver_delivery_at', true, notes, job.confirmation_mode),
+      recipient_confirm: () => overrideCocStep(job.id!, 'client_delivery_at', true, notes, job.confirmation_mode),
+    };
+    noteLocalStageChange(job.id!);
     try {
-      await overrideJobLevel(job.id!, { status: nextStatus, autoTimestampCoc: true, overrideNotes: 'Advanced via Jobs view' });
+      await run[action]();
       onUpdate();
     } catch (err: any) {
-      alert(`Could not advance job: ${err.message || err}`);
+      alert(`Could not update job: ${err.message || err}`);
     }
   };
 

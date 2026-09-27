@@ -11,6 +11,7 @@ import {
 import { FAILURE_REASON_KEYS, getStageConfig } from '../constants';
 import { getVerificationSteps, isDriverOnly, stepI18nKey, type CocStepKey } from '../verificationSteps';
 import { WriteGuard } from '../permissions';
+import { noteLocalStageChange } from '../../../lib/jobStage';
 
 /* ------------------------------------------------------------------ */
 /* Everything dispatch needs to run a single job beyond the headline   */
@@ -114,6 +115,7 @@ export function JobOperations({
     const entry = `[${format(new Date(), 'HH:mm')}] ${label} ${action} ${note ? `— ${note}` : 'via Command Centre'}`;
     // Append: operator_notes is one shared field, a step note mustn't clobber earlier ones.
     const combined = job.operator_notes ? `${job.operator_notes}\n${entry}` : entry;
+    noteLocalStageChange(job.id!);
     return run(stepKey, async () => {
       await overrideCocStep(job.id!, stepKey, !confirmed, combined, job.confirmation_mode);
       setStepNotes(prev => ({ ...prev, [stepKey]: '' }));
@@ -443,7 +445,7 @@ export function JobOperations({
                   ))}
                 </select>
                 <button type="button" className="jo-btn warn" disabled={!!busy || targetStatus === job.status}
-                  onClick={() => run('override', () => overrideJobLevel(job.id!, { status: targetStatus, autoTimestampCoc: autoTimestamp, overrideNotes: notes }), t('jobDetailModal.toast.overridden', { stage: STAGE_CONFIG[targetStatus].label }), 'jobDetailModal.errors.override')}>
+                  onClick={() => run('override', () => { noteLocalStageChange(job.id!); return overrideJobLevel(job.id!, { status: targetStatus, autoTimestampCoc: autoTimestamp, overrideNotes: notes }); }, t('jobDetailModal.toast.overridden', { stage: STAGE_CONFIG[targetStatus].label }), 'jobDetailModal.errors.override')}>
                   <Spin on={busy === 'override'} icon={<Zap />} />{t('jobDetailModal.emergency.forceUpdate')}
                 </button>
               </div>

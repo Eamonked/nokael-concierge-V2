@@ -1,8 +1,11 @@
 import React from 'react';
 
-export function Status({ children }: { children: React.ReactNode }) {
+export type StatusKind = "danger" | "warning" | "info" | "neutral" | "success"
+
+/** Tone is guessed from the text unless `kind` is given. */
+export function Status({ children, kind: explicit }: { children: React.ReactNode; kind?: StatusKind }) {
   const value = String(children).toLowerCase()
-  const kind =
+  const kind = explicit ?? (
     value.includes("return") ||
     value.includes("critical") ||
     value.includes("lost") ||
@@ -23,7 +26,7 @@ export function Status({ children }: { children: React.ReactNode }) {
           ? "info"
           : value.includes("cancel") || value.includes("offline")
             ? "neutral"
-            : "success"
+            : "success")
   return (
     <span className={`status ${kind}`}>
       <i />
