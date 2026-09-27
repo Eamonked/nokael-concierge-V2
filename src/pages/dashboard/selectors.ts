@@ -74,9 +74,14 @@ export function filterDrivers(
 ): Driver[] {
   return drivers.filter(d => {
     const searchLower = searchTerm.toLowerCase();
+    // Phones are stored as +971..., so match on digits and ignore a leading 0
+    // ("0527..." finds "+97152...").
+    const searchDigits = searchTerm.replace(/\D/g, '').replace(/^0+/, '');
+    const phoneDigits = `${d.phone || ''} ${d.whatsapp || ''}`.replace(/[^\d ]/g, '');
     const matchesSearch = d.full_name.toLowerCase().includes(searchLower) ||
-                          d.email.toLowerCase().includes(searchLower) ||
+                          (d.email || '').toLowerCase().includes(searchLower) ||
                           d.phone.toLowerCase().includes(searchLower) ||
+                          (searchDigits.length >= 3 && phoneDigits.includes(searchDigits)) ||
                           (d.base_location || '').toLowerCase().includes(searchLower) ||
                           (d.vehicle_type || '').toLowerCase().includes(searchLower);
     // filterStatus is shared with the Quotes tab's own filter and defaults

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase, createJob, updateJob, generateOtp, type Driver, type Job, type ItemType, type UrgencyType, type ServiceTier, type BusinessInquiry } from '../../../lib/supabase';
 import { sendTelegramNotification, formatJobAssignmentNotification } from '../../../lib/notifications';
 import { geocodeAddress, validCoord } from '../../../lib/geo';
+import { AccountPicker, ClientReferenceInput, findAccountByName } from '../components/AccountPicker';
 
 // Scheduled pickups are entered and displayed in UAE time (GST, UTC+4, no DST),
 // whatever timezone the operator's browser is in.
@@ -43,10 +44,9 @@ interface JobCreateModalProps {
   /** Tracking ref of the source quote request (e.g. NK-1234), shown when converting a quote. */
   quoteRef?: string;
   /**
-   * Business accounts, used only to resolve jobs.business_id from the
-   * existing Company Account free-text field (matched by company_name) so
-   * a job created/edited against a known business account gets linked
-   * automatically. No UI change: same text input, smarter save.
+   * Business accounts for the Company Account picker. The picked account's id
+   * is saved as jobs.business_id, which is what puts the job in that client's
+   * portal, POD reports and billing. Unlinked jobs are one-offs.
    */
   businessInquiries?: BusinessInquiry[];
 }
@@ -71,6 +71,10 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     item_type: duplicateFrom.item_type,
     urgency: duplicateFrom.urgency,
     company_name: duplicateFrom.company_name,
+    // Same account and campaign: duplicating is how dispatch books the next
+    // recipient of a multi-drop campaign. The delivery slot is NOT copied.
+    business_id: duplicateFrom.business_id,
+    client_reference: duplicateFrom.client_reference,
     service_tier: duplicateFrom.service_tier,
     price_aed: duplicateFrom.price_aed,
     special_instructions: duplicateFrom.special_instructions,
@@ -95,6 +99,11 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     operator_notes: initialData?.operator_notes || '',
     scheduled_pickup_at: isoToGstInput(initialData?.scheduled_pickup_at),
     company_name: initialData?.company_name || '',
+    // Existing link wins; otherwise an exact name match (e.g. a converted quote) links it.
+    business_id: (initialData?.business_id ?? findAccountByName(businessInquiries, initialData?.company_name || '')?.id ?? null) as string | null,
+    client_reference: initialData?.client_reference || '',
+    scheduled_delivery_start: isoToGstInput(initialData?.scheduled_delivery_start),
+    scheduled_delivery_end: isoToGstInput(initialData?.scheduled_delivery_end),
     price_aed: initialData?.price_aed != null ? String(initialData.price_aed) : '',
     service_tier: (initialData?.service_tier || 'standard') as ServiceTier,
     quote_id: initialData?.quote_id || null,
@@ -111,7 +120,7 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
   const [extra, setExtra] = React.useState({
     payment_mode: '', agent_payout: '',
     pickup_building: '', pickup_company: '', pickup_window_start: '', pickup_window_end: '', pickup_notes: '',
-    delivery_building: '', delivery_company: '', delivery_eta_start: '', delivery_guaranteed_by: '', delivery_notes: '',
+    delivery_building: '', delivery_company: '', delivery_notes: '',
     vehicle_required: '', quantity: '1', weight_kg: '', dim_l: '', dim_w: '', dim_h: '',
     handling: [] as string[],
   });
@@ -123,6 +132,11 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     e.preventDefault();
     if (formData.urgency === 'scheduled' && !formData.scheduled_pickup_at) {
       alert(t('jobCreateModal.scheduledPickupHint'));
+      return;
+    }
+    if (formData.scheduled_delivery_start && formData.scheduled_delivery_end
+        && formData.scheduled_delivery_end < formData.scheduled_delivery_start) {
+      alert(t('jobCreateModal.deliverySlotOrder', { defaultValue: 'The delivery slot ends before it starts. Check the two times.' }));
       return;
     }
     setLoading(true);
@@ -160,8 +174,7 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
           item_type: formData.item_type,
           urgency: formData.urgency,
           scheduled_pickup_at: formData.urgency === 'scheduled' ? gstInputToIso(formData.scheduled_pickup_at) : null,
-          company_name: formData.company_name.trim() || null,
-          business_id: resolveBusinessId(formData.company_name),
+          ...accountFields(),
           service_tier: formData.service_tier,
           price_aed: editedPrice !== null && Number.isFinite(editedPrice) && editedPrice >= 0 ? editedPrice : null,
           special_instructions: formData.special_instructions.trim() || null,
@@ -199,8 +212,7 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
         special_instructions: formData.special_instructions.trim() || null,
         operator_notes: formData.operator_notes.trim() || null,
         scheduled_pickup_at: formData.urgency === 'scheduled' ? gstInputToIso(formData.scheduled_pickup_at) : null,
-        company_name: formData.company_name.trim() || null,
-        business_id: resolveBusinessId(formData.company_name),
+        ...accountFields(),
         price_aed: priceValue,
         service_tier: formData.service_tier,
         quote_id: formData.quote_id,
@@ -250,19 +262,19 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     setFormData(prev => ({ ...prev, [key]: value }));
 
   /**
-   * Resolve jobs.business_id by matching the free-text Company Account field
-   * against a known business_inquiries.company_name (case-insensitive, exact).
-   * This is the ONLY way business_id ever gets set (see supabase.ts) — no
-   * fuzzy matching, no backfill against historical jobs.
+   * Account link, campaign reference and delivery slot, identical for create and
+   * edit. business_id comes only from the picker (an explicit choice, shown to
+   * dispatch as "Linked" or "One-off"), never from silent name matching at save.
+   * A campaign reference without an account would be invisible to any client, so
+   * it is dropped for one-off jobs.
    */
-  const resolveBusinessId = (companyName: string): string | null => {
-    const trimmed = companyName.trim();
-    if (!trimmed || !businessInquiries) return null;
-    const match = businessInquiries.find(
-      b => b.company_name.trim().toLowerCase() === trimmed.toLowerCase()
-    );
-    return match?.id || null;
-  };
+  const accountFields = (): Partial<Job> => ({
+    company_name: formData.company_name.trim() || null,
+    business_id: formData.business_id,
+    client_reference: formData.business_id ? (formData.client_reference.trim() || null) : null,
+    scheduled_delivery_start: gstInputToIso(formData.scheduled_delivery_start),
+    scheduled_delivery_end: gstInputToIso(formData.scheduled_delivery_end),
+  });
   const priceNumber = Number(formData.price_aed);
   const clientTotal = formData.price_aed.trim() !== '' && Number.isFinite(priceNumber)
     ? `AED ${priceNumber.toFixed(2)}`
@@ -342,6 +354,23 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
                 <em>{t('jobCreateModal.marginPercent', { percent: marginPct })}</em>
                 <div><i style={{ width: `${Math.min(100, marginPct)}%` }} /></div>
               </div>
+              {/* A <div>, not <Field>'s <label>: a label would forward clicks on the
+                  dropdown and mini-form to the first input inside it. */}
+              <div className="field span-2">
+                <span className="field-label" title={t('jobCreateModal.companyAccount')}>{t('jobCreateModal.companyAccount')}</span>
+                <AccountPicker
+                  accounts={businessInquiries || []}
+                  value={{ businessId: formData.business_id, companyName: formData.company_name }}
+                  onChange={v => setFormData(prev => ({ ...prev, business_id: v.businessId, company_name: v.companyName }))}
+                />
+              </div>
+              <Field label={t('jobCreateModal.serviceTier')}>
+                <select value={formData.service_tier} onChange={e => set('service_tier', e.target.value as ServiceTier)}>
+                  <option value="express">{t('jobCreateModal.serviceTiers.express')}</option>
+                  <option value="priority">{t('jobCreateModal.serviceTiers.priority')}</option>
+                  <option value="standard">{t('jobCreateModal.serviceTiers.standard')}</option>
+                </select>
+              </Field>
               <Field label={t('jobCreateModal.paymentMode')}>
                 <select value={extra.payment_mode} onChange={e => setX('payment_mode', e.target.value)}>
                   <option value="">{t('jobCreateModal.paymentModePlaceholder')}</option>
@@ -350,15 +379,12 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
                   <option value="card">{t('jobCreateModal.paymentModeCard')}</option>
                 </select>
               </Field>
-              <Field label={t('jobCreateModal.companyAccount')}>
-                <input type="text" value={formData.company_name} onChange={e => set('company_name', e.target.value)} placeholder={t('jobCreateModal.companyPlaceholder')} />
-              </Field>
-              <Field label={t('jobCreateModal.serviceTier')}>
-                <select value={formData.service_tier} onChange={e => set('service_tier', e.target.value as ServiceTier)}>
-                  <option value="express">{t('jobCreateModal.serviceTiers.express')}</option>
-                  <option value="priority">{t('jobCreateModal.serviceTiers.priority')}</option>
-                  <option value="standard">{t('jobCreateModal.serviceTiers.standard')}</option>
-                </select>
+              <Field label={t('jobCreateModal.clientReference', { defaultValue: 'Campaign / client reference' })} span2>
+                <ClientReferenceInput
+                  businessId={formData.business_id}
+                  value={formData.client_reference}
+                  onChange={v => set('client_reference', v)}
+                />
               </Field>
             </div>
             {!isEdit && (<>
@@ -462,10 +488,11 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
                   <input type="text" value={extra.delivery_company} onChange={e => setX('delivery_company', e.target.value)} placeholder={t('jobCreateModal.companyEntityPlaceholder')} />
                 </Field>
                 <Field label={t('jobCreateModal.deliveryEtaStart')}>
-                  <input type="datetime-local" value={extra.delivery_eta_start} onChange={e => setX('delivery_eta_start', e.target.value)} />
+                  <input type="datetime-local" value={formData.scheduled_delivery_start} onChange={e => set('scheduled_delivery_start', e.target.value)} />
+                  <small>{t('jobCreateModal.deliverySlotHint', { defaultValue: 'UAE time. Shown to the client.' })}</small>
                 </Field>
                 <Field label={t('jobCreateModal.guaranteedBy')}>
-                  <input type="datetime-local" value={extra.delivery_guaranteed_by} onChange={e => setX('delivery_guaranteed_by', e.target.value)} />
+                  <input type="datetime-local" value={formData.scheduled_delivery_end} min={formData.scheduled_delivery_start || undefined} onChange={e => set('scheduled_delivery_end', e.target.value)} />
                 </Field>
                 <Field label={t('jobCreateModal.gateNotes')} wide>
                   <textarea rows={2} value={extra.delivery_notes} onChange={e => setX('delivery_notes', e.target.value)} placeholder={t('jobCreateModal.gateNotesPlaceholder')} />

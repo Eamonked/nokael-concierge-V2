@@ -1,0 +1,30 @@
+.account-picker { display: grid; gap: 5px; min-width: 0; }
+.account-picker-input { position: relative; }
+.account-picker-list {
+  position: absolute; z-index: 30; top: calc(100% + 4px); inset-inline: 0;
+  margin: 0; padding: 4px; list-style: none; max-height: 280px; overflow-y: auto;
+  background: var(--ent-surface); border: 1px solid var(--ent-line-strong); border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, .14);
+}
+.account-picker-list li {
+  display: grid; grid-template-columns: 1fr auto; column-gap: 8px; align-items: center;
+  padding: 7px 9px; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--ent-text);
+}
+.account-picker-list li small { grid-column: 1; color: var(--ent-faint); font-size: 11px; }
+.account-picker-list li svg { grid-column: 2; grid-row: 1 / span 2; color: var(--ent-success-strong); }
+.account-picker-list li.action { grid-template-columns: auto 1fr; border-top: 1px solid var(--ent-line-soft); }
+.account-picker-list li.action svg { grid-column: 1; grid-row: 1; color: var(--ent-info-strong); }
+.account-picker-list li.active { background: var(--ent-surface-2); }
+.account-picker-list li .muted { font-weight: 500; color: var(--ent-muted); }
+.account-picker-status { display: flex; align-items: flex-start; gap: 5px; font-size: 11px; line-height: 1.35; color: var(--ent-faint); }
+.account-picker-status svg { flex: none; margin-top: 1px; }
+.account-picker-status.linked { color: var(--ent-success-text); }
+.account-picker-status.unlinked { color: var(--ent-warning-text); }
+.account-picker-create {
+  display: grid; gap: 7px; padding: 10px; border: 1px solid var(--ent-line-strong);
+  border-radius: 8px; background: var(--ent-surface-2);
+}
+.account-picker-create p { margin: 0; font-size: 11px; color: var(--ent-muted); }
+.account-picker-create-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.account-picker-error { font-size: 11px; color: var(--ent-danger-text); }
+.account-picker-fix { padding: 0; border: 0; background: none; color: var(--ent-info-strong); font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: underline; }

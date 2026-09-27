@@ -461,6 +461,11 @@ export interface Job {
   // there is no backfill and no company_name string-matching against old
   // rows, to avoid mis-linking. A NULL business_id means "one-off job".
   business_id?: string | null;
+  // Client-facing campaign label and agreed delivery slot. All three are
+  // shown to the client in coc.nokael.com/portal/ (client_list_jobs RPC).
+  client_reference?: string | null;
+  scheduled_delivery_start?: string | null;
+  scheduled_delivery_end?: string | null;
 
   // Driver — nullable, assigned later via assignDriverToJob()
   driver_id?: string | null;

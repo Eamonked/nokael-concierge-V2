@@ -1,9 +1,17 @@
 import React from 'react';
-import { Search, Star } from 'lucide-react';
+import { Search, Phone, MessageCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatDistanceToNow } from 'date-fns';
 import type { Driver, DriverPresence } from '../../lib/supabase';
 import type { DriverPoolSummary } from './selectors';
+import {
+  telLink,
+  whatsappLink,
+  driverWhatsapp,
+  isStandby,
+  driversToVCard,
+  downloadText,
+} from '../../lib/driverContact';
 
 interface DriversViewProps {
   driverPoolSummary: DriverPoolSummary;
@@ -41,9 +49,43 @@ export function DriversView({
   // drivers.status, which only tracks whether they are on a job.
   const presenceOf = (d: Driver) => driverPresence[d.id!]?.presence ?? 'offline';
   const PRESENCE_FILTERS = ['online', 'app_open', 'offline', 'on_job'];
-  const visibleDrivers = !PRESENCE_FILTERS.includes(filterStatus)
-    ? filteredDrivers
-    : filteredDrivers.filter(d => filterStatus === 'on_job' ? d.status === 'on_job' : presenceOf(d) === filterStatus);
+  const visibleDrivers = filterStatus === 'standby'
+    ? filteredDrivers.filter(isStandby)
+    : !PRESENCE_FILTERS.includes(filterStatus)
+      ? filteredDrivers
+      : filteredDrivers.filter(d => filterStatus === 'on_job' ? d.status === 'on_job' : presenceOf(d) === filterStatus);
+
+  // Row selection for bulk actions. Only ids still visible count, so changing
+  // a filter never exports people you can't see.
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const selectedDrivers = visibleDrivers.filter(d => selectedIds.has(d.id!));
+  const allVisibleSelected = visibleDrivers.length > 0 && selectedDrivers.length === visibleDrivers.length;
+  const toggleSelected = (id: string) =>
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  const toggleAllVisible = () =>
+    setSelectedIds(allVisibleSelected ? new Set() : new Set(visibleDrivers.map(d => d.id!)));
+
+  const exportContacts = (list: Driver[]) => {
+    if (list.length === 0) return;
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadText(`nokael-drivers-${stamp}.vcf`, driversToVCard(list), 'text/vcard');
+  };
+
+  // wa.me cannot message several people at once, so this copies one number per
+  // line for pasting into WhatsApp Business / a spreadsheet.
+  const copyNumbers = async (list: Driver[]) => {
+    const lines = list.map(d => `${d.full_name}\t${driverWhatsapp(d)}`).join('\n');
+    try {
+      await navigator.clipboard.writeText(lines);
+      alert(`Copied ${list.length} WhatsApp number${list.length === 1 ? '' : 's'}.`);
+    } catch {
+      window.prompt('Copy these numbers:', lines);
+    }
+  };
 
   // Calculate metrics
   const totalFleet = filteredDrivers.length;
@@ -69,7 +111,13 @@ export function DriversView({
           </span>
         </div>
         <div>
-          <button className="outline-button">Export CSV</button>
+          <button
+            className="outline-button"
+            onClick={() => exportContacts(visibleDrivers)}
+            title="Download these drivers as phone contacts (.vcf). Import on the dispatch phone so WhatsApp broadcast lists can reach them."
+          >
+            Save to phone contacts
+          </button>
           <button className="dark-button" onClick={onAddAgent}>
             <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M10 3v14M3 10h14" />
@@ -140,6 +188,8 @@ export function DriversView({
                 <option value="app_open">App open · no GPS</option>
                 <option value="offline">Offline</option>
                 <option value="on_job">On delivery</option>
+                <option value="standby">Standby (approved, on-call)</option>
+                <option value="Sourced">Sourced (not vetted yet)</option>
                 <option value="Docs Pending">Pending Review</option>
               </select>
             </label>
@@ -157,17 +207,20 @@ export function DriversView({
             </label>
           </div>
           <div className="bulk-actions">
-            <b>0 selected</b>
-            <button>Bulk Assign</button>
-            <button>Send Message</button>
-            <button>Export Selected</button>
+            <b>{selectedDrivers.length} selected</b>
+            <button disabled={selectedDrivers.length === 0} onClick={() => copyNumbers(selectedDrivers)}>
+              Copy WhatsApp numbers
+            </button>
+            <button disabled={selectedDrivers.length === 0} onClick={() => exportContacts(selectedDrivers)}>
+              Save selected to phone
+            </button>
           </div>
         </div>
         
         {/* Enterprise table */}
         <div className="enterprise-table agent-table">
           <div className="enterprise-head">
-            <input type="checkbox" />
+            <input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} aria-label="Select all shown" />
             <span>AGENT</span>
             <span>VEHICLE TYPE</span>
             <span>LICENSE PLATE</span>
@@ -183,6 +236,8 @@ export function DriversView({
             >
               <input
                 type="checkbox"
+                checked={selectedIds.has(driver.id!)}
+                onChange={() => toggleSelected(driver.id!)}
                 onClick={(e) => e.stopPropagation()}
               />
               <span className="enterprise-profile">
@@ -191,8 +246,31 @@ export function DriversView({
                 </span>
                 <span>
                   <b>{driver.full_name}</b>
-                  <small>
-                    <span>{driver.phone}</span>
+                  <small style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <span className="mono">{driver.phone}</span>
+                    {(() => {
+                      const call = telLink(driver.phone);
+                      const firstName = (driver.full_name || '').split(' ')[0];
+                      const wa = whatsappLink(
+                        driverWhatsapp(driver),
+                        `Hi ${firstName}, Nokael dispatch here. Are you free for a job today?`,
+                      );
+                      const stop = (e: React.MouseEvent) => e.stopPropagation();
+                      return (
+                        <>
+                          {call && (
+                            <a href={call} onClick={stop} title={`Call ${driver.full_name}`} aria-label={`Call ${driver.full_name}`}>
+                              <Phone size={13} />
+                            </a>
+                          )}
+                          {wa && (
+                            <a href={wa} target="_blank" rel="noreferrer" onClick={stop} title={`WhatsApp ${driver.full_name}`} aria-label={`WhatsApp ${driver.full_name}`}>
+                              <MessageCircle size={13} />
+                            </a>
+                          )}
+                        </>
+                      );
+                    })()}
                   </small>
                 </span>
               </span>
@@ -200,7 +278,7 @@ export function DriversView({
                 <em className="neutral-badge">{driver.vehicle_type}</em>
               </span>
               <span className="mono">
-                {driver.vehicle_registration || '—'}
+                {driver.vehicle_plate || '—'}
               </span>
               <span>
                 {(() => {

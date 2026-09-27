@@ -273,6 +273,19 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
                 </select>
               </label>
               <label className="field">
+                <span className="field-label" title="Core = full-time, Flex = part-time, Surge = on-call (shown under Standby on the Drivers tab)">
+                  {t('driverProfileModal.poolRole', { defaultValue: 'Pool role' })}
+                </span>
+                <select
+                  value={driver.availability || 'on-call'}
+                  onChange={(e) => handleUpdate({ availability: e.target.value as Driver['availability'] })}
+                >
+                  <option value="full-time">{t('driverProfileModal.pool.core', { defaultValue: 'Core · full-time' })}</option>
+                  <option value="part-time">{t('driverProfileModal.pool.flex', { defaultValue: 'Flex · part-time' })}</option>
+                  <option value="on-call">{t('driverProfileModal.pool.surge', { defaultValue: 'Surge · on-call' })}</option>
+                </select>
+              </label>
+              <label className="field">
                 <span className="field-label" title={t('driverProfileModal.reliabilityScore')}>{t('driverProfileModal.reliabilityScore')}</span>
                 <div className="driver-score">
                   <input
