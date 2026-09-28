@@ -1036,6 +1036,17 @@ a:not(.btn-primary):not(.btn-secondary):hover {
   position: relative;
 }
 
+.notification.is-active {
+  color: var(--accent);
+}
+
+/* Stat card rows on every dashboard tab, hidden by the top-bar stats toggle. */
+main.stats-hidden .stats,
+main.stats-hidden .metric-filters,
+main.stats-hidden .context-stats {
+  display: none;
+}
+
 .notification i {
   position: absolute;
   width: 6px;

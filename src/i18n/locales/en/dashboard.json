@@ -121,7 +121,9 @@
     "systemsOperational": "All systems operational",
     "connectionIssue": "Connection issue",
     "notificationsHint": "Items waiting for your review",
-    "notificationsEmpty": "You’re all caught up."
+    "notificationsEmpty": "You’re all caught up.",
+    "showStats": "Show stats",
+    "hideStats": "Hide stats"
   },
   "kanban": {
     "clear": "Clear",

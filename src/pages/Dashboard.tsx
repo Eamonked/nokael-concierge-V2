@@ -16,6 +16,7 @@ import {
   Bell,
   Settings,
   RefreshCw,
+  BarChart3,
 } from 'lucide-react';
 import {
   type QuoteRequest,
@@ -94,6 +95,20 @@ export default function Dashboard() {
   const [collapsed, setCollapsed] = React.useState(() => {
     try { return localStorage.getItem('nokael-dashboard-sidebar-collapsed') === '1'; } catch { return false; }
   });
+  // Stat cards on every tab can be tucked away for more working space; remembered per browser.
+  const [statsHidden, setStatsHidden] = React.useState(() => {
+    try { return localStorage.getItem('nokael-dashboard-stats-hidden') === '1'; } catch { return false; }
+  });
+  const toggleStats = () => {
+    setStatsHidden(prev => {
+      const next = !prev;
+      try { localStorage.setItem('nokael-dashboard-stats-hidden', next ? '1' : '0'); } catch { /* ignore */ }
+      return next;
+    });
+  };
+  const statsToggleLabel = statsHidden
+    ? t('profile.showStats', { defaultValue: 'Show stats' })
+    : t('profile.hideStats', { defaultValue: 'Hide stats' });
   const [profileOpen, setProfileOpen] = React.useState(false);
   const profileRef = React.useRef<HTMLDivElement>(null);
   const [notifOpen, setNotifOpen] = React.useState(false);
@@ -335,7 +350,7 @@ export default function Dashboard() {
       </aside>
 
       {/* ── Main column ─────────────────────────────────────────────────────── */}
-      <main>
+      <main className={statsHidden ? 'stats-hidden' : undefined}>
 
         {/* Top bar (desktop / md+; hidden below 768px via index.css) */}
         <header className="topbar">
@@ -344,6 +359,15 @@ export default function Dashboard() {
             <p>{TAB_META[activeTab].subtitle}</p>
           </div>
           <div className="top-actions">
+            <button
+              className={cn('notification', !statsHidden && 'is-active')}
+              onClick={toggleStats}
+              aria-pressed={!statsHidden}
+              aria-label={statsToggleLabel}
+              title={statsToggleLabel}
+            >
+              <BarChart3 className="w-[17px] h-[17px]" />
+            </button>
             <button
               className="notification"
               onClick={() => syncAll()}
@@ -444,6 +468,14 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <button
+              onClick={toggleStats}
+              aria-pressed={!statsHidden}
+              aria-label={statsToggleLabel}
+              className={cn('p-2 transition-colors', statsHidden ? 'text-brand-muted hover:text-brand-text' : 'text-brand-text')}
+            >
+              <BarChart3 className="w-5 h-5" />
+            </button>
+            <button
               onClick={() => syncAll()}
               disabled={refreshing}
               aria-label={t('profile.sync', { defaultValue: 'Sync now' })}
@@ -493,7 +525,7 @@ export default function Dashboard() {
 
           {/* Contextual stat strip */}
           {CONTEXT_STATS[activeTab].length > 0 && (
-            <div className="grid grid-cols-3 gap-4 mb-8">
+            <div className="context-stats grid grid-cols-3 gap-4 mb-8">
               {CONTEXT_STATS[activeTab].map(stat => (
                 <StatCard key={stat.title} title={stat.title} value={stat.value} icon={stat.icon} tone={stat.tone} />
               ))}
