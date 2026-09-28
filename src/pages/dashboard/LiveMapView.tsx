@@ -15,6 +15,7 @@ import { validCoord, distanceMeters, formatDistance, geocodeAddress, type LatLng
 import { getEtaMinutes } from '../../lib/eta';
 import { TERMINAL_STATUSES } from './constants';
 import { useCanWrite } from './permissions';
+import { useTheme } from '../../context/ThemeContext';
 
 // Driver positions refresh this often while the map is open.
 const POSITION_POLL_MS = 15_000;
@@ -80,7 +81,9 @@ interface LiveMapViewProps {
 
 export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, onJobClick, onChanged }) => {
   const { t, i18n } = useTranslation('dashboard');
-  const dateLocale = i18n.language?.startsWith('ar') ? arLocale : undefined;
+  const isArabic = !!i18n.language?.startsWith('ar');
+  const dateLocale = isArabic ? arLocale : undefined;
+  const isDark = useTheme().theme === 'dark';
   const canWrite = useCanWrite();
 
   const [mode, setMode] = React.useState<Mode>('active');
@@ -507,10 +510,26 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
 
       <div className="dm-map">
         <MapContainer center={DEFAULT_CENTER} zoom={9} scrollWheelZoom className="dm-leaflet">
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          />
+          {/* Map labels follow the UI language. OSM's standard tiles label places in the
+              local language (Arabic in the UAE); Mapbox labels them in English. Without a
+              Mapbox token, OSM is used for both. OSM has no dark style, so dark mode inverts
+              it with a CSS filter (.dm-tiles-dark). */}
+          {import.meta.env.VITE_MAPBOX_TOKEN && !isArabic ? (
+            <TileLayer
+              key={isDark ? 'tiles-en-dark' : 'tiles-en'}
+              url={`https://api.mapbox.com/styles/v1/mapbox/${isDark ? 'dark-v11' : 'streets-v12'}/tiles/512/{z}/{x}/{y}{r}?access_token=${import.meta.env.VITE_MAPBOX_TOKEN}`}
+              tileSize={512}
+              zoomOffset={-1}
+              attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            />
+          ) : (
+            <TileLayer
+              key={isDark ? 'tiles-local-dark' : 'tiles-local'}
+              className={isDark ? 'dm-tiles-dark' : undefined}
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            />
+          )}
           <FitBounds points={fitPoints} nonce={fitNonce} />
           <FlyTo target={flyTarget} />
 

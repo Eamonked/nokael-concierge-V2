@@ -96,6 +96,8 @@ export default function Dashboard() {
   });
   const [profileOpen, setProfileOpen] = React.useState(false);
   const profileRef = React.useRef<HTMLDivElement>(null);
+  const [notifOpen, setNotifOpen] = React.useState(false);
+  const notifRef = React.useRef<HTMLDivElement>(null);
 
   const toggleCollapsed = () => {
     setCollapsed(prev => {
@@ -115,6 +117,20 @@ export default function Dashboard() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [profileOpen]);
+
+  React.useEffect(() => {
+    if (!notifOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
+    };
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setNotifOpen(false); };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [notifOpen]);
 
   // ── Modal / selection state ──────────────────────────────────────────────────
   const [selectedDriver, setSelectedDriver] = React.useState<(Driver & { documents: DriverDocument[] }) | null>(null);
@@ -246,7 +262,9 @@ export default function Dashboard() {
     if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
     return name.slice(0, 2).toUpperCase();
   };
-  const hasUrgentBadges = (stats.pending + stats.pendingDrivers + stats.pendingBusiness) > 0;
+  // The bell lists every tab with something waiting (the same counts as the sidebar badges).
+  const notifItems = NAV_ITEMS.filter(item => (item.badge || 0) > 0);
+  const hasUrgentBadges = notifItems.length > 0;
 
   const CONTEXT_STATS: Record<typeof activeTab, { title: string; value: number; icon: any; tone?: StatTone }[]> = {
     pipeline: [],  // JobsView has its own stat cards with additional metrics
@@ -342,10 +360,38 @@ export default function Dashboard() {
                 {t('profile.viewOnly', { defaultValue: 'View only' })}
               </span>
             )}
-            <button className="notification" aria-label={t('profile.notifications')}>
-              <Bell className="w-[17px] h-[17px]" />
-              {hasUrgentBadges && <i />}
-            </button>
+            <div className="profile-control" ref={notifRef}>
+              <button
+                className="notification"
+                aria-label={t('profile.notifications')}
+                aria-expanded={notifOpen}
+                onClick={() => setNotifOpen(open => !open)}
+              >
+                <Bell className="w-[17px] h-[17px]" />
+                {hasUrgentBadges && <i />}
+              </button>
+              {notifOpen && (
+                <div className="profile-menu notif-menu">
+                  <div className="profile-menu-title">
+                    <b>{t('profile.notifications')}</b>
+                    <small>{t('profile.notificationsHint', { defaultValue: 'Items waiting for your review' })}</small>
+                  </div>
+                  {notifItems.length ? notifItems.map(item => (
+                    <button
+                      key={item.id}
+                      className="notif-item"
+                      onClick={() => { setActiveTab(item.id); setNotifOpen(false); }}
+                    >
+                      <item.icon className="w-4 h-4" aria-hidden="true" />
+                      <span>{item.label}</span>
+                      <b>{item.badge}</b>
+                    </button>
+                  )) : (
+                    <p className="notif-empty">{t('profile.notificationsEmpty', { defaultValue: 'You’re all caught up.' })}</p>
+                  )}
+                </div>
+              )}
+            </div>
             <div className="profile-control" ref={profileRef}>
               <button
                 className="profile-trigger"

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, MapPin, Phone, Trash2 } from 'lucide-react';
+import { X, MapPin, Phone, Trash2, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   type BusinessInquiry,
@@ -16,7 +16,7 @@ import {
   getMonthlyVolumeByMonth,
   getCompletionRate,
 } from '../selectors';
-import { WriteGuard } from '../permissions';
+import { WriteGuard, useCanWrite } from '../permissions';
 import { ClientPortalAccess } from '../components/ClientPortalAccess';
 import { ContactDrawer } from './ContactDrawer';
 
@@ -145,6 +145,10 @@ export const BusinessAccountDrawer: React.FC<BusinessAccountDrawerProps> = ({
 }) => {
   const { t } = useTranslation('dashboard');
   const [activeTab, setActiveTab] = useState<TabType>('Overview');
+  const canWrite = useCanWrite();
+  const setStatus = (status: BusinessInquiry['status']) => {
+    if (business.id && status !== business.status) onUpdate?.(business.id, { status });
+  };
 
   const [jobsForBusiness, setJobsForBusiness] = React.useState<JobWithDriver[]>([]);
   const [jobsLoading, setJobsLoading] = React.useState(true);
@@ -252,9 +256,31 @@ export const BusinessAccountDrawer: React.FC<BusinessAccountDrawerProps> = ({
               </div>
             </div>
           </div>
-          <button className="drawer-close-button" onClick={onClose} aria-label="Close">
-            <X className="w-4 h-4" />
-          </button>
+          <div className="drawer-header-actions">
+            {/* Account status: signups arrive as "pending" (Under Review) until approved here. */}
+            {onUpdate && business.status === 'pending' && (
+              <button className="dark-button" onClick={() => setStatus('active')} disabled={!canWrite}>
+                <CheckCircle2 className="w-4 h-4" />
+                {t('businessDrawer.activate', { defaultValue: 'Activate account' })}
+              </button>
+            )}
+            {onUpdate && (
+              <select
+                className="drawer-status-select"
+                value={business.status || 'pending'}
+                onChange={e => setStatus(e.target.value as BusinessInquiry['status'])}
+                disabled={!canWrite}
+                aria-label={t('businessDrawer.statusLabel', { defaultValue: 'Account status' })}
+              >
+                <option value="pending">{t('businessDrawer.statusPending', { defaultValue: 'Under review' })}</option>
+                <option value="active">{t('business.status.active')}</option>
+                <option value="archived">{t('business.status.archived')}</option>
+              </select>
+            )}
+            <button className="drawer-close-button" onClick={onClose} aria-label="Close">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}

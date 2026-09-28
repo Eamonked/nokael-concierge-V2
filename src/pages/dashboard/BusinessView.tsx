@@ -23,7 +23,7 @@ interface BusinessViewProps {
   onRefresh?: () => void | Promise<void>;
 }
 
-type FilterType = 'All' | 'Outstanding' | 'Renewals';
+type FilterType = 'All' | 'Outstanding' | 'Renewals' | 'Archived';
 
 export function BusinessView({
   filteredBusiness,
@@ -76,9 +76,14 @@ export function BusinessView({
     };
   }, [filteredBusiness, jobs]);
 
+  // Archived accounts are kept out of every view except the Archived tab.
+  const archivedBusiness = useMemo(() => filteredBusiness.filter(b => b.status === 'archived'), [filteredBusiness]);
+  const currentBusiness = useMemo(() => filteredBusiness.filter(b => b.status !== 'archived'), [filteredBusiness]);
+
   // Apply filter
   const displayedBusiness = useMemo(() => {
-    let result = filteredBusiness;
+    if (filter === 'Archived') return archivedBusiness;
+    let result = currentBusiness;
 
     if (filter === 'Outstanding') {
       result = result.filter(b => b.invoicing_required && b.status === 'active');
@@ -87,7 +92,7 @@ export function BusinessView({
     }
 
     return result;
-  }, [filteredBusiness, filter]);
+  }, [archivedBusiness, currentBusiness, filter]);
 
   // Generate initials from company name
   const getInitials = (name: string) => {
@@ -191,6 +196,12 @@ export function BusinessView({
             >
               Renewals Due
             </button>
+            <button
+              className={filter === 'Archived' ? 'selected' : ''}
+              onClick={() => setFilter('Archived')}
+            >
+              Archived{archivedBusiness.length > 0 ? ` (${archivedBusiness.length})` : ''}
+            </button>
           </div>
           <span className="table-result-count">{displayedBusiness.length} accounts</span>
         </div>
@@ -289,12 +300,17 @@ export function BusinessView({
               </div>
             );
           })}
+          {displayedBusiness.length === 0 && (
+            <div className="table-empty">
+              {filter === 'Archived' ? 'No archived accounts.' : 'No accounts to show.'}
+            </div>
+          )}
         </div>
 
         {/* Pagination */}
         <div className="table-pagination">
           <span>
-            Showing <b>{displayedBusiness.length}</b> of <b>{stats.totalAccounts}</b> accounts
+            Showing <b>{displayedBusiness.length}</b> of <b>{filter === 'Archived' ? archivedBusiness.length : currentBusiness.length}</b> accounts
           </span>
           <div>
             <button disabled>Previous</button>

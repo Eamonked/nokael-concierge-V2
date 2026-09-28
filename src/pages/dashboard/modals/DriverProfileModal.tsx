@@ -20,12 +20,13 @@ import {
   IdCard,
   Hash,
   Circle,
+  Upload,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { setDriverPin, revokeDriverSessions, type Driver, type DriverDocument } from '../../../lib/supabase';
+import { setDriverPin, revokeDriverSessions, uploadDriverDocument, type Driver, type DriverDocument } from '../../../lib/supabase';
 import { WriteGuard } from '../permissions';
 import { DOCUMENT_TYPES } from '../../driver-application/constants';
-import { driverInterEmirate, driverPhoneKey, driverEmailKey } from '../../../lib/driverAccess';
+import { driverInterEmirate, driverPhoneKey, driverEmailKey, uploadDriverDocFile, DRIVER_DOC_ACCEPT } from '../../../lib/driverAccess';
 
 interface DriverProfileModalProps {
   driver: Driver & { documents: DriverDocument[] };
@@ -58,6 +59,11 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
   const [hasPin, setHasPin] = React.useState(!!driver.has_pin);
   React.useEffect(() => { setHasPin(!!driver.has_pin); }, [driver.id, driver.has_pin]);
   const [copiedDriverLink, setCopiedDriverLink] = React.useState(false);
+  // Documents uploaded from this drawer are added locally so the checklist
+  // updates straight away, without refetching the driver.
+  const [documents, setDocuments] = React.useState<DriverDocument[]>(driver.documents || []);
+  const [uploadingType, setUploadingType] = React.useState<string | null>(null);
+  React.useEffect(() => { setDocuments(driver.documents || []); }, [driver.documents]);
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -131,13 +137,41 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
   // Checklist of the four documents the intake form asks for, newest upload per type,
   // plus anything else that was uploaded.
   const docsByType = new Map<string, DriverDocument>();
-  [...(driver.documents || [])]
+  [...documents]
     .sort((a, b) => (b.uploaded_at || '').localeCompare(a.uploaded_at || ''))
     .forEach(doc => { if (!docsByType.has(doc.document_type)) docsByType.set(doc.document_type, doc); });
   const docChecklist: { type: string; doc?: DriverDocument }[] = [
     ...DOCUMENT_TYPES.map(d => ({ type: d.id, doc: docsByType.get(d.id) })),
     ...[...docsByType.keys()].filter(type => !DOCUMENT_TYPES.some(d => d.id === type)).map(type => ({ type, doc: docsByType.get(type) })),
   ];
+
+  // Same upload path as the intake form and Add Agent: Google Drive via
+  // /api/upload-driver-doc, then a driver_documents row awaiting review.
+  const handleDocUpload = async (type: string, file: File) => {
+    if (!driver.id) return;
+    setUploadingType(type);
+    try {
+      const uploaded = await uploadDriverDocFile(file);
+      const doc: DriverDocument = {
+        driver_id: driver.id,
+        document_type: type as DriverDocument['document_type'],
+        file_url: uploaded.file_url,
+        drive_file_id: uploaded.drive_file_id,
+        verification_status: 'pending',
+      };
+      await uploadDriverDocument(doc);
+      setDocuments(prev => [...prev, { ...doc, uploaded_at: new Date().toISOString() }]);
+    } catch (err: any) {
+      console.error(`Error uploading ${type}:`, err);
+      alert(t('driverProfileModal.docUploadFailed', {
+        doc: docTypeLabel(type),
+        error: err?.message || String(err),
+        defaultValue: '{{doc}} did not upload: {{error}}',
+      }));
+    } finally {
+      setUploadingType(null);
+    }
+  };
 
   const vehicleDetail = [driver.vehicle_make, driver.vehicle_model].filter(Boolean).join(' ');
   const showWhatsapp = !!driver.whatsapp && driverPhoneKey(driver.whatsapp) !== driverPhoneKey(driver.phone);
@@ -243,17 +277,38 @@ export function DriverProfileModal({ driver, onClose, onDriverStatusUpdate }: Dr
                         : t('driverProfileModal.docMissing', { defaultValue: 'Not uploaded' })}
                     </small>
                   </div>
-                  {doc && (
-                    <a
-                      href={doc.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title={t('driverProfileModal.openLink')}
-                      aria-label={`${docTypeLabel(type)}: ${t('driverProfileModal.openLink')}`}
+                  <span className="driver-doc-actions">
+                    <label
+                      className={uploadingType === type ? 'is-uploading' : undefined}
+                      title={doc
+                        ? ti('step2.replaceFile', 'Replace File')
+                        : ti('step2.uploadFile', 'Upload File')}
                     >
-                      <ExternalLink />
-                    </a>
-                  )}
+                      <input
+                        type="file"
+                        accept={DRIVER_DOC_ACCEPT}
+                        disabled={uploadingType !== null}
+                        aria-label={`${docTypeLabel(type)}: ${doc ? ti('step2.replaceFile', 'Replace File') : ti('step2.uploadFile', 'Upload File')}`}
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          e.target.value = '';
+                          if (file) handleDocUpload(type, file);
+                        }}
+                      />
+                      {uploadingType === type ? <Loader2 className="animate-spin" /> : <Upload />}
+                    </label>
+                    {doc && (
+                      <a
+                        href={doc.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={t('driverProfileModal.openLink')}
+                        aria-label={`${docTypeLabel(type)}: ${t('driverProfileModal.openLink')}`}
+                      >
+                        <ExternalLink />
+                      </a>
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>

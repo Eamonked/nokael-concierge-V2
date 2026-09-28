@@ -119,7 +119,9 @@
     "accountSettings": "Account settings",
     "notifications": "Notifications",
     "systemsOperational": "All systems operational",
-    "connectionIssue": "Connection issue"
+    "connectionIssue": "Connection issue",
+    "notificationsHint": "Items waiting for your review",
+    "notificationsEmpty": "You’re all caught up."
   },
   "kanban": {
     "clear": "Clear",
@@ -643,7 +645,8 @@
       "readyWithPin": "Can sign in to the driver app",
       "blocked": "Can’t sign in to the driver app yet",
       "with": "Signs in with"
-    }
+    },
+    "docUploadFailed": "{{doc}} did not upload: {{error}}"
   },
   "jobDetailModal": {
     "title": "Mission Command Center",
@@ -997,5 +1000,10 @@
     "requiredFieldsAlert": "Please fill in all required fields.",
     "invalidEmailAlert": "Please enter a valid email address.",
     "createFailedAlert": "Failed to create business account. Please try again."
+  },
+  "businessDrawer": {
+    "activate": "Activate account",
+    "statusLabel": "Account status",
+    "statusPending": "Under review"
   }
 }

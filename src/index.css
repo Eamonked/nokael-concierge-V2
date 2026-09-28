@@ -2355,6 +2355,58 @@ a:not(.btn-primary):not(.btn-secondary):hover {
   background: var(--ent-surface-2);
 }
 
+.notif-menu {
+  padding-bottom: 6px;
+}
+
+.notif-item {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 4px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ent-text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  text-align: start;
+  cursor: pointer;
+}
+
+.notif-item:hover {
+  background: var(--ent-surface-2);
+}
+
+.notif-item svg {
+  color: var(--ent-muted);
+  flex: none;
+}
+
+.notif-item span {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-item b {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--ent-danger-strong);
+  color: #fff;
+  font-size: 10px;
+  text-align: center;
+}
+
+.notif-empty {
+  margin: 0;
+  padding: 14px 8px 8px;
+  color: var(--ent-faint);
+  font-size: 12px;
+}
+
 .profile-menu .toggle button {
   padding: 5px 8px;
   border-radius: 4px;
@@ -4703,6 +4755,30 @@ a:not(.btn-primary):not(.btn-secondary):hover {
   gap: 12px;
 }
 
+.drawer-header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.drawer-header-actions .dark-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.drawer-status-select {
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--ent-line-strong);
+  border-radius: 5px;
+  background: var(--ent-surface);
+  color: var(--ent-text);
+  font-size: 12px;
+}
+
 .drawer-company>.avatar {
   width: 46px;
   height: 46px;
@@ -6977,7 +7053,7 @@ a:not(.btn-primary):not(.btn-secondary):hover {
   min-height: 48px;
   padding: 8px 12px;
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) 30px;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   color: var(--ent-faint);
@@ -7009,7 +7085,13 @@ a:not(.btn-primary):not(.btn-secondary):hover {
   font-size: 11px;
 }
 
-.driver-doc-list a {
+.driver-doc-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.driver-doc-list a,
+.driver-doc-actions label {
   width: 30px;
   height: 30px;
   border: 1px solid var(--ent-line-strong);
@@ -7017,12 +7099,29 @@ a:not(.btn-primary):not(.btn-secondary):hover {
   color: var(--ent-muted);
   display: grid;
   place-items: center;
+  cursor: pointer;
 }
 
-.driver-doc-list a:hover {
+.driver-doc-actions input {
+  display: none;
+}
+
+.driver-doc-list a svg,
+.driver-doc-actions label svg {
+  width: 14px;
+  height: 14px;
+}
+
+.driver-doc-list a:hover,
+.driver-doc-actions label:hover {
   border-color: var(--ent-line-hover);
   background: var(--ent-surface-2);
   color: var(--ent-text);
+}
+
+.driver-doc-actions label:has(input:disabled):not(.is-uploading) {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .driver-profile-drawer .doc-ok {
@@ -10311,6 +10410,15 @@ a:not(.btn-primary):not(.btn-secondary):hover {
   width: 100%;
   height: 100%;
   z-index: 0;
+}
+
+/* OSM has no dark tiles: invert, then rotate hues back so water stays blue. */
+.dm-tiles-dark {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
+}
+
+.dark .dm-leaflet {
+  background: #1a1a1a;
 }
 
 .dm-map-note {
