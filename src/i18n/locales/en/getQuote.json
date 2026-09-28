@@ -25,17 +25,38 @@
   },
   "step2": {
     "itemTypes": {
-      "document": { "label": "Document", "desc": "Legal, Tenders, Passports" },
-      "parcel": { "label": "Parcel", "desc": "Personal or Business items" },
-      "spare_part": { "label": "Spare Part", "desc": "Industrial or Automotive" },
-      "other": { "label": "Other", "desc": "Custom logistics" }
+      "document": {
+        "label": "Document",
+        "desc": "Legal, Tenders, Passports"
+      },
+      "parcel": {
+        "label": "Parcel",
+        "desc": "Personal or Business items"
+      },
+      "spare_part": {
+        "label": "Spare Part",
+        "desc": "Industrial or Automotive"
+      },
+      "other": {
+        "label": "Other",
+        "desc": "Custom logistics"
+      }
     }
   },
   "step3": {
     "urgencyLevels": {
-      "immediate": { "label": "Immediate Dispatch", "desc": "Driver assigned in 2-5 mins" },
-      "today": { "label": "Same Day", "desc": "Delivery by end of day" },
-      "scheduled": { "label": "Scheduled", "desc": "Pre-book for specific time" }
+      "immediate": {
+        "label": "Immediate Dispatch",
+        "desc": "Driver assigned in 2-5 mins"
+      },
+      "today": {
+        "label": "Same Day",
+        "desc": "Delivery by end of day"
+      },
+      "scheduled": {
+        "label": "Scheduled",
+        "desc": "Pre-book for specific time"
+      }
     },
     "estimateNote": "Estimated from AED {{price}} for this selection"
   },
@@ -73,5 +94,12 @@
   "errors": {
     "dispatchErrorTitle": "Dispatch Error",
     "submitFailed": "There was an error submitting your request. Please check your Supabase configuration."
+  },
+  "expiredLink": {
+    "title": "That delivery link has expired",
+    "body": "Tracking links close 24 hours after delivery. Need your Chain of Custody certificate? Call or WhatsApp dispatch and we'll send it. Or book your next delivery below.",
+    "call": "Call dispatch",
+    "whatsapp": "WhatsApp dispatch",
+    "whatsappText": "Hi Nokael, I need the Chain of Custody certificate for a completed delivery."
   }
 }

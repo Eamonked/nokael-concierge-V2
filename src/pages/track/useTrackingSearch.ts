@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { useSearchParams, useParams } from 'react-router-dom';
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import {
   getTrackingInfo,
   getJobById,
   subscribeToJob,
+  LinkExpiredError,
   type TrackingResult,
 } from '../../lib/supabase';
 
 export function useTrackingSearch() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { trackingId: routeTrackingId } = useParams<{ trackingId?: string }>();
+  const navigate = useNavigate();
 
   // State
   const [queryInput, setQueryInput] = useState('');
@@ -54,6 +56,11 @@ export function useTrackingSearch() {
         setSearchStatus('not_found');
       }
     } catch (err) {
+      // Completed more than 24 h ago: the job can't be viewed any more; book a new one.
+      if (err instanceof LinkExpiredError) {
+        navigate('/get-quote?expired=1', { replace: true });
+        return;
+      }
       console.error('[Nokael Track] Search error:', err);
       setResult(null);
       setSearchStatus('not_found');
@@ -61,7 +68,7 @@ export function useTrackingSearch() {
       setIsSearching(false);
       setIsRefreshing(false);
     }
-  }, [setSearchParams]);
+  }, [setSearchParams, navigate]);
 
   // Initial load check from URL or params
   useEffect(() => {

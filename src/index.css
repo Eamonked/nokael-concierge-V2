@@ -9208,6 +9208,12 @@ a:not(.btn-primary):not(.btn-secondary):hover {
   color: var(--ent-danger-text);
 }
 
+.jo-banner.success {
+  border: 1px solid var(--ent-success-line);
+  background: var(--ent-success-bg);
+  color: var(--ent-success-text);
+}
+
 .jo-banner.warn {
   border: 1px solid var(--ent-warning-line);
   background: var(--ent-warning-bg);

@@ -2,8 +2,9 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import {
-  AlertTriangle, Check, CheckSquare, Copy, ExternalLink, Loader2, MessageSquare, RotateCcw, Undo2, Zap,
+  AlertTriangle, Check, CheckCircle2, CheckSquare, Copy, Download, ExternalLink, Loader2, MessageSquare, RotateCcw, Undo2, Zap,
 } from 'lucide-react';
+import { downloadCocForJob } from '../../../lib/cocPdf';
 import {
   updateJob, overrideJobLevel, overrideCocStep, cancelJob, reactivateJob, resetJobOtpAttempts,
   type JobStatus, type JobWithDriver,
@@ -238,6 +239,32 @@ export function JobOperations({
               </button>
               <button type="button" className="jo-btn" disabled={!!busy} onClick={() => run('resume', () => reactivateJob(job.id!, 'driver_pickup'), t('jobDetailModal.toast.reactivatedTo', { stage: STAGE_CONFIG.driver_pickup.label }), 'jobDetailModal.errors.reactivate')}>
                 <Spin on={busy === 'resume'} icon={<RotateCcw />} />{t('jobDetailModal.resumeInTransit')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {job.status === 'completed' && (
+          <div className="jo-banner success">
+            <CheckCircle2 />
+            <div>
+              <b>{t('jobDetailModal.coc.deliveredBanner', { defaultValue: 'Delivered' })}</b>
+              <span>
+                {t('jobDetailModal.coc.linksClose', { defaultValue: 'Client links close 24 hours after delivery. Send the certificate from here when a client asks.' })}
+              </span>
+            </div>
+            <div className="jo-banner-actions">
+              <button type="button" className="jo-btn" disabled={!!busy} onClick={async () => {
+                setBusy('coc');
+                try {
+                  await downloadCocForJob(job);
+                } catch (err: any) {
+                  alert(t('jobDetailModal.errors.downloadCoc', { error: err?.message || String(err), defaultValue: `Could not create the certificate: ${err?.message || err}` }));
+                } finally {
+                  setBusy(null);
+                }
+              }}>
+                <Spin on={busy === 'coc'} icon={<Download />} />{t('jobDetailModal.coc.download', { defaultValue: 'Download COC' })}
               </button>
             </div>
           </div>

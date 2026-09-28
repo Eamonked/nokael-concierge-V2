@@ -885,6 +885,25 @@ export const getJobById = async (id: string): Promise<JobWithDriver | null> => {
   }
 };
 
+/**
+ * A completed job's client links stop working 24 h after delivery: get_job_by_ref
+ * and get_job_by_token raise 'link_expired' for anyone who isn't signed-in staff
+ * (supabase-link-expiry-migration.sql in Nokael-Confirmation-Portal).
+ */
+export class LinkExpiredError extends Error {
+  constructor() {
+    super('link_expired');
+    this.name = 'LinkExpiredError';
+  }
+}
+
+/** Calls a public job RPC, turning 'link_expired' into LinkExpiredError. */
+const publicJobRpc = async (fn: 'get_job_by_ref' | 'get_job_by_token', args: Record<string, string>) => {
+  const res = await supabase!.rpc(fn, args);
+  if (res.error?.message?.includes('link_expired')) throw new LinkExpiredError();
+  return res;
+};
+
 export interface TrackingResult {
   type: 'job' | 'quote';
   job?: JobWithDriver;
@@ -923,7 +942,7 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
 
   for (const variant of exactCandidates) {
     try {
-      const { data, error } = await supabase.rpc('get_job_by_ref', { p_query: variant });
+      const { data, error } = await publicJobRpc('get_job_by_ref', { p_query: variant });
       if (!error && Array.isArray(data) && data.length > 0) {
         const populated = await populateJobsDriversPublic([data[0]]);
         const job = populated[0];
@@ -934,6 +953,7 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
         };
       }
     } catch (e) {
+      if (e instanceof LinkExpiredError) throw e;
       console.warn('[Nokael] get_job_by_ref notice:', e);
     }
   }
@@ -944,7 +964,7 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
   //    not a single JSONB object, so take the first row.
   if (isUUID) {
     try {
-      const { data: rpcRows, error: rpcError } = await supabase.rpc('get_job_by_token', { p_token: cleaned });
+      const { data: rpcRows, error: rpcError } = await publicJobRpc('get_job_by_token', { p_token: cleaned });
       if (rpcError) {
         console.warn('[Nokael] get_job_by_token RPC error:', rpcError);
       } else if (Array.isArray(rpcRows) && rpcRows.length > 0) {
@@ -957,6 +977,7 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
         };
       }
     } catch (e) {
+      if (e instanceof LinkExpiredError) throw e;
       console.warn('[Nokael] get_job_by_token RPC exception:', e);
     }
   }
@@ -974,7 +995,7 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
         const quote = quoteById[0] as QuoteRequest;
         // Check if converted to a job — via the safe RPC, not a raw select
         // (quote.id doubles as the jobs.quote_id lookup key in get_job_by_ref)
-        const { data: linkedRows } = await supabase.rpc('get_job_by_ref', { p_query: quote.id });
+        const { data: linkedRows } = await publicJobRpc('get_job_by_ref', { p_query: quote.id });
 
         if (Array.isArray(linkedRows) && linkedRows.length > 0) {
           const populated = await populateJobsDriversPublic([linkedRows[0]]);
@@ -994,6 +1015,7 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
         };
       }
     } catch (e) {
+      if (e instanceof LinkExpiredError) throw e;
       console.warn('[Nokael] Notice searching quote_requests by UUID:', e);
     }
   }
@@ -1011,7 +1033,7 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
         const quote = quoteData[0] as QuoteRequest;
 
         if (quote.id) {
-          const { data: linkedRows } = await supabase.rpc('get_job_by_ref', { p_query: quote.id });
+          const { data: linkedRows } = await publicJobRpc('get_job_by_ref', { p_query: quote.id });
 
           if (Array.isArray(linkedRows) && linkedRows.length > 0) {
             const populated = await populateJobsDriversPublic([linkedRows[0]]);
@@ -1031,7 +1053,8 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
           trackingId: quote.tracking_id || variant,
         };
       }
-    } catch {
+    } catch (e) {
+      if (e instanceof LinkExpiredError) throw e;
       // continue
     }
   }

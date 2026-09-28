@@ -1,6 +1,7 @@
 import React from 'react';
 import { AnimatePresence } from 'motion/react';
-import { ArrowRight, ArrowLeft, Loader2, MessageSquare } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Loader2, MessageSquare, Phone, Clock } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuoteForm } from './get-quote/useQuoteForm';
 import QuoteStepper from './get-quote/QuoteStepper';
@@ -9,12 +10,15 @@ import QuoteStepItem from './get-quote/QuoteStepItem';
 import QuoteStepUrgency from './get-quote/QuoteStepUrgency';
 import QuoteStepContact from './get-quote/QuoteStepContact';
 import QuoteSidebar from './get-quote/QuoteSidebar';
-import { PRICE_TIER_SAME_DAY, PRICE_TIER_DEDICATED, WHATSAPP_NUMBER } from '../constants';
+import { PRICE_TIER_SAME_DAY, PRICE_TIER_DEDICATED, WHATSAPP_NUMBER, PHONE_NUMBER } from '../constants';
 import { trackWhatsAppClick } from '../lib/analytics';
 
 export default function GetQuote() {
   const { t } = useTranslation('getQuote');
   const formTopRef = React.useRef<HTMLDivElement>(null);
+  // ?expired=1: arrived from a tracking link that closed 24 h after delivery.
+  const [searchParams] = useSearchParams();
+  const fromExpiredLink = searchParams.get('expired') === '1';
   const {
     step,
     loading,
@@ -35,6 +39,28 @@ export default function GetQuote() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24 md:pt-20">
       <div className="asymmetric-grid items-start">
         <div ref={formTopRef} className="scroll-mt-32">
+          {fromExpiredLink && (
+            <div role="status" className="mb-8 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5">
+              <p className="flex items-center gap-2 font-semibold">
+                <Clock className="w-4 h-4 text-amber-600" /> {t('expiredLink.title')}
+              </p>
+              <p className="mt-2 text-sm text-brand-muted leading-relaxed">{t('expiredLink.body')}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <a href={`tel:${PHONE_NUMBER}`} className="inline-flex items-center gap-2 rounded-xl border border-brand-field-border bg-brand-surface px-4 py-2 text-sm font-semibold">
+                  <Phone className="w-4 h-4" /> {t('expiredLink.call')}
+                </a>
+                <a
+                  href={`https://wa.me/${WHATSAPP_NUMBER.replace(/\D/g, '')}?text=${encodeURIComponent(t('expiredLink.whatsappText'))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl border border-brand-field-border bg-brand-surface px-4 py-2 text-sm font-semibold"
+                >
+                  <MessageSquare className="w-4 h-4" /> {t('expiredLink.whatsapp')}
+                </a>
+              </div>
+            </div>
+          )}
+
           <div className="mb-10">
             <h1 className="text-4xl md:text-6xl font-display font-medium tracking-tighter mb-6">{t('title')}</h1>
             <p className="text-brand-muted text-sm max-w-md leading-relaxed">
