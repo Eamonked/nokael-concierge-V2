@@ -3,21 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { Crosshair, Loader2, type LucideIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { fieldClass } from './constants';
+import { emirateBias } from '../../lib/geo';
 
-// Address autocomplete backed by the Mapbox Geocoding API (same VITE_MAPBOX_TOKEN
-// as lib/eta.ts). Restricted to the UAE and biased toward the selected emirate.
-// Without a token it degrades to a plain text input — typing always works, and
-// only the free-text address is stored, so no schema change is involved.
-
-const EMIRATE_CENTERS: Record<string, [number, number]> = {
-  'Abu Dhabi': [54.3773, 24.4539],
-  'Dubai': [55.2708, 25.2048],
-  'Sharjah': [55.4033, 25.3463],
-  'Ajman': [55.5136, 25.4052],
-  'Umm Al Quwain': [55.5552, 25.5647],
-  'Ras Al Khaimah': [55.9432, 25.8007],
-  'Fujairah': [56.3265, 25.1288],
-};
+// Address autocomplete backed by the Mapbox Search Box API (same VITE_MAPBOX_TOKEN
+// as lib/eta.ts), which knows malls, towers and hotels as well as streets.
+// Limited to the selected emirate (lib/geo emirateBias). Without a token it
+// degrades to a plain text input — typing always works, and only the free-text
+// address is stored, so no schema change is involved.
 
 interface Suggestion {
   id: string;
@@ -36,12 +28,25 @@ interface LocationInputProps {
 
 const token = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
-async function geocode(path: string, params: Record<string, string>, signal?: AbortSignal): Promise<Suggestion[]> {
+// Named place first ("Al Wahda Mall"), then its address, so the pick is unambiguous.
+const labelOf = (p: any): string =>
+  [p?.name, p?.full_address || p?.place_formatted].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', ');
+
+async function searchPlaces(params: Record<string, string>, signal?: AbortSignal): Promise<Suggestion[]> {
   const qs = new URLSearchParams({ access_token: token!, country: 'ae', limit: '5', ...params });
-  const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${path}.json?${qs}`, { signal });
+  const res = await fetch(`https://api.mapbox.com/search/searchbox/v1/forward?${qs}`, { signal });
   if (!res.ok) return [];
   const data = await res.json();
-  return (data?.features ?? []).map((f: any) => ({ id: f.id, label: f.place_name }));
+  const all: Suggestion[] = (data?.features ?? []).map((f: any) => ({ id: f.properties?.mapbox_id ?? f.id, label: labelOf(f.properties) }));
+  return all.filter((s, i) => s.label && all.findIndex((o) => o.label === s.label) === i); // same place listed twice
+}
+
+async function reverseLookup(lng: number, lat: number, language: string): Promise<Suggestion | null> {
+  const qs = new URLSearchParams({ access_token: token!, longitude: String(lng), latitude: String(lat), limit: '1', language });
+  const res = await fetch(`https://api.mapbox.com/search/searchbox/v1/reverse?${qs}`);
+  if (!res.ok) return null;
+  const f = (await res.json())?.features?.[0];
+  return f ? { id: f.properties?.mapbox_id ?? f.id, label: labelOf(f.properties) } : null;
 }
 
 export default function LocationInput({ id, value, onChange, emirate, placeholder, icon: Icon, iconClassName }: LocationInputProps) {
@@ -68,10 +73,8 @@ export default function LocationInput({ id, value, onChange, emirate, placeholde
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       try {
-        const center = EMIRATE_CENTERS[emirate];
-        const results = await geocode(
-          encodeURIComponent(q),
-          { autocomplete: 'true', language, ...(center && { proximity: center.join(',') }) },
+        const results = await searchPlaces(
+          { q, auto_complete: 'true', language, ...emirateBias(emirate) },
           controller.signal
         );
         setSuggestions(results);
@@ -107,7 +110,7 @@ export default function LocationInput({ id, value, onChange, emirate, placeholde
         let label = fallback;
         if (token) {
           try {
-            const [first] = await geocode(`${coords.longitude},${coords.latitude}`, { language, limit: '1' });
+            const first = await reverseLookup(coords.longitude, coords.latitude, language);
             if (first) label = first.label;
           } catch {
             // fall back to raw coordinates — still enough for a driver to navigate

@@ -25,26 +25,78 @@ export const formatDistance = (meters: number | null | undefined): string => {
   return meters < 1000 ? `${Math.round(meters)} m` : `${(meters / 1000).toFixed(meters < 10000 ? 1 : 0)} km`;
 };
 
-// Centre of the Dubai ↔ Abu Dhabi corridor, used to bias address lookups.
+// City centre of each emirate [lng, lat] (Mapbox order), used to rank results.
+export const EMIRATE_CENTERS: Record<string, [number, number]> = {
+  'Abu Dhabi': [54.3773, 24.4539],
+  'Dubai': [55.2708, 25.2048],
+  'Sharjah': [55.4033, 25.3463],
+  'Ajman': [55.5136, 25.4052],
+  'Umm Al Quwain': [55.5552, 25.5647],
+  'Ras Al Khaimah': [55.9432, 25.8007],
+  'Fujairah': [56.3265, 25.1288],
+};
+
+// Rough bounding box of each emirate [minLng, minLat, maxLng, maxLat]. Results
+// outside the chosen emirate's box are never used, so a place that shares its
+// name with one in another emirate can't pull the pin there. Neighbouring boxes
+// overlap a little at the borders; that's fine for a filter.
+export const EMIRATE_BBOX: Record<string, [number, number, number, number]> = {
+  'Abu Dhabi': [51.5, 22.6, 56.05, 24.95],
+  'Dubai': [54.88, 24.72, 55.66, 25.36],
+  'Sharjah': [55.3, 25.0, 56.4, 25.47],
+  'Ajman': [55.42, 25.36, 55.62, 25.47],
+  'Umm Al Quwain': [55.5, 25.42, 55.95, 25.66],
+  'Ras Al Khaimah': [55.72, 25.5, 56.2, 26.1],
+  'Fujairah': [56.0, 24.95, 56.42, 25.7],
+};
+
+// Centre of the Dubai ↔ Abu Dhabi corridor, used when no emirate is known.
 const UAE_PROXIMITY = '55.0,25.0';
 
+/** Lookup parameters that keep results inside (and ranked around) an emirate. */
+export const emirateBias = (emirate?: string | null): Record<string, string> => {
+  const center = emirate ? EMIRATE_CENTERS[emirate.trim()] : undefined;
+  const bbox = emirate ? EMIRATE_BBOX[emirate.trim()] : undefined;
+  return {
+    proximity: center ? center.join(',') : UAE_PROXIMITY,
+    ...(bbox && { bbox: bbox.join(',') }),
+  };
+};
+
 /**
- * Turn a typed address into coordinates with the Mapbox Geocoding API
- * (same VITE_MAPBOX_TOKEN as the ETA lookup). Limited to the UAE.
- * Returns null when there's no token, no match, or the request fails.
+ * Turn a typed address into coordinates, limited to the chosen emirate.
+ * Tries the Mapbox Search Box API first: it knows malls, towers, hotels and
+ * other named places ("Al Wahda Mall"), which the older Geocoding API lacks
+ * and would otherwise match to a same-named street elsewhere. Falls back to
+ * the Geocoding API for plain street addresses. Same VITE_MAPBOX_TOKEN.
+ * Returns null when there's no token, no match inside the emirate, or the
+ * request fails — no pin is better than a wrong one.
  */
 export async function geocodeAddress(address: string, emirate?: string | null): Promise<LatLng | null> {
   const token = import.meta.env.VITE_MAPBOX_TOKEN;
-  const text = [address, emirate].map(s => (s || '').trim()).filter(Boolean).join(', ');
+  const text = (address || '').trim();
   if (!token || !text) return null;
+  const bias = emirateBias(emirate);
 
   try {
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(text)}.json` +
-      `?country=ae&limit=1&proximity=${UAE_PROXIMITY}&access_token=${token}`;
-    const res = await fetch(url);
+    const qs = new URLSearchParams({ q: text, country: 'ae', limit: '1', language: 'en', access_token: token, ...bias });
+    const res = await fetch(`https://api.mapbox.com/search/searchbox/v1/forward?${qs}`);
+    if (res.ok) {
+      const coords = (await res.json())?.features?.[0]?.geometry?.coordinates;
+      if (Array.isArray(coords) && coords.length === 2) {
+        const hit = validCoord(coords[1], coords[0]);
+        if (hit) return hit;
+      }
+    }
+  } catch {
+    // fall through to the Geocoding API
+  }
+
+  try {
+    const qs = new URLSearchParams({ country: 'ae', limit: '1', access_token: token, ...bias });
+    const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(text)}.json?${qs}`);
     if (!res.ok) return null;
-    const data = await res.json();
-    const center = data?.features?.[0]?.center;
+    const center = (await res.json())?.features?.[0]?.center;
     return Array.isArray(center) && center.length === 2 ? validCoord(center[1], center[0]) : null;
   } catch {
     return null;
