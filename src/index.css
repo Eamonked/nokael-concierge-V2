@@ -972,7 +972,7 @@ a:not(.btn-primary):not(.btn-secondary):hover {
 .topbar {
   flex: 0 0 auto;
   min-height: 104px;
-  padding: 19px 28px 12px 30px;
+  padding: 19px 16px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1072,7 +1072,7 @@ main.stats-hidden .context-stats {
 .page-body {
   flex: 1;
   overflow: auto;
-  padding: 8px 28px 28px 30px;
+  padding: 8px 16px 20px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -2228,7 +2228,7 @@ main.stats-hidden .context-stats {
 
 .enterprise-mode .topbar {
   min-height: 88px;
-  padding: 16px 28px;
+  padding: 16px;
   background: var(--ent-surface);
   border-bottom: 1px solid var(--ent-line);
 }
@@ -2444,9 +2444,15 @@ main.stats-hidden .context-stats {
 }
 
 .enterprise-page {
-  padding: 18px 28px 24px;
+  padding: 16px 16px 20px;
   gap: 14px;
   background: var(--ent-canvas);
+}
+
+/* A view that is itself an .enterprise-page (Business) already sits inside the
+   padded .page-body; don't pad it twice. */
+.page-body > .enterprise-page {
+  padding: 0;
 }
 
 .enterprise-actions {
@@ -3053,7 +3059,7 @@ main.stats-hidden .context-stats {
 
 /* Apply the same precision system to every operational view */
 .enterprise-mode .page-body:not(.enterprise-page) {
-  padding: 18px 28px 24px;
+  padding: 16px 16px 20px;
   gap: 14px;
   background: var(--ent-canvas);
 }
@@ -8268,7 +8274,7 @@ main.stats-hidden .context-stats {
 
 /* ===== Jobs workspace (Orders reference layout) ===== */
 .enterprise-mode .page-body.jw-page {
-  padding: 20px 28px 28px;
+  padding: 16px 16px 20px;
   gap: 0;
   background: var(--canvas);
 }
