@@ -5,6 +5,7 @@ import { type QuoteRequest } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
 import { emirates, fieldClass, labelClass } from './constants';
 import LocationInput from './LocationInput';
+import type { LatLng } from '../../lib/geo';
 
 interface QuoteStepRouteProps {
   pickupEmirate: string;
@@ -23,7 +24,7 @@ interface LegProps {
   emirate: string;
   onEmirateChange: (val: string) => void;
   location: string;
-  onLocationChange: (val: string) => void;
+  onLocationChange: (val: string, coords: LatLng | null) => void;
   placeholder: string;
 }
 
@@ -86,7 +87,7 @@ export default function QuoteStepRoute({ pickupEmirate, deliveryEmirate, formDat
         emirate={pickupEmirate}
         onEmirateChange={updatePickupEmirate}
         location={formData.pickup_location ?? ''}
-        onLocationChange={v => updateForm({ pickup_location: v })}
+        onLocationChange={(v, c) => updateForm({ pickup_location: v, pickup_lat: c?.[0] ?? null, pickup_lng: c?.[1] ?? null })}
         placeholder={t('step1.pickupPlaceholder') as string}
       />
       <RouteLeg
@@ -97,7 +98,7 @@ export default function QuoteStepRoute({ pickupEmirate, deliveryEmirate, formDat
         emirate={deliveryEmirate}
         onEmirateChange={updateDeliveryEmirate}
         location={formData.delivery_location ?? ''}
-        onLocationChange={v => updateForm({ delivery_location: v })}
+        onLocationChange={(v, c) => updateForm({ delivery_location: v, delivery_lat: c?.[0] ?? null, delivery_lng: c?.[1] ?? null })}
         placeholder={t('step1.deliveryPlaceholder') as string}
       />
     </motion.div>

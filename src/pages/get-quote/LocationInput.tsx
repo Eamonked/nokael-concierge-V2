@@ -3,23 +3,31 @@ import { useTranslation } from 'react-i18next';
 import { Crosshair, Loader2, type LucideIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { fieldClass } from './constants';
-import { emirateBias } from '../../lib/geo';
+import { emirateBias, validCoord, type LatLng } from '../../lib/geo';
 
 // Address autocomplete backed by the Mapbox Search Box API (same VITE_MAPBOX_TOKEN
 // as lib/eta.ts), which knows malls, towers and hotels as well as streets.
 // Limited to the selected emirate (lib/geo emirateBias). Without a token it
-// degrades to a plain text input — typing always works, and only the free-text
-// address is stored, so no schema change is involved.
+// degrades to a plain text input — typing always works. A picked suggestion or
+// "use my location" also reports the exact point (onChange's second argument),
+// so the stop gets a map pin; typed text reports null.
 
 interface Suggestion {
   id: string;
   label: string;
+  coords: LatLng | null;
 }
+
+/** Search Box features carry [lng, lat]; return [lat, lng] or null. */
+const coordsOf = (f: any): LatLng | null => {
+  const c = f?.geometry?.coordinates;
+  return Array.isArray(c) && c.length === 2 ? validCoord(c[1], c[0]) : null;
+};
 
 interface LocationInputProps {
   id: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, coords: LatLng | null) => void;
   emirate: string;
   placeholder: string;
   icon: LucideIcon;
@@ -37,7 +45,7 @@ async function searchPlaces(params: Record<string, string>, signal?: AbortSignal
   const res = await fetch(`https://api.mapbox.com/search/searchbox/v1/forward?${qs}`, { signal });
   if (!res.ok) return [];
   const data = await res.json();
-  const all: Suggestion[] = (data?.features ?? []).map((f: any) => ({ id: f.properties?.mapbox_id ?? f.id, label: labelOf(f.properties) }));
+  const all: Suggestion[] = (data?.features ?? []).map((f: any) => ({ id: f.properties?.mapbox_id ?? f.id, label: labelOf(f.properties), coords: coordsOf(f) }));
   return all.filter((s, i) => s.label && all.findIndex((o) => o.label === s.label) === i); // same place listed twice
 }
 
@@ -46,7 +54,7 @@ async function reverseLookup(lng: number, lat: number, language: string): Promis
   const res = await fetch(`https://api.mapbox.com/search/searchbox/v1/reverse?${qs}`);
   if (!res.ok) return null;
   const f = (await res.json())?.features?.[0];
-  return f ? { id: f.properties?.mapbox_id ?? f.id, label: labelOf(f.properties) } : null;
+  return f ? { id: f.properties?.mapbox_id ?? f.id, label: labelOf(f.properties), coords: coordsOf(f) } : null;
 }
 
 export default function LocationInput({ id, value, onChange, emirate, placeholder, icon: Icon, iconClassName }: LocationInputProps) {
@@ -60,6 +68,9 @@ export default function LocationInput({ id, value, onChange, emirate, placeholde
   // geolocated address, or a value restored when the step remounts.
   const [query, setQuery] = React.useState('');
   const inputRef = React.useRef<HTMLInputElement>(null);
+  // The last picked place. Adding detail after it ("…, Gate 3", a villa number)
+  // keeps its pin; changing the place itself drops it.
+  const picked = React.useRef<{ label: string; coords: LatLng | null } | null>(null);
   const listId = `${id}-suggestions`;
   const language = i18n.language?.startsWith('ar') ? 'ar' : 'en';
 
@@ -92,7 +103,8 @@ export default function LocationInput({ id, value, onChange, emirate, placeholde
 
   const pick = (s: Suggestion) => {
     setQuery('');
-    onChange(s.label);
+    picked.current = { label: s.label, coords: s.coords };
+    onChange(s.label, s.coords);
     setOpen(false);
     setSuggestions([]);
   };
@@ -117,7 +129,10 @@ export default function LocationInput({ id, value, onChange, emirate, placeholde
           }
         }
         setQuery('');
-        onChange(label);
+        // The device's own fix is the pin, whatever address label it resolves to.
+        const pin = validCoord(coords.latitude, coords.longitude);
+        picked.current = { label, coords: pin };
+        onChange(label, pin);
         setLocating(false);
       },
       () => {
@@ -165,7 +180,10 @@ export default function LocationInput({ id, value, onChange, emirate, placeholde
           value={value}
           onChange={e => {
             setQuery(e.target.value);
-            onChange(e.target.value);
+            const text = e.target.value;
+            const kept = picked.current && text.startsWith(picked.current.label) ? picked.current.coords : null;
+            if (!kept) picked.current = null;
+            onChange(text, kept);
           }}
           onKeyDown={onKeyDown}
           onFocus={() => suggestions.length > 0 && setOpen(true)}

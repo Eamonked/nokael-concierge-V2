@@ -144,6 +144,11 @@ export interface QuoteRequest {
   created_at?: string;
   pickup_location: string;
   delivery_location: string;
+  // Pin picked on the quote form (suggestion or device location); null when typed.
+  pickup_lat?: number | null;
+  pickup_lng?: number | null;
+  delivery_lat?: number | null;
+  delivery_lng?: number | null;
   emirate: string;
   item_type: ItemType;
   urgency: UrgencyType;
@@ -667,8 +672,12 @@ export const createJobFromQuote = async (
     recipient_phone: '',      // Operator fills this in via overrides
     pickup_emirate: quote.emirate,
     pickup_location: quote.pickup_location,
+    pickup_lat: quote.pickup_lat ?? null,
+    pickup_lng: quote.pickup_lng ?? null,
     delivery_emirate: quote.emirate,
     delivery_location: quote.delivery_location,
+    delivery_lat: quote.delivery_lat ?? null,
+    delivery_lng: quote.delivery_lng ?? null,
     item_type: quote.item_type,
     urgency: quote.urgency,
     company_name: quote.company_name ?? null,

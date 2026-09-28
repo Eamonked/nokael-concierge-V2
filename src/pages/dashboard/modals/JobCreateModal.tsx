@@ -4,7 +4,7 @@ import { X, Loader2, MapPin, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase, createJob, updateJob, generateOtp, type Driver, type Job, type ItemType, type UrgencyType, type ServiceTier, type BusinessInquiry } from '../../../lib/supabase';
 import { sendTelegramNotification, formatJobAssignmentNotification } from '../../../lib/notifications';
-import { geocodeAddress, validCoord } from '../../../lib/geo';
+import { geocodeAddress, validCoord, type LatLng } from '../../../lib/geo';
 import { AccountPicker, ClientReferenceInput, findAccountByName } from '../components/AccountPicker';
 
 // Scheduled pickups are entered and displayed in UAE time (GST, UTC+4, no DST),
@@ -66,8 +66,12 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     recipient_phone: duplicateFrom.recipient_phone,
     pickup_emirate: duplicateFrom.pickup_emirate,
     pickup_location: duplicateFrom.pickup_location,
+    pickup_lat: duplicateFrom.pickup_lat,
+    pickup_lng: duplicateFrom.pickup_lng,
     delivery_emirate: duplicateFrom.delivery_emirate,
     delivery_location: duplicateFrom.delivery_location,
+    delivery_lat: duplicateFrom.delivery_lat,
+    delivery_lng: duplicateFrom.delivery_lng,
     item_type: duplicateFrom.item_type,
     urgency: duplicateFrom.urgency,
     company_name: duplicateFrom.company_name,
@@ -142,18 +146,25 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     setLoading(true);
     
     try {
-      // Put both stops on the map (live map, ETA, geofence alerts). Only looked up
-      // for a new job or when an address changed; a failed lookup just leaves them
+      // Put both stops on the map (live map, ETA, geofence alerts, driver arrival
+      // check). A stop that's unchanged from the starting data (the job being
+      // edited or duplicated, or the quote's pin the customer picked) keeps that
+      // pin; otherwise the address is looked up. A failed lookup just leaves it
       // empty, and the map retries later.
-      const stopMoved = (field: 'pickup' | 'delivery') =>
-        !editJob ||
-        formData[`${field}_location`] !== editJob[`${field}_location`] ||
-        formData[`${field}_emirate`] !== editJob[`${field}_emirate`] ||
-        !validCoord(editJob[`${field}_lat`], editJob[`${field}_lng`]);
-      const [pickupCoord, deliveryCoord] = await Promise.all([
-        stopMoved('pickup') ? geocodeAddress(formData.pickup_location, formData.pickup_emirate) : Promise.resolve(undefined),
-        stopMoved('delivery') ? geocodeAddress(formData.delivery_location, formData.delivery_emirate) : Promise.resolve(undefined),
-      ]);
+      const knownPin = (field: 'pickup' | 'delivery'): LatLng | null => {
+        if (!initialData) return null;
+        const unchanged =
+          formData[`${field}_location`] === initialData[`${field}_location`] &&
+          formData[`${field}_emirate`] === initialData[`${field}_emirate`];
+        return unchanged ? validCoord(initialData[`${field}_lat`], initialData[`${field}_lng`]) : null;
+      };
+      // undefined = keep what the saved job already has (edits only).
+      const resolveStop = (field: 'pickup' | 'delivery'): Promise<LatLng | null | undefined> => {
+        const pin = knownPin(field);
+        if (pin) return Promise.resolve(editJob ? undefined : pin);
+        return geocodeAddress(formData[`${field}_location`], formData[`${field}_emirate`]);
+      };
+      const [pickupCoord, deliveryCoord] = await Promise.all([resolveStop('pickup'), resolveStop('delivery')]);
       // undefined = unchanged (leave the column alone); null = moved but not found (clear the old point).
       const coords: Partial<Job> = {
         ...(pickupCoord !== undefined && { pickup_lat: pickupCoord?.[0] ?? null, pickup_lng: pickupCoord?.[1] ?? null }),
