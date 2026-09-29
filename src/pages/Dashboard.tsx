@@ -32,6 +32,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../i18n/config';
 import { cn } from '../lib/utils';
 import { useTheme } from '../context/ThemeContext';
+import { enableStaffPush, getPushState, syncStaffPush, type PushState } from '../lib/push';
 
 import { StatCard } from './dashboard/components/StatCard';
 import { JobsView } from './dashboard/JobsView';
@@ -112,6 +113,7 @@ export default function Dashboard() {
   const [profileOpen, setProfileOpen] = React.useState(false);
   const profileRef = React.useRef<HTMLDivElement>(null);
   const [notifOpen, setNotifOpen] = React.useState(false);
+  const [pushState, setPushState] = React.useState<PushState | null>(null);
   const notifRef = React.useRef<HTMLDivElement>(null);
 
   const toggleCollapsed = () => {
@@ -145,6 +147,14 @@ export default function Dashboard() {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKey);
     };
+  }, [notifOpen]);
+
+  // Keep this browser's push registration current (never prompts; see Settings → Notifications).
+  React.useEffect(() => {
+    if (orgId) void syncStaffPush(orgId);
+  }, [orgId]);
+  React.useEffect(() => {
+    if (notifOpen) getPushState().then(setPushState).catch(() => setPushState('unsupported'));
   }, [notifOpen]);
 
   // ── Modal / selection state ──────────────────────────────────────────────────
@@ -416,6 +426,14 @@ export default function Dashboard() {
                     </button>
                   )) : (
                     <p className="notif-empty">{t('profile.notificationsEmpty', { defaultValue: 'You’re all caught up.' })}</p>
+                  )}
+                  {pushState === 'off' && orgId && (
+                    <button
+                      className="notif-push-cta"
+                      onClick={() => enableStaffPush(orgId).then(setPushState).catch(() => setPushState('off'))}
+                    >
+                      {t('profile.enablePush', { defaultValue: 'Get these as push notifications' })}
+                    </button>
                   )}
                 </div>
               )}

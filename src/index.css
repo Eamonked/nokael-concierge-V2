@@ -2411,6 +2411,24 @@ main.stats-hidden .context-stats {
   text-align: center;
 }
 
+.notif-push-cta {
+  width: 100%;
+  margin-top: 6px;
+  padding: 9px 8px;
+  border: 0;
+  border-top: 1px solid var(--ent-line);
+  background: transparent;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+}
+
+.notif-push-cta:hover {
+  background: var(--ent-surface-2);
+}
+
 .notif-empty {
   margin: 0;
   padding: 14px 8px 8px;
@@ -4585,6 +4603,33 @@ main.stats-hidden .context-stats {
   border-top: 1px solid var(--ent-line);
   display: flex;
   justify-content: flex-end;
+}
+
+.push-settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0 2px;
+  color: var(--ent-muted);
+  font-size: 13px;
+}
+
+.push-settings-row > span {
+  flex: 1;
+  min-width: 200px;
+}
+
+.push-settings-row button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.push-settings-error {
+  margin: 8px 0 0;
+  color: var(--ent-danger-strong);
+  font-size: 12px;
 }
 
 .notification-settings-list {

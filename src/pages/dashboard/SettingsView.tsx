@@ -2,6 +2,7 @@ import React from 'react';
 import { Settings as SettingsIcon, Building2, Bell, Globe, Moon, Sun } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AccountSettings } from './AccountSettings';
+import { PushSettingsCard } from './components/PushSettingsCard';
 
 interface SettingsViewProps {
   theme: 'light' | 'dark';
@@ -155,6 +156,8 @@ export function SettingsView({ theme, onThemeChange, userEmail, orgId, currentRo
                     <p>{t('settings.notifications.subtitle') || 'Manage how you receive alerts and updates'}</p>
                   </div>
                 </div>
+
+                <PushSettingsCard orgId={orgId} />
 
                 <div className="settings-form-card">
                   <div className="settings-section-heading">

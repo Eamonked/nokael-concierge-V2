@@ -112,10 +112,14 @@ async function startServer() {
     // Cache the HTML template in memory — read once, reuse on every request
     const INDEX_HTML = fs.readFileSync(indexPath, "utf-8");
 
-    app.use(express.static(distPath, { 
+    app.use(express.static(distPath, {
       index: false,
       maxAge: '1y',
-      immutable: true
+      immutable: true,
+      // The push service worker keeps its name across releases, so it must never be cached long.
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('push-sw.js')) res.setHeader('Cache-Control', 'no-cache');
+      },
     }));
 
     app.get("*", (req, res) => {

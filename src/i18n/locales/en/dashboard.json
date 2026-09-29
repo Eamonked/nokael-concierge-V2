@@ -123,7 +123,8 @@
     "notificationsHint": "Items waiting for your review",
     "notificationsEmpty": "You’re all caught up.",
     "showStats": "Show stats",
-    "hideStats": "Hide stats"
+    "hideStats": "Hide stats",
+    "enablePush": "Get these as push notifications"
   },
   "kanban": {
     "clear": "Clear",
@@ -893,6 +894,21 @@
       "accountDesc": "Your email and authentication settings",
       "email": "Email Address",
       "saveChanges": "Save Changes"
+    },
+    "push": {
+      "title": "Push notifications on this device",
+      "desc": "New quotes, driver and business signups, critical alerts, and job milestones, even when the dashboard is closed.",
+      "statusOn": "On for this browser.",
+      "statusOff": "Off for this browser.",
+      "statusDenied": "Blocked. Allow notifications for this site in your browser settings, then reload.",
+      "statusUnsupported": "This browser doesn’t support push notifications.",
+      "statusIos": "On iPhone or iPad, add the dashboard to your Home Screen (Share → Add to Home Screen), open it from there, then turn this on.",
+      "turnOn": "Turn on",
+      "turnOff": "Turn off",
+      "test": "Test on this device",
+      "testTitle": "Nokael test",
+      "testBody": "Push notifications work on this device.",
+      "failed": "Couldn’t update push notifications. Try again."
     }
   },
   "addAgentModal": {
