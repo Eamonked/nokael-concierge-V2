@@ -1043,7 +1043,8 @@ a:not(.btn-primary):not(.btn-secondary):hover {
 /* Stat card rows on every dashboard tab, hidden by the top-bar stats toggle. */
 main.stats-hidden .stats,
 main.stats-hidden .metric-filters,
-main.stats-hidden .context-stats {
+main.stats-hidden .context-stats,
+main.stats-hidden .driver-app-strip {
   display: none;
 }
 
@@ -4603,6 +4604,76 @@ main.stats-hidden .context-stats {
   border-top: 1px solid var(--ent-line);
   display: flex;
   justify-content: flex-end;
+}
+
+.driver-app-strip {
+  margin-bottom: 14px;
+  border: 1px solid var(--ent-line);
+  border-radius: 8px;
+  background: var(--ent-surface);
+  overflow: hidden;
+}
+
+.driver-app-summary {
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--ent-muted);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  font-size: 12px;
+  text-align: start;
+  cursor: pointer;
+}
+
+.driver-app-summary b {
+  color: var(--ent-text);
+  font-size: 13px;
+}
+
+.driver-app-chevron {
+  margin-inline-start: auto;
+  transition: transform .15s;
+}
+
+.driver-app-chevron.open {
+  transform: rotate(180deg);
+}
+
+.driver-app-table {
+  border-top: 1px solid var(--ent-line);
+  font-size: 12px;
+}
+
+.driver-app-table > div {
+  padding: 8px 14px;
+  display: grid;
+  grid-template-columns: 1.2fr 1.6fr .6fr .9fr .9fr;
+  gap: 10px;
+  color: var(--ent-text);
+}
+
+.driver-app-table > div + div {
+  border-top: 1px solid var(--ent-line);
+}
+
+.driver-app-table > div > span {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.driver-app-head {
+  color: var(--ent-faint) !important;
+  font-weight: 600;
+}
+
+.driver-app-outdated {
+  color: var(--ent-danger-strong);
 }
 
 .push-settings-row {

@@ -611,6 +611,7 @@ export default function Dashboard() {
             />
           ) : (
             <DriversView
+              orgId={orgId}
               driverPoolSummary={driverPoolSummary}
               filteredDrivers={filteredDrivers}
               driverPresence={driverPresence}

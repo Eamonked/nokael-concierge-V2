@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { formatDistanceToNow } from 'date-fns';
 import type { Driver, DriverPresence } from '../../lib/supabase';
 import type { DriverPoolSummary } from './selectors';
+import { DriverAppAdoption } from './components/DriverAppAdoption';
 import {
   telLink,
   whatsappLink,
@@ -27,6 +28,7 @@ interface DriversViewProps {
   onDriverStatusUpdate: (id: string, updates: Partial<Driver>) => void;
   onViewDriver: (id: string) => void;
   onAddAgent: () => void;
+  orgId?: string | null;
 }
 
 export function DriversView({
@@ -42,6 +44,7 @@ export function DriversView({
   onDriverStatusUpdate,
   onViewDriver,
   onAddAgent,
+  orgId,
 }: DriversViewProps) {
   const { t } = useTranslation('dashboard');
   
@@ -162,6 +165,8 @@ export function DriversView({
           <small>Documents awaiting sign-off</small>
         </button>
       </div>
+
+      <DriverAppAdoption orgId={orgId} />
       
       {/* Operations card with table */}
       <div className="operations-card">
