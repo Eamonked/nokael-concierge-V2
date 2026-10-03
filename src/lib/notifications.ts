@@ -1,8 +1,14 @@
+import { isDefaultTenant } from './tenant';
+
 /**
  * Sends a notification to the server-side Telegram endpoint.
+ * The Telegram channel is Nokael's own dispatch chat, so only Nokael's leads
+ * and jobs go there — other companies get staff push notifications instead
+ * (push_outbox triggers, already scoped per org).
  * @param message The message to send (HTML supported)
  */
 export const sendTelegramNotification = async (message: string) => {
+  if (!isDefaultTenant()) return;
   try {
     const apiKey = import.meta.env.VITE_NOKAEL_API_KEY;
     const response = await fetch('/api/notify', {

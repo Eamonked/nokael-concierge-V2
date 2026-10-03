@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
+import { tenantBasePath } from '../../lib/tenant';
 
 export default function ApplicationStepComplete() {
   const { t } = useTranslation('driverApplication');
@@ -22,7 +23,7 @@ export default function ApplicationStepComplete() {
         {t('step3.description')}
       </p>
       <button
-        onClick={() => navigate('/')}
+        onClick={() => navigate(tenantBasePath() || '/')}
         className="btn-primary px-12 py-5"
       >
         {t('step3.returnHome')}

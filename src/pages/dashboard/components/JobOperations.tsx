@@ -13,6 +13,7 @@ import { FAILURE_REASON_KEYS, getStageConfig } from '../constants';
 import { getVerificationSteps, isDriverOnly, stepI18nKey, type CocStepKey } from '../verificationSteps';
 import { WriteGuard } from '../permissions';
 import { noteLocalStageChange } from '../../../lib/jobStage';
+import { formatMoney } from '../../../lib/tenant';
 
 /* ------------------------------------------------------------------ */
 /* Everything dispatch needs to run a single job beyond the headline   */
@@ -312,7 +313,7 @@ export function JobOperations({
           <dl className="jo-facts">
             <div><dt>{t('jobDetailModal.details.item')}</dt><dd>{job.item_type ? t(`jobDetailModal.details.itemTypes.${job.item_type}`, { defaultValue: job.item_type.replace('_', ' ') }) : '—'}</dd></div>
             <div><dt>{t('jobDetailModal.details.urgency')}</dt><dd>{job.urgency ? t(`jobDetailModal.details.urgencies.${job.urgency}`, { defaultValue: job.urgency }) : '—'}</dd></div>
-            <div><dt>{t('jobDetailModal.details.price')}</dt><dd>{job.price_aed != null ? `AED ${job.price_aed}` : '—'}</dd></div>
+            <div><dt>{t('jobDetailModal.details.price')}</dt><dd>{job.price_aed != null ? formatMoney(job.price_aed, { currency: job.currency }) : '—'}</dd></div>
           </dl>
           {job.special_instructions && (
             <div className="jo-note"><small>{t('jobDetailModal.details.specialInstructions')}</small><p>{job.special_instructions}</p></div>
@@ -321,7 +322,7 @@ export function JobOperations({
             <div className="jo-note"><small>{t('jobDetailModal.details.driverRemark', { defaultValue: 'Driver remark' })}</small><p>{job.driver_remark}</p></div>
           )}
           <label className="jo-field">
-            <small>{t('jobDetailModal.details.driverPayout', { defaultValue: 'Driver payout (AED)' })}</small>
+            <small>{t('jobDetailModal.details.driverPayout', { defaultValue: 'Driver payout ({{currency}})', ...(job.currency ? { currency: job.currency } : {}) })}</small>
             <div className="jo-inline">
               <input
                 type="text"

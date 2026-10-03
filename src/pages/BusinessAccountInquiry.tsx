@@ -2,7 +2,8 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { WHATSAPP_NUMBER, BUSINESS_ACCOUNT_WA_MESSAGE } from '../constants';
+import { useTenant } from '../context/TenantContext';
+import { businessAccountWaMessage, waHref } from '../lib/tenant';
 import { cn } from '../lib/utils';
 import { useBusinessInquiryForm } from './business-inquiry/useBusinessInquiryForm';
 import InquirySuccess from './business-inquiry/InquirySuccess';
@@ -14,10 +15,11 @@ export default function BusinessAccountInquiry() {
   const { t } = useTranslation('businessInquiry');
   const { step, isSubmitting, isSuccess, formData, setFormData, nextStep, prevStep, handleSubmit } = useBusinessInquiryForm();
 
-  // Goes to Nokael's own dispatch number, not the customer — decision (A)
+  // Goes to the company's own dispatch number, not the customer — decision (A)
   // "keep fixed" applies (see Phase 7 of the customer-facing i18n plan), so
   // this stays a plain constant, not wired to t().
-  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(BUSINESS_ACCOUNT_WA_MESSAGE)}`;
+  const tenant = useTenant();
+  const waUrl = waHref(businessAccountWaMessage(tenant), tenant);
 
   if (isSuccess) {
     return <InquirySuccess />;

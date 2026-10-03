@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Loader2, Upload, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase, uploadDriverDocument, type Driver, type PipelineStatus } from '../../../lib/supabase';
-import { NOKAEL_ORG_ID } from '../../../constants';
+import { getActiveOrgId, getActiveTenant } from '../../../lib/tenant';
 import { DOCUMENT_TYPES, VEHICLE_TYPES, DAYS_OF_WEEK } from '../../driver-application/constants';
 import {
   driverPhoneKey,
@@ -15,7 +15,9 @@ import {
 } from '../../../lib/driverAccess';
 
 // Suggestions only: base location is free text, same as the public intake form.
-const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Fujairah', 'Umm Al Quwain', 'Al Ain'];
+const UAE_EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Fujairah', 'Umm Al Quwain', 'Al Ain'];
+// Suggestions only (a datalist) — UAE companies keep this list, others get their regions.
+const regionList = () => (getActiveTenant().settings.country === 'AE' ? UAE_EMIRATES : getActiveTenant().settings.regions);
 
 // Stages the Drivers view filters and counts on (see selectors.ts). 'Active' and
 // 'Rejected' are set later from the driver drawer's Approve / Reject buttons.
@@ -170,7 +172,7 @@ export const AddAgentModal: React.FC<AddAgentModalProps> = ({ onClose, onSuccess
         status: 'offline',
         active: true,
         tier: 'D',
-        organization_id: NOKAEL_ORG_ID,
+        organization_id: getActiveOrgId(),
         internal_notes: `Agent ID: ${agentId}`,
       }]);
       if (driverError) {
@@ -255,7 +257,7 @@ export const AddAgentModal: React.FC<AddAgentModalProps> = ({ onClose, onSuccess
                 <input required type="text" value={formData.full_name} onChange={e => set('full_name', e.target.value)} placeholder={ti('step1.fullNamePlaceholder', 'As per Emirates ID')} />
               </Field>
               <Field label={t('addAgentModal.emiratesIdLabel', { defaultValue: 'Emirates ID Number' })}>
-                <input type="text" value={formData.emirates_id} onChange={e => set('emirates_id', e.target.value)} placeholder="784-XXXX-XXXXXXX-X" />
+                <input type="text" value={formData.emirates_id} onChange={e => set('emirates_id', e.target.value)} placeholder={t('addAgentModal.emiratesIdPlaceholder', { defaultValue: '' })} />
               </Field>
               <Field
                 label={ti('step1.phoneLabel', 'Phone Number')}
@@ -331,7 +333,7 @@ export const AddAgentModal: React.FC<AddAgentModalProps> = ({ onClose, onSuccess
               <Field label={ti('step1.baseLocationLabel', 'Base Location (Area/City)')} required>
                 <input required type="text" list="agent-emirates" value={formData.base_location} onChange={e => set('base_location', e.target.value)} placeholder={ti('step1.baseLocationPlaceholder', 'e.g. Al Barsha, Dubai')} />
                 <datalist id="agent-emirates">
-                  {EMIRATES.map(em => <option key={em} value={em} />)}
+                  {regionList().map(em => <option key={em} value={em} />)}
                 </datalist>
               </Field>
               <div className="field wide">

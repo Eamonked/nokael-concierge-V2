@@ -3,20 +3,24 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { submitQuoteRequest, type QuoteRequest } from '../../lib/supabase';
 import { captureUTMs, getStoredUTMs } from '../../lib/analytics';
-import { PRICE_TIER_SAME_DAY, PRICE_TIER_DEDICATED } from '../../constants';
+import { useTenant } from '../../context/TenantContext';
+import { tenantBasePath, tenantDisplayName, tenantPriceTiers } from '../../lib/tenant';
 
 export function useQuoteForm(formTopRef: React.RefObject<HTMLDivElement>) {
   const { t } = useTranslation('getQuote');
   const navigate = useNavigate();
+  const tenant = useTenant();
+  // Region pickers start on the company's first region; free-text regions start empty.
+  const firstRegion = tenant.settings.regions[0] ?? '';
   const [step, setStep] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [pickupEmirate, setPickupEmirate] = React.useState('Dubai');
-  const [deliveryEmirate, setDeliveryEmirate] = React.useState('Dubai');
+  const [pickupEmirate, setPickupEmirate] = React.useState(firstRegion);
+  const [deliveryEmirate, setDeliveryEmirate] = React.useState(firstRegion);
   const [formData, setFormData] = React.useState<Partial<QuoteRequest>>({
     pickup_location: '',
     delivery_location: '',
-    emirate: 'Dubai → Dubai',
+    emirate: firstRegion ? `${firstRegion} → ${firstRegion}` : '',
     item_type: 'parcel',
     urgency: 'immediate',
     name: '',
@@ -60,7 +64,9 @@ export function useQuoteForm(formTopRef: React.RefObject<HTMLDivElement>) {
 
   // Live estimate shown throughout steps 2-4 so the price is never a surprise at the end.
   // Spare parts run on the dedicated-fleet tier; everything else is the same-day tier.
-  const estimatedPrice = formData.item_type === 'spare_part' ? PRICE_TIER_DEDICATED : PRICE_TIER_SAME_DAY;
+  // null when the company hasn't published prices — the estimate is then hidden.
+  const tiers = tenantPriceTiers(tenant);
+  const estimatedPrice = tiers ? (formData.item_type === 'spare_part' ? tiers.dedicated : tiers.sameDay) : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,16 +95,16 @@ export function useQuoteForm(formTopRef: React.RefObject<HTMLDivElement>) {
       await submitQuoteRequest(enrichedData);
 
       // Build the pre-filled WhatsApp message.
-      // This message goes to Nokael's own dispatch number, not the customer —
+      // This message goes to the company's own dispatch number, not the customer —
       // decision (A) "keep fixed" applies (see Phase 7 of the customer-facing
       // i18n plan), so this stays a plain template literal, not wired to t().
       const message = encodeURIComponent(
-        `Hi Nokael, I need a quote for a ${formData.item_type} delivery from ${formData.pickup_location}, ${pickupEmirate} to ${formData.delivery_location}, ${deliveryEmirate}. Urgency: ${formData.urgency}. My name is ${formData.name}.`
+        `Hi ${tenantDisplayName(tenant)}, I need a quote for a ${formData.item_type} delivery from ${formData.pickup_location}, ${pickupEmirate} to ${formData.delivery_location}, ${deliveryEmirate}. Urgency: ${formData.urgency}. My name is ${formData.name}.`
       );
 
       // Navigate to /thank-you — this is where the Google Ads conversion pixel fires.
       // The WhatsApp redirect happens from that page after a short delay.
-      navigate(`/thank-you?wa=${message}`, {
+      navigate(`${tenantBasePath(tenant)}/thank-you?wa=${message}`, {
         state: {
           userData: {
             phone_number: formData.phone,

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Zap, Navigation, MessageSquare } from 'lucide-react';
-import { WHATSAPP_NUMBER } from '../../constants';
+import { useTenant } from '../../context/TenantContext';
+import { waHref } from '../../lib/tenant';
 import { trackWhatsAppClick } from '../../lib/analytics';
 import { type QuoteRequest } from '../../lib/supabase';
 
@@ -10,6 +11,7 @@ interface QuoteSidebarProps {
 
 export default function QuoteSidebar({ formData }: QuoteSidebarProps) {
   const { t } = useTranslation('getQuote');
+  const tenant = useTenant();
 
   return (
     <div className="hidden lg:block space-y-6">
@@ -40,7 +42,7 @@ export default function QuoteSidebar({ formData }: QuoteSidebarProps) {
       <div className="p-6 rounded-2xl bg-brand-input border border-brand-input-border">
         <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted mb-4">{t('sidebar.urgentSupport')}</p>
         <a
-          href={`https://wa.me/${WHATSAPP_NUMBER}`}
+          href={waHref(undefined, tenant)}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => trackWhatsAppClick('quote_sidebar', {

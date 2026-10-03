@@ -7,7 +7,7 @@ import { urgencyLevels } from './constants';
 interface QuoteStepUrgencyProps {
   urgency?: string;
   updateForm: (data: any) => void;
-  estimatedPrice: number;
+  estimatedPrice: number | null;
 }
 
 export default function QuoteStepUrgency({ urgency, updateForm, estimatedPrice }: QuoteStepUrgencyProps) {
@@ -45,9 +45,11 @@ export default function QuoteStepUrgency({ urgency, updateForm, estimatedPrice }
           {urgency === level.id && <CheckCircle2 className="w-4 h-4 text-brand-neon" />}
         </button>
       ))}
-      <p className="text-[10px] text-brand-muted uppercase tracking-widest text-center pt-2">
-        {t('step3.estimateNote', { price: estimatedPrice })}
-      </p>
+      {estimatedPrice != null && (
+        <p className="text-[10px] text-brand-muted uppercase tracking-widest text-center pt-2">
+          {t('step3.estimateNote', { price: estimatedPrice })}
+        </p>
+      )}
     </motion.div>
   );
 }

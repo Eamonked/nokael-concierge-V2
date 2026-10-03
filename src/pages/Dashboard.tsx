@@ -65,6 +65,7 @@ import {
   getAlerts,
   type JobStatusFilter,
 } from './dashboard/selectors';
+import { getActiveTenant } from '../lib/tenant';
 
 export default function Dashboard() {
   const { t } = useTranslation('dashboard');
@@ -208,11 +209,16 @@ export default function Dashboard() {
     setJobPrefillData({
       sender_name: quote.name,
       sender_phone: quote.phone,
-      pickup_emirate: quote.emirate || 'Dubai',
+      // Public quotes store the route as "Pickup → Delivery"; JobCreateModal splits it.
+      pickup_emirate: quote.emirate || getActiveTenant().settings.regions[0] || '',
       pickup_location: quote.pickup_location,
       pickup_lat: quote.pickup_lat ?? null,
       pickup_lng: quote.pickup_lng ?? null,
-      delivery_emirate: quote.emirate === 'Dubai' ? 'Abu Dhabi' : 'Dubai',
+      delivery_emirate: quote.emirate?.includes('→')
+        ? quote.emirate
+        : getActiveTenant().settings.country === 'AE'
+          ? (quote.emirate === 'Dubai' ? 'Abu Dhabi' : 'Dubai')
+          : quote.emirate || '',
       delivery_location: quote.delivery_location,
       delivery_lat: quote.delivery_lat ?? null,
       delivery_lng: quote.delivery_lng ?? null,

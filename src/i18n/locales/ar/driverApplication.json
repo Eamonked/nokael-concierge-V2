@@ -12,13 +12,13 @@
   },
   "step1": {
     "fullNameLabel": "الاسم الكامل",
-    "fullNamePlaceholder": "كما هو مذكور في الهوية الإماراتية",
+    "fullNamePlaceholder": "كما هو مذكور في {{idDocLabelAr}}",
     "emailLabel": "البريد الإلكتروني",
     "emailPlaceholder": "logistics@nokael.com",
     "phoneLabel": "رقم الهاتف",
-    "phonePlaceholder": "+971",
+    "phonePlaceholder": "{{dialCode}}",
     "whatsappLabel": "رقم الواتساب",
-    "whatsappPlaceholder": "+971",
+    "whatsappPlaceholder": "{{dialCode}}",
     "baseLocationLabel": "موقع الإقامة (المنطقة/المدينة)",
     "baseLocationPlaceholder": "مثال: البرشاء، دبي",
     "vehicleCategoryLabel": "فئة المركبة",
@@ -34,15 +34,15 @@
     "startShiftLabel": "بداية الدوام",
     "endShiftLabel": "نهاية الدوام",
     "interEmirateTitle": "التوصيل بين الإمارات",
-    "interEmirateDesc": "هل أنت مرتاح للقيادة بين دبي وأبوظبي والإمارات الشمالية؟",
+    "interEmirateDesc": "{{interRegionQuestionAr}}",
     "yes": "نعم",
     "no": "لا",
     "continueButton": "متابعة إلى رفع المستندات"
   },
   "step2": {
     "documentTypes": {
-      "emiratesId": { "label": "الهوية الإماراتية (الوجهان)", "description": "مسح أو صورة عالية الدقة" },
-      "license": { "label": "رخصة القيادة", "description": "رخصة قيادة إماراتية سارية" },
+      "emiratesId": { "label": "{{idDocLabelAr}} (الوجهان)", "description": "مسح أو صورة عالية الدقة" },
+      "license": { "label": "رخصة القيادة", "description": "رخصة قيادة سارية {{countryShortAr}}" },
       "registration": { "label": "تسجيل المركبة (الملكية)", "description": "بطاقة التسجيل الحالية" },
       "vehiclePhoto": { "label": "صورة المركبة (رؤية واضحة)", "description": "أظهر الجانب الأمامي والجانبي" }
     },

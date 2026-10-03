@@ -3,9 +3,11 @@ import { createPortal } from 'react-dom';
 import { X, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase, type BusinessInquiry } from '../../../lib/supabase';
-import { NOKAEL_ORG_ID } from '../../../constants';
+import { getActiveOrgId, getActiveTenant } from '../../../lib/tenant';
 
-const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'RAK', 'Fujairah', 'UMM Al Quwain', 'Al Ain'];
+const UAE_EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'RAK', 'Fujairah', 'UMM Al Quwain', 'Al Ain'];
+// UAE companies keep the dashboard's own list (it includes Al Ain); others use their regions.
+const regionList = () => (getActiveTenant().settings.country === 'AE' ? UAE_EMIRATES : getActiveTenant().settings.regions);
 const SERVICE_TIERS = ['Enterprise VIP', 'Same-Day Premium', 'Enterprise', 'Standard'];
 const ESTIMATED_VOLUMES = ['1-10', '11-50', '51-100', '100-500', '500+'];
 
@@ -45,7 +47,7 @@ export const AddBusinessModal: React.FC<AddBusinessModalProps> = ({ onClose, onS
     status: 'pending' as const,
     follow_up_notes: '',
     service_tier: 'Standard',
-    base_emirate: 'Dubai',
+    base_emirate: regionList()[0] ?? '',
     payment_terms: 'Net 30',
   });
 
@@ -96,7 +98,7 @@ export const AddBusinessModal: React.FC<AddBusinessModalProps> = ({ onClose, onS
         // Was previously collected in this form but never sent — the column
         // now exists on business_inquiries (see supabase-business-real-data.sql).
         service_tier: formData.service_tier as BusinessInquiry['service_tier'],
-        organization_id: NOKAEL_ORG_ID,
+        organization_id: getActiveOrgId(),
       };
 
       // Insert business inquiry
@@ -219,17 +221,21 @@ export const AddBusinessModal: React.FC<AddBusinessModalProps> = ({ onClose, onS
                 label={t('addBusinessModal.baseEmirateLabel', { defaultValue: 'Primary Operating Emirate' })} 
                 required
               >
-                <select
-                  required
-                  value={formData.base_emirate}
-                  onChange={e => set('base_emirate', e.target.value)}
-                >
-                  {EMIRATES.map(emirate => (
-                    <option key={emirate} value={emirate}>
-                      {emirate}
-                    </option>
-                  ))}
-                </select>
+                {regionList().length > 0 ? (
+                  <select
+                    required
+                    value={formData.base_emirate}
+                    onChange={e => set('base_emirate', e.target.value)}
+                  >
+                    {regionList().map(emirate => (
+                      <option key={emirate} value={emirate}>
+                        {emirate}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input required type="text" value={formData.base_emirate} onChange={e => set('base_emirate', e.target.value)} />
+                )}
               </Field>
             </div>
           </section>

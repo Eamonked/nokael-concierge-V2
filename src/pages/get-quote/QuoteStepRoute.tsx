@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { MapPin, Flag, ChevronDown, type LucideIcon } from 'lucide-react';
 import { type QuoteRequest } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
-import { emirates, fieldClass, labelClass } from './constants';
+import { fieldClass, labelClass } from './constants';
+import { useTenant } from '../../context/TenantContext';
+import { regionOptions } from '../../lib/tenant';
 import LocationInput from './LocationInput';
 import type { LatLng } from '../../lib/geo';
 
@@ -30,6 +32,8 @@ interface LegProps {
 
 function RouteLeg({ id, title, icon: Icon, accent, emirate, onEmirateChange, location, onLocationChange, placeholder }: LegProps) {
   const { t } = useTranslation('getQuote');
+  const tenant = useTenant();
+  const regions = regionOptions(emirate, tenant);
 
   return (
     <fieldset className="p-5 rounded-2xl border border-brand-field-border bg-brand-input/40 space-y-4">
@@ -40,17 +44,28 @@ function RouteLeg({ id, title, icon: Icon, accent, emirate, onEmirateChange, loc
       </p>
       <div>
         <label htmlFor={`${id}-emirate`} className={labelClass}>{t('step1.emirateLabel')}</label>
-        <div className="relative">
-          <select
+        {regions.length > 0 ? (
+          <div className="relative">
+            <select
+              id={`${id}-emirate`}
+              className={cn(fieldClass, 'appearance-none pe-10 cursor-pointer')}
+              value={emirate}
+              onChange={e => onEmirateChange(e.target.value)}
+            >
+              {regions.map(e => <option key={e} value={e}>{e}</option>)}
+            </select>
+            <ChevronDown className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted pointer-events-none" />
+          </div>
+        ) : (
+          <input
             id={`${id}-emirate`}
-            className={cn(fieldClass, 'appearance-none pe-10 cursor-pointer')}
+            required
+            className={fieldClass}
             value={emirate}
             onChange={e => onEmirateChange(e.target.value)}
-          >
-            {emirates.map(e => <option key={e} value={e}>{e}</option>)}
-          </select>
-          <ChevronDown className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted pointer-events-none" />
-        </div>
+            placeholder={tenant.settings.region_label}
+          />
+        )}
       </div>
       <div>
         <label htmlFor={`${id}-location`} className={labelClass}>{t('step1.specificLocationLabel')}</label>

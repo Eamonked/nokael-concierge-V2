@@ -7,15 +7,13 @@ import { sendTelegramNotification, formatJobAssignmentNotification } from '../..
 import { geocodeAddress, validCoord, type LatLng } from '../../../lib/geo';
 import { AccountPicker, ClientReferenceInput, findAccountByName } from '../components/AccountPicker';
 
-// Scheduled pickups are entered and displayed in UAE time (GST, UTC+4, no DST),
-// whatever timezone the operator's browser is in.
-const GST_OFFSET_MS = 4 * 60 * 60 * 1000;
-const isoToGstInput = (iso?: string | null): string =>
-  iso ? new Date(new Date(iso).getTime() + GST_OFFSET_MS).toISOString().slice(0, 16) : '';
-const gstInputToIso = (v: string): string | null =>
-  v ? new Date(`${v}:00+04:00`).toISOString() : null;
+import { getActiveTenant, isoToZonedInput, zonedInputToIso, regionOptions, formatMoney } from '../../../lib/tenant';
 
-const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'RAK', 'Fujairah', 'UMM Al Quwain'];
+// Scheduled pickups are entered and displayed in the company's own time zone
+// (organizations.settings.timezone — Asia/Dubai for Nokael), whatever
+// timezone the operator's browser is in.
+const isoToGstInput = (iso?: string | null): string => isoToZonedInput(iso);
+const gstInputToIso = (v: string): string | null => zonedInputToIso(v);
 
 // Legacy jobs may hold concatenated values like "Dubai → Abu Dhabi" in an emirate field.
 const cleanEmirate = (value: string | null | undefined, part: 0 | 1, fallback: string): string => {
@@ -91,9 +89,9 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     sender_phone: initialData?.sender_phone || '',
     recipient_name: initialData?.recipient_name || '',
     recipient_phone: initialData?.recipient_phone || '',
-    pickup_emirate: cleanEmirate(initialData?.pickup_emirate, 0, 'Dubai'),
+    pickup_emirate: cleanEmirate(initialData?.pickup_emirate, 0, getActiveTenant().settings.regions[0] ?? ''),
     pickup_location: initialData?.pickup_location || '',
-    delivery_emirate: cleanEmirate(initialData?.delivery_emirate, 1, 'Abu Dhabi'),
+    delivery_emirate: cleanEmirate(initialData?.delivery_emirate, 1, getActiveTenant().settings.regions[1] ?? getActiveTenant().settings.regions[0] ?? ''),
     delivery_location: initialData?.delivery_location || '',
     item_type: initialData?.item_type || 'parcel' as ItemType,
     urgency: initialData?.urgency || 'immediate' as UrgencyType,
@@ -109,6 +107,7 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     scheduled_delivery_start: isoToGstInput(initialData?.scheduled_delivery_start),
     scheduled_delivery_end: isoToGstInput(initialData?.scheduled_delivery_end),
     price_aed: initialData?.price_aed != null ? String(initialData.price_aed) : '',
+    driver_payout_aed: initialData?.driver_payout_aed != null ? String(initialData.driver_payout_aed) : '',
     service_tier: (initialData?.service_tier || 'standard') as ServiceTier,
     quote_id: initialData?.quote_id || null,
     // 'driver_only' (2-step, driver-confirmed) is the default going forward.
@@ -117,12 +116,12 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     confirmation_mode: (initialData?.confirmation_mode || 'driver_only') as 'four_step' | 'driver_only'
   });
 
-  // Reference-drawer fields that have no Job column yet (payment mode, driver payout, building/gate,
+  // Reference-drawer fields that have no Job column yet (payment mode, building/gate,
   // per-stop company, time windows, per-stop notes, cargo specs, handling flags, attachments).
   // They are layout-only: kept in local state and deliberately NOT part of the create/update
   // payloads below, so nothing here can reach Supabase until matching columns exist.
   const [extra, setExtra] = React.useState({
-    payment_mode: '', agent_payout: '',
+    payment_mode: '',
     pickup_building: '', pickup_company: '', pickup_window_start: '', pickup_window_end: '', pickup_notes: '',
     delivery_building: '', delivery_company: '', delivery_notes: '',
     vehicle_required: '', quantity: '1', weight_kg: '', dim_l: '', dim_w: '', dim_h: '',
@@ -131,6 +130,13 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
   const setX = <K extends keyof typeof extra>(key: K, value: (typeof extra)[K]) =>
     setExtra(prev => ({ ...prev, [key]: value }));
   const [files, setFiles] = React.useState<File[]>([]);
+
+  /** '' → null (cleared); a valid amount → number; anything unparseable → undefined (leave the column alone). */
+  const parseMoney = (raw: string): number | null | undefined => {
+    if (raw.trim() === '') return null;
+    const n = Number(raw);
+    return Number.isFinite(n) && n >= 0 ? n : undefined;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -173,6 +179,7 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
 
       if (editJob?.id) {
         const editedPrice = formData.price_aed.trim() === '' ? null : Number(formData.price_aed);
+        const editedPayout = parseMoney(formData.driver_payout_aed);
         await updateJob(editJob.id, {
           sender_name: formData.sender_name,
           sender_phone: formData.sender_phone,
@@ -188,6 +195,7 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
           ...accountFields(),
           service_tier: formData.service_tier,
           price_aed: editedPrice !== null && Number.isFinite(editedPrice) && editedPrice >= 0 ? editedPrice : null,
+          ...(editedPayout !== undefined && { driver_payout_aed: editedPayout }),
           special_instructions: formData.special_instructions.trim() || null,
           ...coords,
         });
@@ -225,6 +233,7 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
         scheduled_pickup_at: formData.urgency === 'scheduled' ? gstInputToIso(formData.scheduled_pickup_at) : null,
         ...accountFields(),
         price_aed: priceValue,
+        driver_payout_aed: parseMoney(formData.driver_payout_aed) ?? null,
         service_tier: formData.service_tier,
         quote_id: formData.quote_id,
         confirmation_mode: formData.confirmation_mode,
@@ -288,11 +297,11 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
   });
   const priceNumber = Number(formData.price_aed);
   const clientTotal = formData.price_aed.trim() !== '' && Number.isFinite(priceNumber)
-    ? `AED ${priceNumber.toFixed(2)}`
+    ? formatMoney(priceNumber, { decimals: 2 })
     : t('jobCreateModal.notSetLabel');
 
   const priceAed = Number.isFinite(priceNumber) && priceNumber > 0 ? priceNumber : 0;
-  const payoutNumber = Number(extra.agent_payout);
+  const payoutNumber = Number(formData.driver_payout_aed);
   const payoutAed = Number.isFinite(payoutNumber) && payoutNumber > 0 ? payoutNumber : 0;
   const marginAed = Math.max(0, priceAed - payoutAed);
   const marginPct = priceAed > 0 ? Math.round((marginAed / priceAed) * 100) : 0;
@@ -314,7 +323,8 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     { key: 'hazmat', label: t('jobCreateModal.handlingHazmat') },
   ];
 
-  const emirateOptions = (current: string) => (current && !EMIRATES.includes(current) ? [current, ...EMIRATES] : EMIRATES);
+  const emirateOptions = (current: string) => regionOptions(current);
+  const currencyCode = getActiveTenant().settings.currency;
 
   const confirmationModes: { value: 'driver_only' | 'four_step'; title: string; desc: string }[] = [
     { value: 'driver_only', title: t('jobCreateModal.twoStepTitle'), desc: t('jobCreateModal.twoStepDesc') },
@@ -349,19 +359,19 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
               {/* Row 1: money in, money out, what's left. Row 2: how it's billed. */}
               <Field label={t('jobCreateModal.priceLabel')}>
                 <div className="money-input">
-                  <span className="money-prefix" aria-hidden="true">AED</span>
+                  <span className="money-prefix" aria-hidden="true">{currencyCode}</span>
                   <input type="number" min="0" step="0.01" inputMode="decimal" value={formData.price_aed} onChange={e => set('price_aed', e.target.value)} placeholder="0.00" />
                 </div>
               </Field>
               <Field label={t('jobCreateModal.agentPayout')}>
                 <div className="money-input">
-                  <span className="money-prefix" aria-hidden="true">AED</span>
-                  <input type="number" min="0" step="0.01" inputMode="decimal" value={extra.agent_payout} onChange={e => setX('agent_payout', e.target.value)} placeholder={t('jobCreateModal.optionalPlaceholder')} />
+                  <span className="money-prefix" aria-hidden="true">{currencyCode}</span>
+                  <input type="number" min="0" step="0.01" inputMode="decimal" value={formData.driver_payout_aed} onChange={e => set('driver_payout_aed', e.target.value)} placeholder={t('jobCreateModal.optionalPlaceholder')} />
                 </div>
               </Field>
               <div className="margin-card" aria-live="polite">
                 <span>{t('jobCreateModal.netMargin')}</span>
-                <strong>AED {marginAed.toFixed(2)}</strong>
+                <strong>{formatMoney(marginAed, { decimals: 2 })}</strong>
                 <em>{t('jobCreateModal.marginPercent', { percent: marginPct })}</em>
                 <div><i style={{ width: `${Math.min(100, marginPct)}%` }} /></div>
               </div>

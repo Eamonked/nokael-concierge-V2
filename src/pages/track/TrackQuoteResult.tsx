@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import { MessageSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { WHATSAPP_NUMBER } from '../../constants';
+import { tenantWhatsApp, tenantDisplayName } from '../../lib/tenant';
 import { trackWhatsAppClick } from '../../lib/analytics';
 import type { QuoteRequest } from '../../lib/supabase';
 
@@ -54,11 +54,11 @@ export default function TrackQuoteResult({ activeQuote }: TrackQuoteResultProps)
           </div>
         </div>
 
-        {/* ⚠ Follow-up message goes to Nokael's own dispatch number, not the
+        {/* ⚠ Follow-up message goes to the company's own dispatch number, not the
             customer — decision (A) "keep fixed" applies, left as a plain
             template literal, not wired to t(). */}
         <a
-          href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hi Nokael, I am following up on quote manifest ${activeQuote.tracking_id} for ${activeQuote.item_type} from ${activeQuote.pickup_location} to ${activeQuote.delivery_location}.`)}`}
+          href={`https://wa.me/${tenantWhatsApp() ?? ''}?text=${encodeURIComponent(`Hi ${tenantDisplayName()}, I am following up on quote manifest ${activeQuote.tracking_id} for ${activeQuote.item_type} from ${activeQuote.pickup_location} to ${activeQuote.delivery_location}.`)}`}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => trackWhatsAppClick('track_quote_followup')}

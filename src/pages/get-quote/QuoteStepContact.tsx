@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { User, Building2, Shield, Phone, CheckCircle2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { type QuoteRequest } from '../../lib/supabase';
-import { DISPLAY_PHONE } from '../../constants';
+import { useTenant } from '../../context/TenantContext';
 import { fieldClass } from './constants';
 
 interface QuoteStepContactProps {
@@ -13,6 +13,7 @@ interface QuoteStepContactProps {
 
 export default function QuoteStepContact({ formData, updateForm }: QuoteStepContactProps) {
   const { t } = useTranslation('getQuote');
+  const tenant = useTenant();
 
   return (
     <motion.div
@@ -106,7 +107,7 @@ export default function QuoteStepContact({ formData, updateForm }: QuoteStepCont
                   id="quote-phone"
               required
               type="tel"
-              placeholder={DISPLAY_PHONE}
+              placeholder={tenant.settings.dial_code}
               className={cn(fieldClass, 'py-4 ps-12')}
               value={formData.phone}
               onChange={e => updateForm({ phone: e.target.value })}

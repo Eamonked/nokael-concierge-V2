@@ -1,4 +1,5 @@
 import React from 'react';
+import { tenantBasePath, tenantDisplayName } from '../../lib/tenant';
 import { useTranslation } from 'react-i18next';
 import type { NavigateFunction } from 'react-router-dom';
 import { uploadDriverDocument, type Driver } from '../../lib/supabase';
@@ -40,11 +41,11 @@ export function useDriverDocuments(driverId: string | null, navigate: NavigateFu
   const allUploaded = Object.values(uploads).every(u => (u as any).status === 'success');
 
   const completeApplication = (formData: Partial<Driver>) => {
-    // This message goes to Nokael's own dispatch number, not the customer —
+    // This message goes to the company's own dispatch number, not the customer —
     // decision (A) "keep fixed" applies (see Phase 7 of the customer-facing
     // i18n plan), so this stays a plain template literal, not wired to t().
-    const message = encodeURIComponent(`Hi Nokael, I've just submitted my driver application (Name: ${formData.full_name}).`);
-    navigate(`/thank-you?wa=${message}`, {
+    const message = encodeURIComponent(`Hi ${tenantDisplayName()}, I've just submitted my driver application (Name: ${formData.full_name}).`);
+    navigate(`${tenantBasePath()}/thank-you?wa=${message}`, {
       state: {
         userData: {
           email: formData.email,

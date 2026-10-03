@@ -26,7 +26,7 @@ export function AuthLayout({ title, subtitle, children, footer }: {
         </div>
         <div className="auth-brand-copy">
           <h2>Operations dashboard</h2>
-          <p>Dispatch, track and hand off every delivery across the Emirates from one place.</p>
+          <p>Dispatch, track and hand off every delivery from one place.</p>
           <ul>
             <li><Radio size={15} /> Live jobs, drivers and chain of custody</li>
             <li><Users size={15} /> Role-based team access</li>

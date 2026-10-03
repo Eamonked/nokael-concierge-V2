@@ -11336,3 +11336,114 @@ main.stats-hidden .driver-app-strip {
   border-color: var(--ent-danger-line);
   color: var(--ent-danger-text);
 }
+
+/* ==========================================
+   Company onboarding wizard (/onboarding) and platform Companies panel
+   Uses the dashboard's --ent-* tokens so it follows light/dark.
+   ========================================== */
+.onb-shell {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 16px 80px;
+  background: var(--ent-canvas);
+  color: var(--ent-text);
+  font-family: var(--nk-font-dash);
+}
+.onb-frame { width: 100%; max-width: 780px; display: flex; flex-direction: column; gap: 20px; }
+.onb-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; }
+.onb-head small { color: var(--ent-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .12em; }
+.onb-head h1 { margin: 2px 0 0; font-size: 26px; font-weight: 600; letter-spacing: -.01em; }
+.onb-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.onb-steps button {
+  width: 100%; display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: 12px;
+  border: 1px solid var(--ent-line); background: var(--ent-surface); color: var(--ent-muted);
+  font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+}
+.onb-steps button:disabled { cursor: default; opacity: .7; }
+.onb-steps button span { width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; background: var(--ent-surface-2); flex: 0 0 24px; }
+.onb-steps .is-current button { color: var(--ent-text); border-color: var(--accent-ink); }
+.onb-steps .is-current button span, .onb-steps .is-done button span { background: var(--nk-dash-accent); color: #171719; }
+.onb-card {
+  background: var(--ent-surface); border: 1px solid var(--ent-line); border-radius: 20px; padding: 28px;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, .06);
+}
+.onb-card h2 { margin: 0 0 6px; font-size: 20px; font-weight: 600; }
+.onb-card h2 small, .onb-card h3 small { color: var(--ent-muted); font-weight: 400; font-size: 13px; }
+.onb-card h3 { margin: 24px 0 10px; font-size: 15px; font-weight: 600; }
+.onb-muted { color: var(--ent-muted); font-size: 14px; line-height: 1.5; margin: 0 0 16px; }
+.onb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+.onb-field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--ent-text-2); font-weight: 500; }
+.onb-field.is-wide { grid-column: 1 / -1; }
+.onb-field small { color: var(--ent-faint); font-weight: 400; font-size: 12px; }
+.onb-field input, .onb-field select, .onb-field textarea, .onb-invite input, .onb-invite select, .onb-color input {
+  width: 100%; min-height: 42px; padding: 9px 12px; border: 0; border-radius: 10px; background: var(--ent-surface-2);
+  color: var(--ent-text); font: inherit; font-size: 14px; box-shadow: inset 0 0 0 1px var(--ent-line-strong); outline: none;
+}
+.onb-field textarea { resize: vertical; }
+.onb-field input:focus, .onb-field select:focus, .onb-field textarea:focus, .onb-invite input:focus { box-shadow: inset 0 0 0 2px var(--accent-ink); }
+.onb-color { display: flex; gap: 8px; }
+.onb-color input[type="color"] { width: 52px; flex: 0 0 52px; padding: 4px; }
+.onb-preview {
+  margin-top: 18px; display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px;
+  border: 1px dashed var(--ent-line-strong);
+}
+.onb-preview img, .onb-preview span { width: 36px; height: 36px; border-radius: 8px; object-fit: contain; }
+.onb-preview span { display: grid; place-items: center; background: var(--brand); color: #111; font-weight: 700; }
+.onb-preview b { flex: 1; }
+.onb-preview em { font-style: normal; background: var(--brand); color: #111; font-weight: 600; font-size: 13px; padding: 7px 14px; border-radius: 9px; }
+.onb-invite { display: grid; grid-template-columns: 1fr 160px 24px; gap: 8px; align-items: center; margin-bottom: 8px; }
+.onb-ok { color: var(--accent-ink); }
+.onb-copy { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.onb-copy > span { font-size: 13px; font-weight: 500; color: var(--ent-text-2); }
+.onb-copy > div { display: flex; align-items: center; gap: 6px; background: var(--ent-surface-2); border-radius: 10px; padding: 6px 6px 6px 12px; box-shadow: inset 0 0 0 1px var(--ent-line); }
+.onb-copy code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font-size: 13px; color: var(--ent-text); }
+.onb-copy button, .onb-copy a {
+  width: 32px; height: 32px; flex: 0 0 32px; display: grid; place-items: center; border-radius: 8px; border: 0;
+  background: var(--ent-surface); color: var(--ent-muted); cursor: pointer;
+}
+.onb-copy button:hover, .onb-copy a:hover { color: var(--ent-text); }
+.onb-summary { list-style: none; padding: 0; margin: 20px 0 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--ent-muted); }
+.onb-summary li { display: flex; gap: 8px; align-items: center; }
+.onb-summary svg { color: var(--accent-ink); }
+.onb-error { margin: 16px 0 0; color: #dc2626; font-size: 14px; }
+.onb-actions { margin-top: 24px; display: flex; justify-content: space-between; gap: 12px; }
+.onb-primary, .onb-secondary {
+  display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border-radius: 12px; font: inherit;
+  font-size: 14px; font-weight: 600; cursor: pointer; border: 0;
+}
+.onb-primary { background: var(--nk-dash-accent); color: #171719; }
+.onb-secondary { background: var(--ent-surface-2); color: var(--ent-text); box-shadow: inset 0 0 0 1px var(--ent-line-strong); }
+.onb-primary:disabled, .onb-secondary:disabled { opacity: .6; cursor: default; }
+.onb-link { border: 0; background: none; padding: 0; color: var(--accent-ink); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.onb-link:hover { text-decoration: underline; }
+@media (max-width: 720px) {
+  .onb-steps { grid-template-columns: repeat(3, 1fr); }
+  .onb-grid { grid-template-columns: 1fr; }
+  .onb-invite { grid-template-columns: 1fr 120px 24px; }
+  .onb-card { padding: 20px; }
+}
+
+/* Platform admin: Companies panel (Settings) */
+.cmp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cmp-table th { text-align: start; color: var(--ent-muted); font-weight: 500; padding: 8px 10px; border-bottom: 1px solid var(--ent-line); }
+.cmp-table td { padding: 10px; border-bottom: 1px solid var(--ent-line); vertical-align: middle; }
+.cmp-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; background: var(--ent-surface-2); color: var(--ent-muted); }
+.cmp-badge.is-live { background: color-mix(in srgb, var(--nk-dash-accent) 30%, transparent); color: var(--ent-text); }
+.cmp-form { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 14px; margin-bottom: 18px; }
+@media (max-width: 720px) { .cmp-form { grid-template-columns: 1fr; } .cmp-table-wrap { overflow-x: auto; } }
+
+/* Custom domain card (onboarding + settings) */
+.onb-domain { display: flex; flex-direction: column; gap: 10px; }
+.onb-domain-row { display: flex; align-items: center; gap: 8px; }
+.onb-domain-row > svg { color: var(--ent-muted); flex: 0 0 auto; }
+.onb-domain-row input {
+  flex: 1; min-width: 0; min-height: 42px; padding: 9px 12px; border: 0; border-radius: 10px; background: var(--ent-surface-2);
+  color: var(--ent-text); font: inherit; font-size: 14px; box-shadow: inset 0 0 0 1px var(--ent-line-strong); outline: none;
+}
+.onb-domain-status { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; font-weight: 500; }
+.onb-domain-status.is-active { color: var(--accent-ink); }
+.onb-domain-status.is-pending { color: var(--ent-muted); }
+.onb-domain-status.is-error { color: #dc2626; }
+.onb-dns code { font-size: 12px; }

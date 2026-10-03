@@ -6,14 +6,16 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 
-import { SEO_METADATA, DEFAULT_METADATA, KNOWN_APP_ROUTES } from "./seo/metadata.js";
+import { SEO_METADATA, DEFAULT_METADATA, KNOWN_APP_ROUTES, APP_ROUTE_PREFIXES } from "./seo/metadata.js";
 import { injectMetadata } from "./seo/inject.js";
+import { requestHost, isTenantHost, resolveTenantHost, tenantHtml } from "./seo/tenantHost.js";
 import { securityHeaders, rateLimit, requireApiKey } from "./middleware/security.js";
 import { createUploadRouter } from "./routes/upload.js";
 import { createNotifyRouter } from "./routes/notify.js";
 import { createPoolRouter } from "./routes/pool.js";
 import { createTeamRouter } from "./routes/team.js";
 import { createClientsRouter } from "./routes/clients.js";
+import { createOnboardingRouter } from "./routes/onboarding.js";
 
 const _filename = typeof __filename !== "undefined" ? __filename : fileURLToPath(import.meta.url);
 const _dirname = typeof __dirname !== "undefined" ? __dirname : path.dirname(_filename);
@@ -51,6 +53,10 @@ async function startServer() {
   // Client portal access — same per-user session auth as /api/team.
   app.use("/api/clients", createClientsRouter());
 
+  // Company onboarding (platform admins create companies; owners finish
+  // setup) — same per-user session auth as /api/team.
+  app.use("/api/onboarding", createOnboardingRouter());
+
   // Apply rate limiting and API key auth to all other /api routes
   app.use("/api", rateLimit(60, 60 * 1000)); // 60 requests per minute
   app.use("/api", requireApiKey);
@@ -59,14 +65,54 @@ async function startServer() {
   app.use("/api", createNotifyRouter());
 
   // ---------------------------------------------------------------------------
+  // Companies' own domains (book.theircompany.com via Cloudflare for SaaS)
+  // ---------------------------------------------------------------------------
+  // Staff pages always live on the platform domain (one Supabase Auth redirect
+  // URL, one login), so those paths bounce there. Everything else is served
+  // as the company's public site; the SPA resolves the company from the host.
+  const STAFF_PATHS = ["/dashboard", "/admin", "/login", "/accept-invite", "/onboarding"];
+  app.use((req, res, next) => {
+    const host = requestHost(req.headers);
+    if (!isTenantHost(host)) return next();
+    res.locals.tenantHost = host;
+    if (req.method === "GET" && STAFF_PATHS.some(p => req.path === p || req.path.startsWith(`${p}/`))) {
+      return res.redirect(302, `${SITE_URL}${req.originalUrl}`);
+    }
+    next();
+  });
+
+  // The HTML shell for a company-domain request, or null for the platform.
+  const tenantShell = async (res: express.Response, template: string, urlPath: string): Promise<string | null> => {
+    const host = res.locals.tenantHost as string | undefined;
+    if (!host) return null;
+    return tenantHtml(template, await resolveTenantHost(host), urlPath);
+  };
+
+  // ---------------------------------------------------------------------------
   // SPA + SSR rendering
   // ---------------------------------------------------------------------------
 
   if (!IS_PRODUCTION) {
     // ── Development: Vite middleware ──────────────────────────────────────────
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      // *.localhost lets a company domain be tried locally (book-test.localhost:3000).
+      server: { middlewareMode: true, allowedHosts: [".localhost"] },
       appType: "spa",
+    });
+
+    // Company-domain pages: Vite's SPA fallback would otherwise answer with the
+    // plain Nokael index.html before the handler below runs.
+    app.use(async (req, res, next) => {
+      if (!res.locals.tenantHost || req.method !== "GET" || !(req.headers.accept ?? "").includes("text/html")) return next();
+      try {
+        const raw = fs.readFileSync(path.resolve(_dirname, "index.html"), "utf-8");
+        const template = await vite.transformIndexHtml(req.originalUrl, raw);
+        const page = await tenantShell(res, template, req.path);
+        if (page) return res.status(200).set("Content-Type", "text/html").end(page);
+        next();
+      } catch (e) {
+        next(e);
+      }
     });
 
     app.use(vite.middlewares);
@@ -79,12 +125,15 @@ async function startServer() {
         );
         template = await vite.transformIndexHtml(req.originalUrl, template);
 
+        const tenantPage = await tenantShell(res, template, req.path);
+        if (tenantPage) return res.status(200).set("Content-Type", "text/html").end(tenantPage);
+
         // Normalize path: remove trailing slash for comparison
         let urlPath = req.path === "/" ? "/" : req.path.replace(/\/$/, "");
         if (urlPath === "") urlPath = "/";
 
         const metadata = SEO_METADATA[urlPath] ?? DEFAULT_METADATA;
-        const skipContent = KNOWN_APP_ROUTES.includes(urlPath);
+        const skipContent = KNOWN_APP_ROUTES.includes(urlPath) || APP_ROUTE_PREFIXES.some(p => urlPath.startsWith(p));
         const html = injectMetadata(template, urlPath, metadata, SITE_URL, false, skipContent);
         
         // Customize the "Initialising" placeholder with the page's H1 for better LCP/FCP
@@ -122,14 +171,17 @@ async function startServer() {
       },
     }));
 
-    app.get("*", (req, res) => {
+    app.get("*", async (req, res) => {
+      const tenantPage = await tenantShell(res, INDEX_HTML, req.path);
+      if (tenantPage) return res.status(200).set("Content-Type", "text/html").end(tenantPage);
+
       // Normalize path: remove trailing slash for comparison
       let urlPath = req.path === "/" ? "/" : req.path.replace(/\/$/, "");
       if (urlPath === "") urlPath = "/";
 
       // Determine metadata and status code
       const isSeoRoute = urlPath in SEO_METADATA;
-      const isAppRoute = KNOWN_APP_ROUTES.includes(urlPath);
+      const isAppRoute = KNOWN_APP_ROUTES.includes(urlPath) || APP_ROUTE_PREFIXES.some(p => urlPath.startsWith(p));
 
       let metadata = SEO_METADATA[urlPath];
       let statusCode: number;

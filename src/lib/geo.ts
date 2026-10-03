@@ -2,6 +2,8 @@
 // Coordinates, distances and address lookup
 // ==========================================
 
+import { getActiveTenant } from './tenant';
+
 export type LatLng = [number, number];
 
 /** A usable coordinate pair, or null. (0,0) is treated as "not set". */
@@ -50,21 +52,26 @@ export const EMIRATE_BBOX: Record<string, [number, number, number, number]> = {
   'Fujairah': [56.0, 24.95, 56.42, 25.7],
 };
 
-// Centre of the Dubai ↔ Abu Dhabi corridor, used when no emirate is known.
-const UAE_PROXIMITY = '55.0,25.0';
-
-/** Lookup parameters that keep results inside (and ranked around) an emirate. */
+/**
+ * Lookup parameters that keep results inside the company's country and, for
+ * UAE companies, inside (and ranked around) the chosen emirate. Elsewhere the
+ * company's map centre (organizations.settings.map_center) ranks results.
+ */
 export const emirateBias = (emirate?: string | null): Record<string, string> => {
-  const center = emirate ? EMIRATE_CENTERS[emirate.trim()] : undefined;
-  const bbox = emirate ? EMIRATE_BBOX[emirate.trim()] : undefined;
+  const { country, map_center } = getActiveTenant().settings;
+  const isUae = (country || 'AE').toUpperCase() === 'AE';
+  const center = isUae && emirate ? EMIRATE_CENTERS[emirate.trim()] : undefined;
+  const bbox = isUae && emirate ? EMIRATE_BBOX[emirate.trim()] : undefined;
   return {
-    proximity: center ? center.join(',') : UAE_PROXIMITY,
+    country: (country || 'AE').toLowerCase(),
+    proximity: (center ?? map_center).join(','),
     ...(bbox && { bbox: bbox.join(',') }),
   };
 };
 
 /**
- * Turn a typed address into coordinates, limited to the chosen emirate.
+ * Turn a typed address into coordinates, limited to the company's country
+ * (and, in the UAE, to the chosen emirate).
  * Tries the Mapbox Search Box API first: it knows malls, towers, hotels and
  * other named places ("Al Wahda Mall"), which the older Geocoding API lacks
  * and would otherwise match to a same-named street elsewhere. Falls back to
@@ -79,7 +86,7 @@ export async function geocodeAddress(address: string, emirate?: string | null): 
   const bias = emirateBias(emirate);
 
   try {
-    const qs = new URLSearchParams({ q: text, country: 'ae', limit: '1', language: 'en', access_token: token, ...bias });
+    const qs = new URLSearchParams({ q: text, limit: '1', language: 'en', access_token: token, ...bias });
     const res = await fetch(`https://api.mapbox.com/search/searchbox/v1/forward?${qs}`);
     if (res.ok) {
       const coords = (await res.json())?.features?.[0]?.geometry?.coordinates;
@@ -93,7 +100,7 @@ export async function geocodeAddress(address: string, emirate?: string | null): 
   }
 
   try {
-    const qs = new URLSearchParams({ country: 'ae', limit: '1', access_token: token, ...bias });
+    const qs = new URLSearchParams({ limit: '1', access_token: token, ...bias });
     const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(text)}.json?${qs}`);
     if (!res.ok) return null;
     const center = (await res.json())?.features?.[0]?.center;

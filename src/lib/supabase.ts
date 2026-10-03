@@ -6,7 +6,7 @@ import {
   formatDriverNotification,
   formatStatusUpdateNotification,
 } from './notifications';
-import { NOKAEL_ORG_ID } from '../constants';
+import { getActiveOrgId } from './tenant';
 
 // ==========================================
 // Supabase Client
@@ -183,7 +183,7 @@ export const submitQuoteRequest = async (data: QuoteRequest): Promise<QuoteReque
   // org_members_manage_quote_requests (used by every operator UPDATE from
   // the dashboard — status changes, convert-to-job, delete) checks
   // is_org_member(organization_id), and is_org_member(NULL) is always false.
-  const payload: QuoteRequest = { ...data, tracking_id, organization_id: NOKAEL_ORG_ID };
+  const payload: QuoteRequest = { ...data, tracking_id, organization_id: getActiveOrgId() };
 
   if (supabase) {
     const { error } = await supabase.from('quote_requests').insert([payload]);
@@ -344,7 +344,7 @@ export const submitBusinessInquiry = async (data: BusinessInquiry): Promise<Busi
   // organization_id MUST be set — same reasoning as submitQuoteRequest above:
   // without it, org_members_manage_business_inquiries UPDATE calls from the
   // dashboard (status changes, follow-up notes) will 403 forever.
-  const payload: BusinessInquiry = { ...data, corporate_code, status: 'pending', organization_id: NOKAEL_ORG_ID };
+  const payload: BusinessInquiry = { ...data, corporate_code, status: 'pending', organization_id: getActiveOrgId() };
 
   if (supabase) {
     const { error } = await supabase.from('business_inquiries').insert([payload]);
@@ -420,7 +420,7 @@ export const addBusinessContact = async (
   if (!supabase) throw new Error('Supabase not configured');
   // Same reasoning as every other insert in this file — org_members_manage_business_contacts
   // checks is_org_member(organization_id), which is always false for NULL.
-  const payload: Partial<BusinessContact> = { ...contact, organization_id: NOKAEL_ORG_ID };
+  const payload: Partial<BusinessContact> = { ...contact, organization_id: getActiveOrgId() };
 
   const { data, error } = await supabase
     .from('business_contacts')
@@ -490,6 +490,9 @@ export interface Job {
 
   // Pricing
   price_aed?: number | null;
+  // ISO 4217 code for price_aed / driver_payout_aed (legacy column names;
+  // the amount is in the job's company currency).
+  currency?: string | null;
   // Per-job billing state for business accounts — reuses price_aed instead
   // of a parallel invoices ledger that could drift from the job record.
   // Meaningless (stays 'unbilled') for one-off jobs with no business_id.
@@ -617,7 +620,7 @@ export const createJob = async (jobData: Partial<Job>): Promise<Job> => {
   // the row for everyone — including the org owner — since
   // is_org_member(NULL) is always false. Caller-provided organization_id
   // (e.g. a future multi-tenant caller) takes precedence over the default.
-  const payload: Partial<Job> = { organization_id: NOKAEL_ORG_ID, ...jobData };
+  const payload: Partial<Job> = { organization_id: getActiveOrgId(), ...jobData };
 
   const { data, error } = await supabase
     .from('jobs')
@@ -662,8 +665,8 @@ export const createJobFromQuote = async (
   const jobPayload: Partial<Job> = {
     // Prefer the quote's own organization_id (set at submission time by
     // submitQuoteRequest) so a converted job stays in the same tenant as
-    // its source quote; fall back to the single-tenant default otherwise.
-    organization_id: quote.organization_id || NOKAEL_ORG_ID,
+    // its source quote; fall back to the active tenant otherwise.
+    organization_id: quote.organization_id || getActiveOrgId(),
     quote_id: quote.id,
     source: 'quote',
     sender_name: quote.name,
@@ -1454,7 +1457,7 @@ export const submitDriverApplication = async (data: Driver): Promise<Driver> => 
     // lets this through regardless, but without organization_id the row
     // is stuck — org_members_manage_drivers UPDATE calls from the
     // dashboard (approve/reject, tiering, PIN, status) will 403 forever.
-    organization_id: NOKAEL_ORG_ID,
+    organization_id: getActiveOrgId(),
   };
 
   // The client-side Driver object keeps the original shape for UI use.
@@ -1485,7 +1488,7 @@ export const uploadDriverDocument = async (data: DriverDocument): Promise<void> 
   // Same reasoning as submitDriverApplication above: without
   // organization_id, org_members_manage_driver_documents will hide/block
   // this row for the dashboard even though the public insert succeeded.
-  const payload: DriverDocument = { ...data, organization_id: NOKAEL_ORG_ID };
+  const payload: DriverDocument = { ...data, organization_id: getActiveOrgId() };
   const { error } = await supabase.from('driver_documents').insert([payload]);
   if (error) throw error;
 };

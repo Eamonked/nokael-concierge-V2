@@ -17,6 +17,7 @@ import {
   type JobWithDriver
 } from '../../lib/supabase';
 import { getCurrentUserOrg, type OrgRole } from '../../lib/team';
+import { fetchMemberTenant, setActiveTenant } from '../../lib/tenant';
 
 /**
  * Owns the dashboard's server-backed state: auth/session check, org context,
@@ -97,6 +98,23 @@ export function useDashboardData() {
               await supabase?.auth.signOut();
               navigate('/login?reason=no_access');
               return;
+            }
+            // The member's company drives currency, time zone, regions and
+            // the organization_id stamped on everything created here.
+            const tenant = await fetchMemberTenant(org.orgId).catch(() => null);
+            if (!isMounted) return;
+            if (tenant) {
+              setActiveTenant(tenant);
+              // A company created through onboarding that hasn't finished it:
+              // send its owner/admins back to setup. (Orgs that predate
+              // onboarding have no settings.onboarding and are never redirected.)
+              const onboarding = tenant.settings.onboarding;
+              let skipped = false;
+              try { skipped = sessionStorage.getItem('nk_onboarding_skipped') === org.orgId; } catch { /* storage blocked */ }
+              if (onboarding && !onboarding.completed_at && !skipped && (org.role === 'owner' || org.role === 'admin')) {
+                navigate('/onboarding');
+                return;
+              }
             }
             setOrgId(org.orgId);
             setCurrentRole(org.role);

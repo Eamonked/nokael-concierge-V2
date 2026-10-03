@@ -16,11 +16,15 @@ const DriverApplication = lazy(() => import('./pages/DriverApplication'));
 const About = lazy(() => import('./pages/About'));
 const Track = lazy(() => import('./pages/Track'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const TenantPublic = lazy(() => import('./pages/tenant/TenantPublic'));
+const Onboarding = lazy(() => import('./pages/Onboarding'));
 
 import { DubaiLanding, AbuDhabiLanding, DocumentLanding, SparePartsLanding } from './pages/LandingPages';
 import { TermsAndConditions, PrivacyPolicy } from './pages/Legal';
 import { captureUTMs, trackPageView } from './lib/analytics';
 import { ErrorBoundary } from 'react-error-boundary';
+import { TenantUrlSync } from './context/TenantContext';
+import { customDomainHost, platformUrl } from './lib/tenant';
 import { WHATSAPP_NUMBER } from './constants';
 import { MessageSquare } from 'lucide-react';
 import { SEO_METADATA, DEFAULT_METADATA } from '../seo/metadata';
@@ -120,6 +124,8 @@ function TitleManager() {
   const { pathname } = useLocation();
 
   useEffect(() => {
+    // Other companies' pages set their own title (TenantPublic).
+    if (pathname.startsWith('/c/')) return;
     const applyTitle = (lng: string) => {
       // Standardize path: remove trailing slash
       const urlPath = pathname === "/" ? "/" : pathname.replace(/\/$/, "");
@@ -146,10 +152,43 @@ function TitleManager() {
   return null;
 }
 
+// Staff pages never render on a company's domain (the server redirects too).
+const STAFF_PATHS = ['/dashboard', '/admin', '/login', '/accept-invite', '/onboarding'];
+
+function CompanyDomainApp({ host }: { host: string }) {
+  const { pathname, search } = useLocation();
+  const isStaff = STAFF_PATHS.some(p => pathname === p || pathname.startsWith(`${p}/`));
+  useEffect(() => {
+    if (isStaff) window.location.replace(`${platformUrl()}${pathname}${search}`);
+  }, [isStaff, pathname, search]);
+  if (isStaff) return <PageLoader />;
+  return (
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <Suspense fallback={<PageLoader />}>
+        <TenantPublic domain={host} />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
 export default function App() {
+  // A company's own domain (book.acme.ug): the whole site is that company's
+  // public pages at the root, without Nokael's header, footer or pages.
+  const domainHost = customDomainHost();
+  if (domainHost) {
+    return (
+      <Router>
+        <LanguageDirectionManager />
+        <ScrollToTop />
+        <CompanyDomainApp host={domainHost} />
+      </Router>
+    );
+  }
+
   return (
     <Router>
       <LanguageDirectionManager />
+      <TenantUrlSync />
       <ScrollToTop />
       <UTMCapture />
       <PageViewTracker />
@@ -181,6 +220,9 @@ export default function App() {
               <Route path="/admin" element={<Dashboard />} />
               <Route path="/login" element={<Login />} />
               <Route path="/accept-invite" element={<AcceptInvite />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              {/* Other companies' public booking sites */}
+              <Route path="/c/:slug/*" element={<TenantPublic />} />
               {/* 404 — must be last */}
               <Route path="*" element={<NotFound />} />
             </Routes>

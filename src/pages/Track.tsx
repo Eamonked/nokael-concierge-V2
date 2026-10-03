@@ -7,6 +7,7 @@ import TrackSearchBar from './track/TrackSearchBar';
 import { TrackSearchingState, TrackNotFoundState } from './track/TrackEmptyStates';
 import TrackJobResult from './track/TrackJobResult';
 import TrackQuoteResult from './track/TrackQuoteResult';
+import { tenantDisplayName } from '../lib/tenant';
 
 export default function Track() {
   const { t } = useTranslation('tracking');
@@ -33,12 +34,12 @@ export default function Track() {
     : null;
 
   // Build WhatsApp inquiry link
-  // ⚠ waSupportText is a WhatsApp message to Nokael's own dispatch number, not the
+  // ⚠ waSupportText is a WhatsApp message to the company's own dispatch number, not the
   // customer — decision (A) "keep fixed" applies, left as a plain template literal,
   // not wired to t().
   const currentTrackingId = result?.trackingId || queryInput;
   const waSupportText = encodeURIComponent(
-    `Hi Nokael Dispatch, I am tracking manifest ${currentTrackingId}${activeJob ? ` (${activeJob.pickup_emirate} ➔ ${activeJob.delivery_emirate})` : ''
+    `Hi ${tenantDisplayName()} Dispatch, I am tracking manifest ${currentTrackingId}${activeJob ? ` (${activeJob.pickup_emirate} ➔ ${activeJob.delivery_emirate})` : ''
     } and would like a live status update.`
   );
 

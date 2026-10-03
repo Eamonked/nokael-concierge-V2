@@ -24,7 +24,7 @@
     "managerLabel": "مدير الحساب",
     "managerPlaceholder": "اسمك",
     "whatsappLabel": "واتساب",
-    "whatsappPlaceholder": "+971",
+    "whatsappPlaceholder": "{{dialCode}}",
     "emailLabel": "البريد الإلكتروني المهني",
     "emailPlaceholder": "name@firm.com"
   },

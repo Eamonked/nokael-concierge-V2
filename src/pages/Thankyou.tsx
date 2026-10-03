@@ -4,7 +4,8 @@ import { CheckCircle2, Loader2, MessageSquare } from 'lucide-react';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { trackFormSubmission, trackWhatsAppClick } from '../lib/analytics';
-import { WHATSAPP_NUMBER } from '../constants';
+import { useTenant } from '../context/TenantContext';
+import { waHref } from '../lib/tenant';
 
 /**
  * ThankYou.tsx
@@ -31,13 +32,15 @@ import { WHATSAPP_NUMBER } from '../constants';
  */
 export default function ThankYou() {
   const { t } = useTranslation('thankyou');
+  const tenant = useTenant();
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const [countdown, setCountdown] = React.useState(3);
   const hasFired = React.useRef(false);
 
   const waMessage = searchParams.get('wa') || '';
-  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}${waMessage ? `?text=${waMessage}` : ''}`;
+  // '' when the company has no WhatsApp number: no auto-redirect, no button.
+  const waUrl = waHref(waMessage || undefined, tenant) ?? '';
 
   // Fire conversion pixel exactly once on mount
   React.useEffect(() => {
@@ -49,6 +52,7 @@ export default function ThankYou() {
       trackFormSubmission(userData);
 
       // Auto-redirect to WhatsApp after a delay
+      if (!waUrl) return;
       const timer = setTimeout(() => {
         window.location.href = waUrl;
       }, 2500);
@@ -77,7 +81,7 @@ export default function ThankYou() {
         </p>
 
         {/* Action Button */}
-        <a
+        {waUrl && <a
           href={waUrl}
           target="_blank"
           rel="noopener noreferrer"
@@ -86,7 +90,7 @@ export default function ThankYou() {
         >
           <MessageSquare className="w-4 h-4 fill-brand-bg group-hover:scale-110 transition-transform" />
           <span>{t('connectWithDispatcher')}</span>
-        </a>
+        </a>}
 
         <p className="mt-8 text-[9px] text-brand-muted uppercase tracking-[0.3em] font-bold leading-relaxed">
           {t('footerNote')}

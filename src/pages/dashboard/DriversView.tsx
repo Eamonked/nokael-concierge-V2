@@ -13,6 +13,7 @@ import {
   driversToVCard,
   downloadText,
 } from '../../lib/driverContact';
+import { getActiveTenant } from '../../lib/tenant';
 
 interface DriversViewProps {
   driverPoolSummary: DriverPoolSummary;
@@ -110,7 +111,9 @@ export function DriversView({
       <div className="enterprise-actions">
         <div>
           <span className="record-count">
-            {totalFleet} agents across 7 emirates
+            {totalFleet} agents{getActiveTenant().settings.regions.length > 1
+              ? ` across ${getActiveTenant().settings.regions.length} ${getActiveTenant().settings.region_label.toLowerCase()}s`
+              : ''}
           </span>
         </div>
         <div>

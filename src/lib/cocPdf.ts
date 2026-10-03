@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { supabase } from './supabase';
+import { formatDateTime, tenantDisplayName, getActiveTenant } from './tenant';
 
 // ==========================================
 // Chain of Custody certificate (staff copy)
@@ -37,8 +38,9 @@ export interface CocJobData {
   client_delivery_at?: string | null;
 }
 
-const formatUAETime = (date: string | Date | null | undefined): string =>
-  date ? new Intl.DateTimeFormat('en-AE', { timeZone: 'Asia/Dubai', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(date)) : '';
+// In the company's own time zone and name (Asia/Dubai / Nokael for Nokael).
+const formatUAETime = (date: string | Date | null | undefined): string => formatDateTime(date ?? null);
+const brand = () => tenantDisplayName();
 
 export interface DriverContact {
   full_name: string | null;
@@ -87,13 +89,13 @@ export function downloadCocPdf(job: CocJobData, driver: DriverContact | null, po
   doc.setTextColor('#ffffff');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
-  doc.text('NOKAEL', M, 18);
+  doc.text(brand().toUpperCase(), M, 18);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.text('CHAIN OF CUSTODY CERTIFICATE', M, 26);
   doc.setFontSize(9);
   doc.text(`Job ref  ${job.job_ref ?? ''}`, W - M, 18, { align: 'right' });
-  doc.text(`Issued  ${formatUAETime(new Date())} (UAE)`, W - M, 26, { align: 'right' });
+  doc.text(`Issued  ${formatUAETime(new Date())} (${getActiveTenant().settings.timezone === 'Asia/Dubai' ? 'UAE' : getActiveTenant().settings.timezone})`, W - M, 26, { align: 'right' });
 
   let y = 52;
   const label = (text: string, x: number, yy: number) => {
@@ -142,7 +144,7 @@ export function downloadCocPdf(job: CocJobData, driver: DriverContact | null, po
   y += 6;
   value(`${job.item_type} · ${job.urgency}`.toUpperCase(), M, y);
   const vehicle = driver ? [driver.vehicle_make, driver.vehicle_model, driver.vehicle_plate].filter(Boolean).join(' ') : '';
-  const h5 = value(`${driver?.full_name || 'Nokael courier'}${vehicle ? `\n${vehicle}` : ''}`, col2, y);
+  const h5 = value(`${driver?.full_name || `${brand()} courier`}${vehicle ? `\n${vehicle}` : ''}`, col2, y);
   y += Math.max(5, h5) + 10;
 
   // Timeline
@@ -158,11 +160,11 @@ export function downloadCocPdf(job: CocJobData, driver: DriverContact | null, po
   const pickupFix = fixFor(pod, ['driver_pickup', 'client_pickup']);
   const deliveryFix = fixFor(pod, ['driver_delivery', 'client_delivery']);
   const verifiedBy = (fix: PodFix | null, codeText: string) =>
-    fix?.method === 'ops_override' ? 'Confirmed by Nokael operations' : codeText;
+    fix?.method === 'ops_override' ? `Confirmed by ${brand()} operations` : codeText;
 
   type Event = { label: string; at?: string | null; note: string; fix?: PodFix | null; address?: [number | null, number | null] };
   const events: Event[] = [
-    { label: 'Job booked', at: job.created_at, note: 'Manifest logged with Nokael dispatch' },
+    { label: 'Job booked', at: job.created_at, note: `Manifest logged with ${brand()} dispatch` },
     { label: 'Package ready at origin', at: job.sender_ready_at, note: 'Sender confirmed package prepared' },
     { label: 'Driver arrived at pickup', at: job.driver_arrived_pickup_at, note: job.pickup_location },
     {
@@ -246,9 +248,9 @@ export function downloadCocPdf(job: CocJobData, driver: DriverContact | null, po
   doc.setTextColor(muted);
   doc.text('Each handover was confirmed with a single-use code held by the party receiving custody.', W / 2, 276, { align: 'center' });
   doc.text('GPS is the driver\'s phone position when the handover was confirmed.', W / 2, 280, { align: 'center' });
-  doc.text(`Nokael Chain of Custody · ${job.job_ref ?? ''} · issued by Nokael dispatch`, W / 2, 285, { align: 'center' });
+  doc.text(`${brand()} Chain of Custody · ${job.job_ref ?? ''} · issued by ${brand()} dispatch`, W / 2, 285, { align: 'center' });
 
-  doc.save(`Nokael-COC-${job.job_ref ?? 'job'}.pdf`);
+  doc.save(`${brand().replace(/[^A-Za-z0-9]+/g, '-')}-COC-${job.job_ref ?? 'job'}.pdf`);
 }
 
 /**

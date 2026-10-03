@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { submitBusinessInquiry, type BusinessInquiry } from '../../lib/supabase';
 import { getStoredUTMs } from '../../lib/analytics';
-import { BUSINESS_ACCOUNT_WA_MESSAGE } from '../../constants';
+import { businessAccountWaMessage, tenantBasePath } from '../../lib/tenant';
 
 export function useBusinessInquiryForm() {
   const { t } = useTranslation('businessInquiry');
@@ -34,11 +34,11 @@ export function useBusinessInquiryForm() {
       } as BusinessInquiry);
 
       setIsSuccess(true);
-      // BUSINESS_ACCOUNT_WA_MESSAGE goes to Nokael's own dispatch number, not
+      // The business-account message goes to the company's own dispatch number, not
       // the customer — decision (A) "keep fixed" applies (see Phase 7 of the
       // customer-facing i18n plan), so this stays a plain constant, not wired to t().
-      const message = encodeURIComponent(BUSINESS_ACCOUNT_WA_MESSAGE);
-      setTimeout(() => navigate(`/thank-you?wa=${message}`, {
+      const message = encodeURIComponent(businessAccountWaMessage());
+      setTimeout(() => navigate(`${tenantBasePath()}/thank-you?wa=${message}`, {
         state: {
           userData: {
             email: formData.email,

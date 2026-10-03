@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
+import { tenantBasePath } from '../../lib/tenant';
 import {
   getTrackingInfo,
   getJobById,
@@ -58,7 +59,7 @@ export function useTrackingSearch() {
     } catch (err) {
       // Completed more than 24 h ago: the job can't be viewed any more; book a new one.
       if (err instanceof LinkExpiredError) {
-        navigate('/get-quote?expired=1', { replace: true });
+        navigate(`${tenantBasePath()}/get-quote?expired=1`, { replace: true });
         return;
       }
       console.error('[Nokael Track] Search error:', err);

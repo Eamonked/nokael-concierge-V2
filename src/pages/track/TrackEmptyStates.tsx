@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import { AlertCircle, Loader2, MessageSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { WHATSAPP_NUMBER } from '../../constants';
+import { tenantWhatsApp } from '../../lib/tenant';
 import { trackWhatsAppClick } from '../../lib/analytics';
 
 interface TrackSearchingStateProps {
@@ -60,7 +60,7 @@ export function TrackNotFoundState({ queryInput, waSupportText }: TrackNotFoundS
       </p>
       <div className="flex flex-wrap items-center justify-center gap-4">
         <a
-          href={`https://wa.me/${WHATSAPP_NUMBER}?text=${waSupportText}`}
+          href={`https://wa.me/${tenantWhatsApp() ?? ''}?text=${waSupportText}`}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => trackWhatsAppClick('track_not_found')}

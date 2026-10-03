@@ -96,28 +96,31 @@ export function createPoolRouter() {
   // Mirrors exactly how an external tenant's backend would call it.
   router.post("/jobs", async (req: PoolRequest, res: Response) => {
     const client = getServiceClient()!;
+    const body = req.body ?? {};
     const {
       sender_name,
       sender_phone,
       recipient_name,
       recipient_phone,
-      pickup_emirate,
       pickup_location,
-      delivery_emirate,
       delivery_location,
       item_type,
       urgency,
       notes,
-    } = req.body ?? {};
+    } = body;
+    // pickup_region / delivery_region are the country-neutral names; the
+    // *_emirate spellings stay accepted for existing (UAE) integrations.
+    const pickup_emirate = body.pickup_region ?? body.pickup_emirate;
+    const delivery_emirate = body.delivery_region ?? body.delivery_emirate;
 
     const required = {
       sender_name,
       sender_phone,
       recipient_name,
       recipient_phone,
-      pickup_emirate,
+      pickup_region: pickup_emirate,
       pickup_location,
-      delivery_emirate,
+      delivery_region: delivery_emirate,
       delivery_location,
       item_type,
       urgency,
@@ -158,12 +161,13 @@ export function createPoolRouter() {
     }
   });
 
-  // GET /api/pool/drivers/match?emirate=Dubai
+  // GET /api/pool/drivers/match?region=London   (?emirate= still accepted)
   // Returns the single best available driver from the calling org's own
   // pool, or null if none. Does not assign the driver to any job.
   router.get("/drivers/match", async (req: PoolRequest, res: Response) => {
     const client = getServiceClient()!;
-    const emirate = typeof req.query.emirate === "string" ? req.query.emirate : null;
+    const regionParam = req.query.region ?? req.query.emirate;
+    const emirate = typeof regionParam === "string" ? regionParam : null;
 
     try {
       const { data, error } = await client.rpc("match_driver_for_org", {

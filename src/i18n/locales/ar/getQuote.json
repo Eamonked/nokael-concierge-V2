@@ -3,7 +3,7 @@
   "subtitle": "أرسل المسار ونوع الشحنة والموعد النهائي. سنؤكد لك أسرع خيار متاح.",
   "stepper": {
     "stepLabel": "الخطوة {{step}} / {{total}} — {{label}}",
-    "estFrom": "بدءًا من {{price}} درهم تقريبًا",
+    "estFrom": "بدءًا من {{price}} {{currencyAr}} تقريبًا",
     "goToStep": "العودة إلى {{label}}",
     "labels": {
       "route": "المسار",
@@ -15,7 +15,7 @@
   "step1": {
     "pickupTitle": "الاستلام",
     "deliveryTitle": "التسليم",
-    "emirateLabel": "الإمارة",
+    "emirateLabel": "{{regionLabelAr}}",
     "specificLocationLabel": "الموقع التفصيلي",
     "pickupPlaceholder": "مثال: JLT، مجمع A، برج 1",
     "deliveryPlaceholder": "مثال: جزيرة الريم، برج البوابة",
@@ -58,7 +58,7 @@
         "desc": "الحجز المسبق لوقت محدد"
       }
     },
-    "estimateNote": "التقدير يبدأ من {{price}} درهم لهذا الاختيار"
+    "estimateNote": "التقدير يبدأ من {{price}} {{currencyAr}} لهذا الاختيار"
   },
   "step4": {
     "businessLabel": "أعمال",
@@ -89,7 +89,7 @@
     "getMyQuote": "احصل على عرض السعر"
   },
   "footer": {
-    "pricingNote": "نفس اليوم {{sameDay}} درهم • مخصص {{dedicated}} درهم • الرد خلال ~5 دقائق"
+    "pricingNote": "يبدأ من {{sameDay}} {{currencyAr}} • السعر النهائي يُؤكَّد قبل الإرسال • الرد خلال ~5 دقائق"
   },
   "errors": {
     "dispatchErrorTitle": "خطأ في الإرسال",

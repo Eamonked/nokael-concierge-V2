@@ -10,11 +10,14 @@ import QuoteStepItem from './get-quote/QuoteStepItem';
 import QuoteStepUrgency from './get-quote/QuoteStepUrgency';
 import QuoteStepContact from './get-quote/QuoteStepContact';
 import QuoteSidebar from './get-quote/QuoteSidebar';
-import { PRICE_TIER_SAME_DAY, PRICE_TIER_DEDICATED, WHATSAPP_NUMBER, PHONE_NUMBER } from '../constants';
+import { useTenant } from '../context/TenantContext';
+import { waHref, telHref, tenantPriceTiers } from '../lib/tenant';
 import { trackWhatsAppClick } from '../lib/analytics';
 
 export default function GetQuote() {
   const { t } = useTranslation('getQuote');
+  const tenant = useTenant();
+  const tiers = tenantPriceTiers(tenant);
   const formTopRef = React.useRef<HTMLDivElement>(null);
   // ?expired=1: arrived from a tracking link that closed 24 h after delivery.
   const [searchParams] = useSearchParams();
@@ -46,11 +49,11 @@ export default function GetQuote() {
               </p>
               <p className="mt-2 text-sm text-brand-muted leading-relaxed">{t('expiredLink.body')}</p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <a href={`tel:${PHONE_NUMBER}`} className="inline-flex items-center gap-2 rounded-xl border border-brand-field-border bg-brand-surface px-4 py-2 text-sm font-semibold">
+                <a href={telHref(tenant)} className="inline-flex items-center gap-2 rounded-xl border border-brand-field-border bg-brand-surface px-4 py-2 text-sm font-semibold">
                   <Phone className="w-4 h-4" /> {t('expiredLink.call')}
                 </a>
                 <a
-                  href={`https://wa.me/${WHATSAPP_NUMBER.replace(/\D/g, '')}?text=${encodeURIComponent(t('expiredLink.whatsappText'))}`}
+                  href={waHref(t('expiredLink.whatsappText'), tenant)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 rounded-xl border border-brand-field-border bg-brand-surface px-4 py-2 text-sm font-semibold"
@@ -138,11 +141,11 @@ export default function GetQuote() {
                 )}
               </button>
             </div>
-            {step === 4 && (
+            {step === 4 && tiers && (
               <p className="mt-6 text-[9px] text-brand-muted uppercase tracking-[0.2em] text-center font-bold">
                 {t('footer.pricingNote', {
-                  sameDay: PRICE_TIER_SAME_DAY || 280,
-                  dedicated: PRICE_TIER_DEDICATED || 380,
+                  sameDay: tiers.sameDay,
+                  dedicated: tiers.dedicated,
                 })}
               </p>
             )}
@@ -151,7 +154,7 @@ export default function GetQuote() {
           {/* The sticky WhatsApp CTA is hidden on this page and the sidebar is desktop-only,
               so small screens get a quiet inline fallback instead. */}
           <a
-            href={`https://wa.me/${WHATSAPP_NUMBER}`}
+            href={waHref(undefined, tenant)}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackWhatsAppClick('quote_inline_mobile')}

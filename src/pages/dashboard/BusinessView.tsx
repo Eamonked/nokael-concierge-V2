@@ -12,6 +12,7 @@ import {
   isRenewalDueSoon,
 } from './selectors';
 import { useCanWrite } from './permissions';
+import { getActiveTenant, formatMoney } from '../../lib/tenant';
 
 interface BusinessViewProps {
   filteredBusiness: BusinessInquiry[];
@@ -114,7 +115,7 @@ export function BusinessView({
       {/* Header Actions */}
       <div className="enterprise-actions mb-6">
         <span className="record-count">
-          {stats.totalAccounts} managed accounts · AED {Math.floor(stats.monthlyVolume * 45 / 1000)}k monthly revenue
+          {stats.totalAccounts} managed accounts · {getActiveTenant().settings.currency} {Math.floor(stats.monthlyVolume * 45 / 1000)}k monthly revenue
         </span>
         <div className="flex gap-3">
           <button className="outline-button">Export CSV</button>
@@ -148,7 +149,7 @@ export function BusinessView({
           onClick={() => setFilter('Outstanding')}
         >
           <span>Outstanding</span>
-          <strong>AED {stats.outstandingAmount / 1000}k</strong>
+          <strong>{getActiveTenant().settings.currency} {stats.outstandingAmount / 1000}k</strong>
           <small>{stats.outstandingAccounts} accounts require collection</small>
         </button>
         <button
@@ -220,7 +221,7 @@ export function BusinessView({
             const bizJobs = filterJobsByBusiness(jobs, business.id);
             const activeJobsCount = getActiveJobCountForBusiness(jobs, business.id);
             const financials = getBusinessFinancials(bizJobs);
-            const outstandingLabel = `AED ${financials.outstanding.toLocaleString()}`;
+            const outstandingLabel = formatMoney(financials.outstanding);
             const dueLabel = financials.overdueCount > 0
               ? `Overdue${financials.overdueCount > 1 ? ` (${financials.overdueCount})` : ''}`
               : financials.outstanding > 0 && financials.nextDueDate

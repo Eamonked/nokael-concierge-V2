@@ -3,7 +3,7 @@
   "subtitle": "Send the route, item type, and deadline. We’ll confirm the fastest available option.",
   "stepper": {
     "stepLabel": "Step {{step}} / {{total}} — {{label}}",
-    "estFrom": "Est. from AED {{price}}",
+    "estFrom": "Est. from {{currency}} {{price}}",
     "goToStep": "Go back to {{label}}",
     "labels": {
       "route": "Route",
@@ -15,7 +15,7 @@
   "step1": {
     "pickupTitle": "Pickup",
     "deliveryTitle": "Delivery",
-    "emirateLabel": "Emirate",
+    "emirateLabel": "{{regionLabel}}",
     "specificLocationLabel": "Specific Location",
     "pickupPlaceholder": "e.g. JLT Cluster A, Tower 1",
     "deliveryPlaceholder": "e.g. Al Reem Island, Gate Tower",
@@ -58,7 +58,7 @@
         "desc": "Pre-book for specific time"
       }
     },
-    "estimateNote": "Estimated from AED {{price}} for this selection"
+    "estimateNote": "Estimated from {{currency}} {{price}} for this selection"
   },
   "step4": {
     "businessLabel": "Business",
@@ -89,7 +89,7 @@
     "getMyQuote": "Get My Quote"
   },
   "footer": {
-    "pricingNote": "Same-Day AED {{sameDay}} • Dedicated AED {{dedicated}} • Response in ~5 mins"
+    "pricingNote": "From {{currency}} {{sameDay}} • Final price confirmed before dispatch • Response in ~5 mins"
   },
   "errors": {
     "dispatchErrorTitle": "Dispatch Error",

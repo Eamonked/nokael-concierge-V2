@@ -19,6 +19,7 @@ import { DateRangeSelector, useDateRange } from './components/DateRangeSelector'
 import { Status, type StatusKind } from './components/StatusBadge';
 import { StatCard } from './components/StatCard';
 import { JobOperations, JOB_CONTROLS_ID } from './components/JobOperations';
+import { formatMoney } from '../../lib/tenant';
 
 /* ------------------------------------------------------------------ */
 /* Jobs workspace — list + active card on the left, job detail on the  */
@@ -368,7 +369,7 @@ function JobDetailPanel({
           <small>{job.scheduled_pickup_at ? formatDate(job.scheduled_pickup_at) : job.created_at ? formatDate(job.created_at) : '—'}</small>
           <b>{job.pickup_emirate}</b>
         </div>
-        <span className="jw-duration">{job.price_aed != null ? `AED ${job.price_aed}` : job.item_type}</span>
+        <span className="jw-duration">{job.price_aed != null ? formatMoney(job.price_aed, { currency: job.currency }) : job.item_type}</span>
         <div className="end">
           <small>{job.client_delivery_at ? formatDate(job.client_delivery_at) : '—'}</small>
           <b>{job.delivery_emirate}</b>

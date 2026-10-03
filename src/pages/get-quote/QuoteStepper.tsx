@@ -5,7 +5,7 @@ import { itemTypes, urgencyLevels, STEP_LABEL_KEYS } from './constants';
 
 interface QuoteStepperProps {
   step: number;
-  estimatedPrice: number;
+  estimatedPrice: number | null;
   pickupEmirate: string;
   deliveryEmirate: string;
   itemType?: string;
@@ -24,7 +24,7 @@ export default function QuoteStepper({ step, estimatedPrice, pickupEmirate, deli
           <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-muted">
             {t('stepper.stepLabel', { step, total: 4, label: t(STEP_LABEL_KEYS[step - 1]) })}
           </p>
-          {step > 1 && (
+          {step > 1 && estimatedPrice != null && (
             <p className="text-[10px] font-bold uppercase tracking-widest text-brand-neon">
               {t('stepper.estFrom', { price: estimatedPrice })}
             </p>

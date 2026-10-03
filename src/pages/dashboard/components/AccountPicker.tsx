@@ -2,7 +2,7 @@ import React from 'react';
 import { Check, Plus, Loader2, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase, type BusinessInquiry } from '../../../lib/supabase';
-import { NOKAEL_ORG_ID } from '../../../constants';
+import { getActiveOrgId } from '../../../lib/tenant';
 import './AccountPicker.css';
 
 /**
@@ -111,7 +111,7 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({ accounts, value, o
       .insert([{
         ...d,
         status: 'active',
-        organization_id: NOKAEL_ORG_ID,
+        organization_id: getActiveOrgId(),
         corporate_code: `NOK-${Math.floor(1000 + Math.random() * 9000)}`,
       }])
       .select()

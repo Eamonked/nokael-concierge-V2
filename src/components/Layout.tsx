@@ -290,8 +290,10 @@ import { StickyCTA } from './StickyCTA';
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
-  // App screens (dashboard + its sign-in / set-password pages) have their own chrome.
-  const isDashboard = ['/dashboard', '/admin', '/login', '/accept-invite'].includes(location.pathname);
+  // App screens (dashboard + its sign-in / set-password pages) have their own
+  // chrome, and so do other companies' public pages (/c/<slug>/…, TenantLayout).
+  const isDashboard = ['/dashboard', '/admin', '/login', '/accept-invite', '/onboarding'].includes(location.pathname)
+    || location.pathname.startsWith('/c/');
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg selection:bg-brand-neon selection:text-brand-bg">

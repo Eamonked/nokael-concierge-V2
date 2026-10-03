@@ -12,7 +12,7 @@ import {
 import { cn } from '../../lib/utils';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
-import { WHATSAPP_NUMBER } from '../../constants';
+import { tenantWhatsApp, tenantDisplayName } from '../../lib/tenant';
 import { trackWhatsAppClick } from '../../lib/analytics';
 import type { JobWithDriver } from '../../lib/supabase';
 import { getItemMeta } from './statusConfig';
@@ -113,18 +113,18 @@ export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackP
   }
 
   // Contextual WhatsApp link
-  // ⚠ contextualWaMsg is a WhatsApp message to Nokael's own dispatch number, not the
+  // ⚠ contextualWaMsg is a WhatsApp message to the company's own dispatch number, not the
   // customer — decision (A) "keep fixed" applies, so this stays a plain template
   // literal and is NOT wired to t().
-  let contextualWaMsg = `Hi Nokael Dispatch, I am tracking manifest ${currentTrackingId}${activeJob ? ` (${activeJob.pickup_emirate} ➔ ${activeJob.delivery_emirate})` : ''} and would like a live status update.`;
+  let contextualWaMsg = `Hi ${tenantDisplayName()} Dispatch, I am tracking manifest ${currentTrackingId}${activeJob ? ` (${activeJob.pickup_emirate} ➔ ${activeJob.delivery_emirate})` : ''} and would like a live status update.`;
   if (isCancelled) {
-    contextualWaMsg = `Hi Nokael Dispatch, I am inquiring regarding the cancelled manifest ${activeJob.job_ref || currentTrackingId} (${activeJob.pickup_emirate} to ${activeJob.delivery_emirate}). Reason cited: "${activeJob.cancellation_reason || 'Manual Cancellation'}". Please advise on parcel recovery or re-dispatch status.`;
+    contextualWaMsg = `Hi ${tenantDisplayName()} Dispatch, I am inquiring regarding the cancelled manifest ${activeJob.job_ref || currentTrackingId} (${activeJob.pickup_emirate} to ${activeJob.delivery_emirate}). Reason cited: "${activeJob.cancellation_reason || 'Manual Cancellation'}". Please advise on parcel recovery or re-dispatch status.`;
   } else if (isReturned) {
-    contextualWaMsg = `Hi Nokael Dispatch, I am inquiring regarding manifest ${activeJob.job_ref || currentTrackingId} (${activeJob.pickup_emirate} to ${activeJob.delivery_emirate}), which shows as returned to sender. Please advise on re-dispatch or recovery options.`;
+    contextualWaMsg = `Hi ${tenantDisplayName()} Dispatch, I am inquiring regarding manifest ${activeJob.job_ref || currentTrackingId} (${activeJob.pickup_emirate} to ${activeJob.delivery_emirate}), which shows as returned to sender. Please advise on re-dispatch or recovery options.`;
   } else if (isCompleted) {
-    contextualWaMsg = `Hi Nokael Dispatch, I am following up regarding completed manifest ${activeJob.job_ref || currentTrackingId} (${activeJob.pickup_emirate} to ${activeJob.delivery_emirate}).`;
+    contextualWaMsg = `Hi ${tenantDisplayName()} Dispatch, I am following up regarding completed manifest ${activeJob.job_ref || currentTrackingId} (${activeJob.pickup_emirate} to ${activeJob.delivery_emirate}).`;
   } else if (isInTransit) {
-    contextualWaMsg = `Hi Nokael Dispatch, I am tracking live in-transit consignment ${activeJob.job_ref || currentTrackingId} between ${activeJob.pickup_emirate} and ${activeJob.delivery_emirate}.`;
+    contextualWaMsg = `Hi ${tenantDisplayName()} Dispatch, I am tracking live in-transit consignment ${activeJob.job_ref || currentTrackingId} between ${activeJob.pickup_emirate} and ${activeJob.delivery_emirate}.`;
   }
 
   const itemMeta = getItemMeta(activeJob.item_type);
@@ -210,7 +210,7 @@ export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackP
           anyone can pull a COC record (with pilot + GPS detail) from. */}
       <div className="pt-2 space-y-2">
         <a
-          href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(contextualWaMsg)}`}
+          href={`https://wa.me/${tenantWhatsApp() ?? ''}?text=${encodeURIComponent(contextualWaMsg)}`}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => trackWhatsAppClick('track_support_click', {

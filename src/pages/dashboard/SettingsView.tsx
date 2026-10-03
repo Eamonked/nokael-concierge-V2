@@ -1,8 +1,13 @@
 import React from 'react';
-import { Settings as SettingsIcon, Building2, Bell, Globe, Moon, Sun } from 'lucide-react';
+import { Settings as SettingsIcon, Building2, Bell, Globe, Moon, Sun, Network, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AccountSettings } from './AccountSettings';
 import { PushSettingsCard } from './components/PushSettingsCard';
+import { CompaniesPanel } from './components/CompaniesPanel';
+import { DomainCard } from './components/DomainCard';
+import { getOnboardingMe, type OnboardingMe } from '../../lib/onboarding';
+import { findCountry } from '../../lib/countries';
 
 interface SettingsViewProps {
   theme: 'light' | 'dark';
@@ -12,13 +17,21 @@ interface SettingsViewProps {
   currentRole?: string | null;
 }
 
-type SettingsTab = 'organization' | 'notifications' | 'preferences';
+type SettingsTab = 'organization' | 'notifications' | 'preferences' | 'companies';
 
 export function SettingsView({ theme, onThemeChange, userEmail, orgId, currentRole }: SettingsViewProps) {
   const { t, i18n } = useTranslation('dashboard');
   const [activeTab, setActiveTab] = React.useState<SettingsTab>('organization');
   
   const canManageOrg = currentRole === 'owner' || currentRole === 'admin';
+  const navigate = useNavigate();
+  const [me, setMe] = React.useState<OnboardingMe | null>(null);
+  React.useEffect(() => {
+    if (!orgId) return;
+    getOnboardingMe().then(setMe).catch(() => setMe(null));
+  }, [orgId]);
+  const orgSettings = me?.org.settings ?? {};
+  const orgBranding = me?.org.branding ?? {};
 
   return (
     <>
@@ -70,6 +83,23 @@ export function SettingsView({ theme, onThemeChange, userEmail, orgId, currentRo
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" strokeWidth="1.5" fill="none" />
               </svg>
             </button>
+            {me?.isPlatformAdmin && (
+              <button
+                onClick={() => setActiveTab('companies')}
+                className={activeTab === 'companies' ? 'active' : ''}
+              >
+                <span className="settings-tab-icon">
+                  <Network size={16} />
+                </span>
+                <span>
+                  <b>Companies</b>
+                  <small>Onboard companies onto the platform</small>
+                </span>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                  <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                </svg>
+              </button>
+            )}
           </div>
 
           <div className="settings-content">
@@ -97,44 +127,55 @@ export function SettingsView({ theme, onThemeChange, userEmail, orgId, currentRo
                   <div className="settings-form-grid">
                     <div className="field">
                       <span>{t('settings.organization.companyName') || 'Company Name'}</span>
-                      <input type="text" placeholder="Nokael Logistics" disabled={!canManageOrg} />
+                      <input type="text" value={me?.org.name ?? ''} disabled />
                     </div>
                     <div className="field">
                       <span>{t('settings.organization.orgId') || 'Organization ID'}</span>
                       <input type="text" value={orgId || 'Loading...'} disabled />
                     </div>
                     <div className="field">
-                      <span>{t('settings.organization.industry') || 'Industry'}</span>
-                      <select disabled={!canManageOrg}>
-                        <option>Logistics & Transportation</option>
-                        <option>E-commerce</option>
-                        <option>Healthcare</option>
-                        <option>Retail</option>
-                        <option>Other</option>
-                      </select>
+                      <span>Country</span>
+                      <input type="text" value={findCountry(orgSettings.country)?.name ?? orgSettings.country ?? ''} disabled />
                     </div>
                     <div className="field">
-                      <span>{t('settings.organization.companySize') || 'Company Size'}</span>
-                      <select disabled={!canManageOrg}>
-                        <option>1-10 employees</option>
-                        <option>11-50 employees</option>
-                        <option>51-200 employees</option>
-                        <option>201+ employees</option>
-                      </select>
+                      <span>Currency · time zone</span>
+                      <input type="text" value={[orgSettings.currency, orgSettings.timezone].filter(Boolean).join(' · ')} disabled />
                     </div>
-                    <div className="field wide">
-                      <span>{t('settings.organization.address') || 'Business Address'}</span>
-                      <input type="text" placeholder="Street address, city, emirate" disabled={!canManageOrg} />
+                    <div className="field">
+                      <span>Support contact</span>
+                      <input type="text" value={orgBranding.support_phone || orgBranding.whatsapp || ''} disabled />
                     </div>
+                    <div className="field">
+                      <span>Job references</span>
+                      <input type="text" value={orgSettings.job_ref_prefix ? `${orgSettings.job_ref_prefix}-0001` : ''} disabled />
+                    </div>
+                    {me && (
+                      <div className="field wide">
+                        <span>Public booking page</span>
+                        <a href={me.publicUrl} target="_blank" rel="noopener noreferrer" className="onb-link">{me.publicUrl} <ExternalLink size={12} /></a>
+                      </div>
+                    )}
                   </div>
                   {canManageOrg && (
                     <div className="settings-form-footer">
-                      <button className="primary">
-                        {t('settings.organization.saveChanges') || 'Save Changes'}
+                      <button className="primary" onClick={() => navigate('/onboarding')}>
+                        Edit company profile
                       </button>
                     </div>
                   )}
                 </div>
+
+                {me && !me.isPlatformAdmin && (
+                  <div className="settings-form-card">
+                    <div className="settings-section-heading">
+                      <div>
+                        <h3>Your own domain</h3>
+                        <p>Serve your booking and tracking pages on your own address, e.g. book.yourcompany.com.</p>
+                      </div>
+                    </div>
+                    <DomainCard canEdit={canManageOrg} />
+                  </div>
+                )}
 
                 {canManageOrg && (
                   <div className="settings-audit-note">
@@ -324,6 +365,8 @@ export function SettingsView({ theme, onThemeChange, userEmail, orgId, currentRo
                 <AccountSettings />
               </>
             )}
+
+            {activeTab === 'companies' && me?.isPlatformAdmin && <CompaniesPanel />}
           </div>
         </div>
       </div>

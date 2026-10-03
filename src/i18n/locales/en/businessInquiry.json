@@ -24,7 +24,7 @@
     "managerLabel": "Account Manager",
     "managerPlaceholder": "Your Name",
     "whatsappLabel": "WhatsApp",
-    "whatsappPlaceholder": "+971",
+    "whatsappPlaceholder": "{{dialCode}}",
     "emailLabel": "Professional Email",
     "emailPlaceholder": "name@firm.com"
   },
