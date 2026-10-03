@@ -13,8 +13,8 @@
     "badgeDispatch": "الإرسال خلال 30 دقيقة",
     "stats": {
       "avgDispatch": { "label": "متوسط وقت الإرسال", "value": "2–5 دقائق" },
-      "sameDay": { "label": "نفس اليوم", "priceTemplate": "{{price}} د.إ" },
-      "dedicated": { "label": "مخصص", "priceTemplate": "{{price}} د.إ" },
+      "sameDay": { "label": "يبدأ من", "priceTemplate": "{{price}} د.إ" },
+      "dedicated": { "label": "مخصص", "priceTemplate": "حسب الطلب" },
       "tracking": { "label": "التتبع", "value": "GPS مباشر" }
     },
     "liveCard": {
@@ -71,7 +71,7 @@
     "sameDay": {
       "badge": "الأكثر طلبًا",
       "title": "نفس اليوم",
-      "priceTemplate": "{{price}} د.إ",
+      "priceTemplate": "من {{price}} د.إ",
       "subtext": "يُعيَّن السائق خلال ساعة",
       "features": {
         "0": "90–120 دقيقة بين دبي وأبوظبي",
@@ -86,7 +86,7 @@
     "dedicated": {
       "badge": "أقصى ضمان",
       "title": "مخصص",
-      "priceTemplate": "{{price}} د.إ",
+      "priceTemplate": "عرض سعر مخصص",
       "subtext": "وقتك، محجوز مسبقًا.",
       "features": {
         "0": "اختر وقت الاستلام بدقة — نحجزه لك",

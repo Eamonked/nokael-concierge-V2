@@ -19,13 +19,16 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
     content: `Dedicated driver. No hubs. Immediate dispatch. We provide same-day Dedicated Executive Transit services from Dubai to Abu Dhabi, including express document delivery, urgent parcel transport, and dedicated business logistics across the UAE.
       Nokael provides urgent same-day business logistics services between Dubai and Abu Dhabi. We offer direct driver assignment, no warehouses, and no sorting hubs for your time-critical documents, parcels, and spare parts.
       Whether it is a legal tender, a sensitive contract, or an emergency spare part, our dedicated drivers ensure your items reach their destination safely and on time.`,
-    price: "280",
     sla: "90-120 min delivery",
     zones: ["DIFC", "Downtown Dubai", "Jebel Ali", "Abu Dhabi Global Market", "Mussafah"],
     faqs: [
       {
         q: "How fast is the delivery between Dubai and Abu Dhabi?",
         a: "Typically, transit time is between 90 to 120 minutes depending on traffic and pickup location.",
+      },
+      {
+        q: "How much does Nokael cost?",
+        a: "Nokael is a premium dedicated service: one vehicle and one driver per booking, with no shared loads. Pricing depends on route, timing and item, and every booking is quoted before dispatch. Request a quote or message us on WhatsApp for current rates.",
       },
       {
         q: "Do you offer real-time tracking?",
@@ -43,7 +46,6 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
     content: `Fast inter-emirate transport starting from Dubai. Pickup typically within 30–60 minutes for immediate dispatch to Abu Dhabi, Sharjah, and beyond. Built for businesses that cannot afford logistics delays.
       Nokael provides a direct-response dispatch system for companies and individuals in Dubai who need items moved to other emirates immediately.
       Our drivers are strategically positioned across Dubai—from Downtown and DIFC to Jebel Ali and Dubai Marina—to ensure rapid response times. We don't use sorting hubs; your item goes from the pickup point directly to the delivery destination.`,
-    price: "280",
     sla: "30-60 min pickup",
     zones: ["DIFC", "Downtown", "Business Bay", "JLT", "Jebel Ali", "Dubai Marina"],
     faqs: [
@@ -67,7 +69,6 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
     content: `Premium inter-emirate logistics from the capital. Dedicated drivers for direct transport to Dubai and the Northern Emirates. Serving government, corporate, and private clients with precision.
       Abu Dhabi requires a higher level of logistics precision. Nokael serves the capital's most demanding delivery needs, providing dedicated transport for government, corporate, and private clients.
       Our Abu Dhabi dispatch network covers the entire city, including Al Reem Island, Khalifa City, and the Industrial areas. We specialize in the Abu Dhabi ↔ Dubai corridor, offering the fastest possible transit times between the two major hubs.`,
-    price: "280",
     sla: "30-60 min pickup",
     zones: ["Al Reem Island", "Khalifa City", "Mussafah", "ADGM", "Corniche"],
     faqs: [
@@ -91,7 +92,6 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
     content: `Secure, hand-to-hand transport for sensitive legal documents, contracts, and government tenders across all emirates. Dedicated driver assignment with real-time tracking and immediate proof of delivery via WhatsApp.
       In the B2B logistics world, some documents are too critical for standard courier networks. Nokael provides a premium dispatch service that prioritizes security and direct accountability.
       Our drivers handle your sensitive materials with the utmost care, providing hand-to-hand Dedicated Executive Transit from the sender directly to the recipient. We understand the critical nature of legal deadlines and government tender submissions.`,
-    price: "280",
     sla: "Hand-to-hand security",
     zones: ["All UAE Courts", "Free Zones", "Government Offices", "Embassies"],
     faqs: [
@@ -115,7 +115,6 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
     content: `Emergency transport for critical machinery, automotive, and industrial parts. Direct from supplier to site. 24/7 emergency dispatch for industrial hardware across the UAE.
       When machinery breaks down or a vehicle is off the road, every minute costs money. Nokael provides emergency spare parts logistics for the industrial and automotive sectors across the UAE.
       We specialize in the rapid transport of critical components that are too urgent for traditional freight. Our drivers can pick up directly from suppliers or warehouses straight to the site where the part is needed.`,
-    price: "380",
     sla: "Immediate site logistics",
     zones: ["Industrial Areas", "Construction Sites", "Workshops", "Ports"],
     faqs: [
@@ -138,7 +137,6 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
     h1: "Direct Response Logistics Services.",
     content: `We provide specialized, high-speed transport solutions across the UAE. Built for speed, security, and direct accountability. Our services include urgent inter-emirate delivery, document & legal transport, and spare parts logistics.
       Traditional courier services rely on sorting hubs and shared vehicle loads. We bypass the traditional warehouse model entirely. One driver, one item, one direct route. We eliminate the friction of traditional logistics.`,
-    price: "280",
     sla: "Point-to-point delivery",
     zones: ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "RAK", "Fujairah", "UAQ"],
     faqs: [
@@ -158,7 +156,6 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
     description: "Get an immediate quote for time-critical document or parcel logistics between Dubai, Abu Dhabi, and all emirates. 5-minute driver assignment.",
     h1: "Request an Immediate Quote.",
     content: "Our dispatch system provides instant routing and driver assignment for urgent logistics across the UAE. Fill out the route and item details for a dedicated dispatch.",
-    price: "280",
     sla: "2-5 minute assignment",
     breadcrumb: [
       { name: "Home", url: "/" },
@@ -284,7 +281,6 @@ export const DEFAULT_METADATA: PageMetadata = {
   content:
     "Nokael provides fast and reliable urgent B2B delivery services across the UAE. We specialize in time-critical corporate logistics needs between major cities like Dubai and Abu Dhabi.",
   faqs: [],
-  price: "280",
   sla: "Fast dispatch",
 };
 
@@ -298,5 +294,10 @@ export const KNOWN_APP_ROUTES = [
   "/privacy",
   "/dashboard",
   "/login",
+  "/accept-invite",
+  "/onboarding",
   "/",
 ];
+
+/** App routes with a dynamic tail (other companies' sites: /c/<slug>/…). */
+export const APP_ROUTE_PREFIXES = ["/c/", "/track/"];

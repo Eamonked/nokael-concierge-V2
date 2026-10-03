@@ -13,8 +13,8 @@
     "badgeDispatch": "Dispatch in 30 min",
     "stats": {
       "avgDispatch": { "label": "Avg. Dispatch", "value": "2–5 min" },
-      "sameDay": { "label": "Same-Day", "priceTemplate": "AED {{price}}" },
-      "dedicated": { "label": "Dedicated", "priceTemplate": "AED {{price}}" },
+      "sameDay": { "label": "Starting From", "priceTemplate": "AED {{price}}" },
+      "dedicated": { "label": "Dedicated", "priceTemplate": "On Quote" },
       "tracking": { "label": "Tracking", "value": "Live GPS" }
     },
     "liveCard": {
@@ -71,7 +71,7 @@
     "sameDay": {
       "badge": "MOST POPULAR",
       "title": "SAME-DAY",
-      "priceTemplate": "AED {{price}}",
+      "priceTemplate": "From AED {{price}}",
       "subtext": "Driver assigned within the hour",
       "features": {
         "0": "90–120 min Dubai ↔ Abu Dhabi",
@@ -86,7 +86,7 @@
     "dedicated": {
       "badge": "MAXIMUM CERTAINTY",
       "title": "DEDICATED",
-      "priceTemplate": "AED {{price}}",
+      "priceTemplate": "Custom Quote",
       "subtext": "Your time, locked in advance.",
       "features": {
         "0": "Choose exact pickup time — we hold it",
