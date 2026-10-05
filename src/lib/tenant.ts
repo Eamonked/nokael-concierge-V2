@@ -34,6 +34,8 @@ export interface TenantSettings {
   price_dedicated?: number;
   geofence?: { pickup_m?: number; delivery_m?: number };
   onboarding?: { step?: number; completed_at?: string | null };
+  /** Chain of Custody certificate template (see lib/cocRender.ts). */
+  coc?: Partial<import('./cocRender').CocTemplate>;
 }
 
 export interface TenantBranding {

@@ -1,11 +1,12 @@
 import React from 'react';
-import { Settings as SettingsIcon, Building2, Bell, Globe, Moon, Sun, Network, ExternalLink } from 'lucide-react';
+import { Settings as SettingsIcon, Building2, Bell, Globe, Moon, Sun, Network, ExternalLink, FileCheck2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AccountSettings } from './AccountSettings';
 import { PushSettingsCard } from './components/PushSettingsCard';
 import { CompaniesPanel } from './components/CompaniesPanel';
 import { DomainCard } from './components/DomainCard';
+import { CocTemplateCard } from './components/CocTemplateCard';
 import { getOnboardingMe, type OnboardingMe } from '../../lib/onboarding';
 import { findCountry } from '../../lib/countries';
 
@@ -17,7 +18,7 @@ interface SettingsViewProps {
   currentRole?: string | null;
 }
 
-type SettingsTab = 'organization' | 'notifications' | 'preferences' | 'companies';
+type SettingsTab = 'organization' | 'coc' | 'notifications' | 'preferences' | 'companies';
 
 export function SettingsView({ theme, onThemeChange, userEmail, orgId, currentRole }: SettingsViewProps) {
   const { t, i18n } = useTranslation('dashboard');
@@ -48,6 +49,21 @@ export function SettingsView({ theme, onThemeChange, userEmail, orgId, currentRo
               <span>
                 <b>{t('settings.tabs.organization.title') || 'Organization'}</b>
                 <small>{t('settings.tabs.organization.subtitle') || 'Company details and billing'}</small>
+              </span>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" strokeWidth="1.5" fill="none" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setActiveTab('coc')}
+              className={activeTab === 'coc' ? 'active' : ''}
+            >
+              <span className="settings-tab-icon">
+                <FileCheck2 size={16} />
+              </span>
+              <span>
+                <b>COC certificate</b>
+                <small>Chain of custody PDF template</small>
               </span>
               <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" strokeWidth="1.5" fill="none" />
@@ -186,6 +202,20 @@ export function SettingsView({ theme, onThemeChange, userEmail, orgId, currentRo
                     </div>
                   </div>
                 )}
+              </>
+            )}
+
+            {activeTab === 'coc' && (
+              <>
+                <div className="settings-section-heading">
+                  <div>
+                    <h2>COC certificate</h2>
+                    <p>The Chain of Custody PDF your dispatch team and your clients download. Changes apply to every certificate issued after you save.</p>
+                  </div>
+                </div>
+                <div className="settings-form-card">
+                  <CocTemplateCard orgId={orgId} canEdit={canManageOrg} />
+                </div>
               </>
             )}
 

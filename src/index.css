@@ -11447,3 +11447,32 @@ main.stats-hidden .driver-app-strip {
 .onb-domain-status.is-pending { color: var(--ent-muted); }
 .onb-domain-status.is-error { color: #dc2626; }
 .onb-dns code { font-size: 12px; }
+
+/* Settings → COC certificate: form beside a live PDF preview */
+.coc-template { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.coc-template-form { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.coc-template .field small { font-weight: 400; opacity: .7; margin-left: 4px; }
+.coc-color { display: flex; align-items: center; gap: 10px; }
+.coc-color input[type="color"] { width: 44px; height: 32px; padding: 2px; border-radius: 6px; cursor: pointer; }
+.coc-color code { font-size: 12px; opacity: .75; }
+.coc-template .settings-form-footer { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.coc-template .settings-form-footer button { display: inline-flex; align-items: center; gap: 6px; }
+.coc-template-msg { font-size: 13px; margin: 0; opacity: .8; }
+.coc-template-msg.ok { color: #10b981; opacity: 1; }
+.coc-template-msg.error { color: #ef4444; opacity: 1; }
+.coc-template-preview { position: sticky; top: 16px; aspect-ratio: 210 / 297; border: 1px solid rgba(127,127,127,.25); border-radius: 10px; overflow: hidden; background: #f1f5f9; }
+.coc-template-preview iframe { width: 100%; height: 100%; border: 0; display: block; }
+.coc-template-loading { display: grid; place-items: center; height: 100%; font-size: 13px; color: #64748b; }
+@media (max-width: 1100px) {
+  .coc-template { grid-template-columns: 1fr; }
+  .coc-template-preview { position: static; max-width: 520px; width: 100%; margin: 0 auto; }
+}
+.coc-logo { display: flex; gap: 14px; align-items: center; padding: 12px; border: 1px solid rgba(127,127,127,.2); border-radius: 10px; }
+.coc-logo-thumb { flex: 0 0 120px; height: 56px; border-radius: 8px; display: grid; place-items: center; overflow: hidden; padding: 6px; }
+.coc-logo-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.coc-logo-thumb span { font-size: 11px; color: rgba(255,255,255,.7); }
+.coc-logo-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.coc-logo-body small { font-size: 12px; opacity: .7; }
+.coc-logo-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.coc-logo-actions button { display: inline-flex; align-items: center; gap: 6px; }
+@media (max-width: 520px) { .coc-logo { flex-direction: column; align-items: flex-start; } }
