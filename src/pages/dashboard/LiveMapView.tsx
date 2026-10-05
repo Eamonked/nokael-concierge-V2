@@ -50,6 +50,17 @@ const ICON = {
   delivery: dot('#ef4444', 16),
 };
 
+/** Leaflet only notices window resizes; redraw tiles when the map box itself changes size. */
+const TrackSize: React.FC = () => {
+  const map = useMap();
+  React.useEffect(() => {
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    ro.observe(map.getContainer());
+    return () => ro.disconnect();
+  }, [map]);
+  return null;
+};
+
 const FitBounds: React.FC<{ points: LatLng[]; nonce: number }> = ({ points, nonce }) => {
   const map = useMap();
   const fitted = React.useRef(false);
@@ -485,12 +496,26 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
       </button>
     ));
 
+  // Fill the window below whatever sits above the map (header, banners): the
+  // CSS sizes the map to 100dvh minus this offset.
+  const shellRef = React.useRef<HTMLDivElement>(null);
+  React.useLayoutEffect(() => {
+    const el = shellRef.current;
+    if (!el) return;
+    const measure = () => el.style.setProperty('--dm-top', `${Math.max(0, el.getBoundingClientRect().top + window.scrollY)}px`);
+    measure();
+    window.addEventListener('resize', measure);
+    const ro = new ResizeObserver(measure);
+    if (el.parentElement) ro.observe(el.parentElement);
+    return () => { window.removeEventListener('resize', measure); ro.disconnect(); };
+  }, []);
+
   const emptyText = mode === 'active' ? t('liveMap.noActive')
     : mode === 'unassigned' ? t('liveMap.noUnassigned', { defaultValue: 'Every open job has a driver.' })
     : t('liveMap.noApprovedDrivers', { defaultValue: 'No approved drivers yet.' });
 
   return (
-    <div className="dispatch-map">
+    <div className="dispatch-map" ref={shellRef}>
       <aside className="dm-list">
         <div className="dm-modes" role="tablist">
           {([
@@ -510,6 +535,7 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
 
       <div className="dm-map">
         <MapContainer center={DEFAULT_CENTER} zoom={9} scrollWheelZoom className="dm-leaflet">
+          <TrackSize />
           {/* Map labels follow the UI language. OSM's standard tiles label places in the
               local language (Arabic in the UAE); Mapbox labels them in English. Without a
               Mapbox token, OSM is used for both. OSM has no dark style, so dark mode inverts

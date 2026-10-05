@@ -6,6 +6,7 @@ import { supabase, createJob, updateJob, generateOtp, type Driver, type Job, typ
 import { sendTelegramNotification, formatJobAssignmentNotification } from '../../../lib/notifications';
 import { geocodeAddress, validCoord, type LatLng } from '../../../lib/geo';
 import { AccountPicker, ClientReferenceInput, findAccountByName } from '../components/AccountPicker';
+import { MapPickerModal, type MapPickerResult } from '../components/MapPickerModal';
 
 import { getActiveTenant, isoToZonedInput, zonedInputToIso, regionOptions, formatMoney } from '../../../lib/tenant';
 
@@ -131,6 +132,28 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     setExtra(prev => ({ ...prev, [key]: value }));
   const [files, setFiles] = React.useState<File[]>([]);
 
+  // Points dispatch placed with "Pick on map". They win over the saved pin and
+  // over looking up the typed address, whatever the address text says.
+  type Stop = 'pickup' | 'delivery';
+  const [pins, setPins] = React.useState<Record<Stop, LatLng | null>>({ pickup: null, delivery: null });
+  const [picking, setPicking] = React.useState<Stop | null>(null);
+
+  // The starting data's pin (job being edited/duplicated, or the quote's pin
+  // the customer picked), while the stop's address and emirate are unchanged.
+  const knownPin = (field: Stop): LatLng | null => {
+    if (!initialData) return null;
+    const unchanged =
+      formData[`${field}_location`] === initialData[`${field}_location`] &&
+      formData[`${field}_emirate`] === initialData[`${field}_emirate`];
+    return unchanged ? validCoord(initialData[`${field}_lat`], initialData[`${field}_lng`]) : null;
+  };
+
+  const applyPick = (field: Stop, result: MapPickerResult) => {
+    setPins(prev => ({ ...prev, [field]: result.coords }));
+    if (result.useLabel && result.label) set(`${field}_location`, result.label);
+    setPicking(null);
+  };
+
   /** '' → null (cleared); a valid amount → number; anything unparseable → undefined (leave the column alone). */
   const parseMoney = (raw: string): number | null | undefined => {
     if (raw.trim() === '') return null;
@@ -153,19 +176,13 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     
     try {
       // Put both stops on the map (live map, ETA, geofence alerts, driver arrival
-      // check). A stop that's unchanged from the starting data (the job being
-      // edited or duplicated, or the quote's pin the customer picked) keeps that
-      // pin; otherwise the address is looked up. A failed lookup just leaves it
-      // empty, and the map retries later.
-      const knownPin = (field: 'pickup' | 'delivery'): LatLng | null => {
-        if (!initialData) return null;
-        const unchanged =
-          formData[`${field}_location`] === initialData[`${field}_location`] &&
-          formData[`${field}_emirate`] === initialData[`${field}_emirate`];
-        return unchanged ? validCoord(initialData[`${field}_lat`], initialData[`${field}_lng`]) : null;
-      };
+      // check). A point picked on the map always wins. Otherwise a stop that's
+      // unchanged from the starting data keeps that pin, and anything else is
+      // looked up from the address. A failed lookup just leaves it empty, and
+      // the map retries later.
       // undefined = keep what the saved job already has (edits only).
-      const resolveStop = (field: 'pickup' | 'delivery'): Promise<LatLng | null | undefined> => {
+      const resolveStop = (field: Stop): Promise<LatLng | null | undefined> => {
+        if (pins[field]) return Promise.resolve(pins[field]);
         const pin = knownPin(field);
         if (pin) return Promise.resolve(editJob ? undefined : pin);
         return geocodeAddress(formData[`${field}_location`], formData[`${field}_emirate`]);
@@ -331,8 +348,47 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     { value: 'four_step', title: t('jobCreateModal.fourStepTitle'), desc: t('jobCreateModal.fourStepDesc') },
   ];
 
+  /** Where this stop's map point will come from, so dispatch can see before saving. */
+  const PinStatus: React.FC<{ field: Stop }> = ({ field }) => {
+    const exact = pins[field];
+    const saved = !exact && knownPin(field);
+    const point = exact || saved;
+    return (
+      <span className={`pin-status${exact ? ' exact' : saved ? ' saved' : ''}`}>
+        {point ? (
+          <>
+            {exact ? t('jobCreateModal.pinExact', { defaultValue: 'Exact pin set' }) : t('jobCreateModal.pinSaved', { defaultValue: 'Saved pin' })}
+            {' · '}
+            <a href={`https://www.google.com/maps/search/?api=1&query=${point[0]},${point[1]}`} target="_blank" rel="noreferrer">
+              {point[0].toFixed(5)}, {point[1].toFixed(5)}
+            </a>
+            {exact && (
+              <button type="button" onClick={() => setPins(prev => ({ ...prev, [field]: null }))}>
+                {t('jobCreateModal.pinClear', { defaultValue: 'Clear' })}
+              </button>
+            )}
+          </>
+        ) : (
+          t('jobCreateModal.pinNone', { defaultValue: 'No pin — the address will be looked up automatically. Use Pick on map for an exact point.' })
+        )}
+      </span>
+    );
+  };
+
   return createPortal(
     <>
+      {picking && (
+        <MapPickerModal
+          title={picking === 'pickup'
+            ? t('jobCreateModal.pickPickupTitle', { defaultValue: 'Pickup location' })
+            : t('jobCreateModal.pickDeliveryTitle', { defaultValue: 'Drop-off location' })}
+          initial={pins[picking] ?? knownPin(picking) ?? validCoord(initialData?.[`${picking}_lat`], initialData?.[`${picking}_lng`])}
+          address={formData[`${picking}_location`]}
+          emirate={formData[`${picking}_emirate`]}
+          onConfirm={result => applyPick(picking, result)}
+          onClose={() => setPicking(null)}
+        />
+      )}
       <div className="modal-backdrop" onClick={onClose} />
       <form className="account-drawer job-form-drawer job-create-drawer enterprise-mode" onSubmit={handleSubmit}>
         <div className="job-form-header">
@@ -444,8 +500,9 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
                   <div className="location-input">
                     <MapPin className="w-3.5 h-3.5" />
                     <input required type="text" value={formData.pickup_location} onChange={e => set('pickup_location', e.target.value)} placeholder={t('jobCreateModal.pickupAddressPlaceholder')} />
-                    <button type="button" disabled title={t('jobCreateModal.pickOnMap')}>{t('jobCreateModal.pickOnMap')}</button>
+                    <button type="button" onClick={() => setPicking('pickup')} title={t('jobCreateModal.pickOnMap')}>{t('jobCreateModal.pickOnMap')}</button>
                   </div>
+                  <PinStatus field="pickup" />
                 </Field>
                 <Field label={t('jobCreateModal.emirateLabel')} required>
                   <select required value={formData.pickup_emirate} onChange={e => set('pickup_emirate', e.target.value)}>
@@ -488,8 +545,9 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
                   <div className="location-input">
                     <MapPin className="w-3.5 h-3.5" />
                     <input required type="text" value={formData.delivery_location} onChange={e => set('delivery_location', e.target.value)} placeholder={t('jobCreateModal.deliveryAddressPlaceholder')} />
-                    <button type="button" disabled title={t('jobCreateModal.pickOnMap')}>{t('jobCreateModal.pickOnMap')}</button>
+                    <button type="button" onClick={() => setPicking('delivery')} title={t('jobCreateModal.pickOnMap')}>{t('jobCreateModal.pickOnMap')}</button>
                   </div>
+                  <PinStatus field="delivery" />
                 </Field>
                 <Field label={t('jobCreateModal.emirateLabel')} required>
                   <select required value={formData.delivery_emirate} onChange={e => set('delivery_emirate', e.target.value)}>
