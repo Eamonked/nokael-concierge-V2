@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { MessageSquare, ArrowRight, Zap, Shield, MapPin, Clock, CheckCircle2, ChevronRight, Phone, X, Navigation, Package, Truck, Star, Building2, User } from 'lucide-react';
+import { MessageSquare, ArrowRight, Zap, Shield, MapPin, Clock, CheckCircle2, ChevronRight, Phone, X, Navigation, Package, Truck, Star, Building2, User, Volume2, VolumeX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE, PRICE_TIER_SAME_DAY, PRICE_TIER_DEDICATED, DEFAULT_WA_MESSAGE } from '../constants';
@@ -129,46 +129,71 @@ const Hero = () => {
             </div>
           </motion.div>
 
-          <div
-            className="hidden lg:block relative"
-          >
-            <div className="dispatch-card hero-glass relative z-10 rotate-2 translate-x-4">
-              <div className="flex items-center justify-between mb-6">
-                <span className="text-[10px] font-bold uppercase tracking-widest hero-fg-soft">{t('hero.liveCard.label')}</span>
-                <span className="flex items-center gap-1.5 text-[10px] font-bold text-brand-neon">
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand-neon animate-pulse inline-block" />
-                  {t('hero.liveCard.active')}
-                </span>
-              </div>
-              <div className="space-y-3">
-                {[
-                  { key: '0', time: '08:14', from: 'DIFC', to: 'ADGM', status: 'delivered' },
-                  { key: '1', time: '09:32', from: 'JLT', to: 'Mussafah', status: 'inTransit' },
-                  { key: '2', time: '11:05', from: 'Downtown', to: 'Khalifa City', status: 'dispatched' },
-                ].map((job, i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-brand-input border border-brand-input-border">
-                    <span className="text-[10px] font-mono hero-fg-soft w-10 shrink-0">{job.time}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-brand-text truncate">{job.from} → {job.to}</p>
-                      <p className="text-[10px] hero-fg-soft">{t(`hero.liveCard.jobs.${job.key}.item`)}</p>
-                    </div>
-                    <span className={cn(
-                      'text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md shrink-0',
-                      job.status === 'delivered' ? 'bg-brand-neon/10 text-brand-neon' :
-                      job.status === 'inTransit' ? 'bg-brand-blue/10 text-brand-blue' :
-                      'bg-brand-border text-brand-muted'
-                    )}>{t(`hero.liveCard.status.${job.status}`)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="absolute inset-0 bg-brand-neon/5 blur-[100px] rounded-full" />
-          </div>
         </div>
       </div>
       
       <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-brand-bg to-transparent" />
     </section>
+  );
+};
+
+// Clip that plays only while it is on screen. It starts muted (browsers block
+// autoplay with sound); the corner button lets the viewer turn the audio on.
+const HowItWorksVideo = () => {
+  const { t } = useTranslation('home');
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const inViewRef = useRef(false);
+  const [muted, setMuted] = useState(true);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        inViewRef.current = entry.isIntersecting;
+        if (entry.isIntersecting) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      },
+      { threshold: 0.5 }
+    );
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
+
+  // Restart by hand rather than with `loop`, so the end never leaves an empty frame.
+  const restart = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = 0;
+    if (inViewRef.current) video.play().catch(() => {});
+  };
+
+  return (
+    <div className="mb-16 max-w-5xl mx-auto rounded-3xl overflow-hidden bg-brand-input border border-brand-input-border aspect-video relative">
+      <video
+        ref={videoRef}
+        src="/videos/how-it-works.mp4"
+        poster="/videos/how-it-works.jpg"
+        muted={muted}
+        playsInline
+        preload="none"
+        onEnded={restart}
+        aria-label={t('differentiators.videoLabel')}
+        className="w-full h-full object-cover"
+      />
+      <button
+        type="button"
+        onClick={() => setMuted((m) => !m)}
+        aria-label={t(muted ? 'differentiators.videoUnmute' : 'differentiators.videoMute')}
+        aria-pressed={!muted}
+        className="absolute bottom-4 end-4 w-11 h-11 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
+      >
+        {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+      </button>
+    </div>
   );
 };
 
@@ -194,6 +219,8 @@ const Differentiators = () => {
           </div>
           <h2 className="text-4xl md:text-6xl font-display font-medium tracking-tight text-brand-text">{t('differentiators.heading')}</h2>
         </div>
+
+        <HowItWorksVideo />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {items.map((item, i) => (

@@ -16,20 +16,6 @@
       "sameDay": { "label": "Starting From", "priceTemplate": "AED {{price}}" },
       "dedicated": { "label": "Dedicated", "priceTemplate": "On Quote" },
       "tracking": { "label": "Tracking", "value": "Live GPS" }
-    },
-    "liveCard": {
-      "label": "Live Dispatch",
-      "active": "ACTIVE",
-      "status": {
-        "delivered": "Delivered",
-        "inTransit": "In transit",
-        "dispatched": "Dispatched"
-      },
-      "jobs": {
-        "0": { "item": "Legal tender" },
-        "1": { "item": "Spare part" },
-        "2": { "item": "Document" }
-      }
     }
   },
 
@@ -43,6 +29,9 @@
   "differentiators": {
     "eyebrow": "How it works",
     "heading": "Why it gets there faster",
+    "videoUnmute": "Turn sound on",
+    "videoMute": "Turn sound off",
+    "videoLabel": "Nokael delivery walkthrough: live tracking through to the Chain of Custody record",
     "items": {
       "0": { "title": "No warehouses", "desc": "Your item never sits waiting. The driver picks it up and goes — nothing in between." },
       "1": { "title": "One driver, one job", "desc": "They are not running 40 other drops. From the moment we confirm, your item is all they have." },
