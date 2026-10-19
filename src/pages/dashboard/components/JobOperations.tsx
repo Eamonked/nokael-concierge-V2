@@ -13,7 +13,8 @@ import { FAILURE_REASON_KEYS, getStageConfig } from '../constants';
 import { getVerificationSteps, isDriverOnly, stepI18nKey, type CocStepKey } from '../verificationSteps';
 import { WriteGuard } from '../permissions';
 import { noteLocalStageChange } from '../../../lib/jobStage';
-import { formatMoney } from '../../../lib/tenant';
+import { formatMoney, isoToZonedInput } from '../../../lib/tenant';
+import { jobAttachmentUrl } from '../../../lib/supabase';
 
 /* ------------------------------------------------------------------ */
 /* Everything dispatch needs to run a single job beyond the headline   */
@@ -31,6 +32,36 @@ const MAX_OTP_ATTEMPTS = 5;
 export const JOB_CONTROLS_ID = 'job-dispatch-controls';
 /** Where drivers without the Android app sign in (served by the Confirmation Portal). */
 const DRIVER_APP_URL = `${COC_DOMAIN}/driver-app/`;
+
+/** "21 Oct 09:00 – 11:00" in the company's timezone. */
+const windowText = (start?: string | null, end?: string | null): string | null => {
+  const fmt = (iso?: string | null) => isoToZonedInput(iso).replace('T', ' ');
+  const a = fmt(start), b = fmt(end);
+  if (!a && !b) return null;
+  if (a && b && a.slice(0, 10) === b.slice(0, 10)) return `${a} – ${b.slice(11)}`;
+  return [a, b].filter(Boolean).join(' – ');
+};
+
+const VEHICLE_LABELS: Record<string, string> = {
+  motorbike: 'Motorbike', cargo_van: 'Cargo van', flatbed_3t: '3-ton flatbed', refrigerated: 'Refrigerated',
+};
+const HANDLING_LABELS: Record<string, string> = {
+  fragile: 'Fragile', refrigerated: 'Keep cold', two_person: 'Two-person lift', hazmat: 'Hazardous',
+};
+
+/** Cargo specs and payment mode on one line, or null when none were given. */
+const cargoText = (job: JobWithDriver): string | null => {
+  const dims = [job.length_cm, job.width_cm, job.height_cm];
+  const parts = [
+    (job.quantity ?? 1) > 1 ? `${job.quantity} pieces` : null,
+    job.weight_kg ? `${job.weight_kg} kg` : null,
+    dims.some(d => d) ? `${dims.map(d => d ?? 0).join('×')} cm` : null,
+    job.vehicle_required ? VEHICLE_LABELS[job.vehicle_required] ?? job.vehicle_required : null,
+    ...(job.handling_flags ?? []).map(f => HANDLING_LABELS[f] ?? f),
+    job.payment_mode ? { cod: 'Cash on delivery', invoice: 'Invoice', card: 'Card' }[job.payment_mode] : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(' · ') : null;
+};
 
 export function JobOperations({
   job, onUpdate, cancelOpen, onCancelClose,
@@ -299,14 +330,19 @@ export function JobOperations({
           <h3>{t('jobDetailModal.details.title')}</h3>
           <div className="jo-parties">
             {[
-              { key: 'sender', title: t('jobDetailModal.details.consignor'), name: job.sender_name, phone: job.sender_phone, emirate: job.pickup_emirate, place: job.pickup_location },
-              { key: 'recipient', title: t('jobDetailModal.details.consignee'), name: job.recipient_name, phone: job.recipient_phone, emirate: job.delivery_emirate, place: job.delivery_location },
+              { key: 'sender', title: t('jobDetailModal.details.consignor'), name: job.sender_name, phone: job.sender_phone, emirate: job.pickup_emirate, place: job.pickup_location,
+                building: job.pickup_building, company: job.pickup_company, notes: job.pickup_notes, window: windowText(job.pickup_window_start, job.pickup_window_end) },
+              { key: 'recipient', title: t('jobDetailModal.details.consignee'), name: job.recipient_name, phone: job.recipient_phone, emirate: job.delivery_emirate, place: job.delivery_location,
+                building: job.delivery_building, company: job.delivery_company, notes: job.delivery_notes, window: null },
             ].map(party => (
               <div key={party.key} className="jo-party">
                 <small>{party.title}</small>
                 <b>{party.name || '—'}</b>
                 {party.phone && <a href={`tel:${party.phone.replace(/[^\d+]/g, '')}`}>{party.phone}</a>}
                 <p><strong>{party.emirate}</strong> · {party.place}</p>
+                {(party.building || party.company) && <p>{[party.building, party.company].filter(Boolean).join(' · ')}</p>}
+                {party.window && <p>{t('jobDetailModal.details.window', { defaultValue: 'Window' })}: {party.window}</p>}
+                {party.notes && <p className="jo-party-notes">{party.notes}</p>}
               </div>
             ))}
           </div>
@@ -317,6 +353,24 @@ export function JobOperations({
           </dl>
           {job.special_instructions && (
             <div className="jo-note"><small>{t('jobDetailModal.details.specialInstructions')}</small><p>{job.special_instructions}</p></div>
+          )}
+          {cargoText(job) && (
+            <div className="jo-note"><small>{t('jobDetailModal.details.cargo', { defaultValue: 'Cargo & handling' })}</small><p>{cargoText(job)}</p></div>
+          )}
+          {!!job.attachments?.length && (
+            <div className="jo-note">
+              <small>{t('jobDetailModal.details.attachments', { defaultValue: 'Attachments (dispatch only)' })}</small>
+              <ul className="jo-attachments">
+                {job.attachments.map(file => (
+                  <li key={file.path}>
+                    <button type="button" onClick={async () => {
+                      try { window.open(await jobAttachmentUrl(file.path), '_blank', 'noopener'); }
+                      catch { alert(t('jobDetailModal.errors.openAttachment', { defaultValue: 'Could not open that file.' })); }
+                    }}>{file.name}</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
           {job.driver_remark && (
             <div className="jo-note"><small>{t('jobDetailModal.details.driverRemark', { defaultValue: 'Driver remark' })}</small><p>{job.driver_remark}</p></div>

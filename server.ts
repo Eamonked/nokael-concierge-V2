@@ -16,6 +16,7 @@ import { createPoolRouter } from "./routes/pool.js";
 import { createTeamRouter } from "./routes/team.js";
 import { createClientsRouter } from "./routes/clients.js";
 import { createOnboardingRouter } from "./routes/onboarding.js";
+import { createMapsRouter } from "./routes/maps.js";
 
 const _filename = typeof __filename !== "undefined" ? __filename : fileURLToPath(import.meta.url);
 const _dirname = typeof __dirname !== "undefined" ? __dirname : path.dirname(_filename);
@@ -56,6 +57,10 @@ async function startServer() {
   // Company onboarding (platform admins create companies; owners finish
   // setup) — same per-user session auth as /api/team.
   app.use("/api/onboarding", createOnboardingRouter());
+
+  // Google Maps short-link expansion for Pick on map — same per-user session
+  // auth as /api/team.
+  app.use("/api/maps", createMapsRouter());
 
   // Apply rate limiting and API key auth to all other /api routes
   app.use("/api", rateLimit(60, 60 * 1000)); // 60 requests per minute

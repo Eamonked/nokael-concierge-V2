@@ -488,7 +488,7 @@
     },
     "driverInstructions": "Driver Instructions",
     "driverInstructionsPlaceholder": "e.g. Call before arrival, gate code 4521, handle with care...",
-    "driverInstructionsHint": "Sent to driver via WhatsApp. Keep it short and actionable.",
+    "driverInstructionsHint": "Shown to the driver in the app, together with the pickup, drop-off and cargo details above. Keep it short and actionable.",
     "internalNotes": "Internal Notes (dispatch only)",
     "internalNotesPlaceholder": "e.g. VIP client, pre-agreed {{currency}} 60, re-dispatch of job #0042...",
     "internalNotesHint": "Never sent to driver or customer. For the audit log only.",

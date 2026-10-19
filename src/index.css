@@ -6224,6 +6224,17 @@ main.stats-hidden .driver-app-strip {
   font-size: 8px;
 }
 
+/* Collapsible job-form sections: the heading toggles everything below it. */
+.job-section-toggle { cursor: pointer; user-select: none; border-radius: 6px; }
+.job-section-toggle>div { flex: 1; min-width: 0; }
+.job-section-toggle:focus-visible { outline: 2px solid var(--ent-strong); outline-offset: 3px; }
+.job-section-chevron { flex: none; margin-top: 3px; color: var(--ent-faint); transition: transform .15s ease; }
+.job-section-toggle:hover .job-section-chevron { color: var(--ent-text); }
+.is-collapsed>.job-section-heading { margin-bottom: 0; }
+.is-collapsed>.job-section-heading .job-section-chevron { transform: rotate(-90deg); }
+[dir="rtl"] .is-collapsed>.job-section-heading .job-section-chevron { transform: rotate(90deg); }
+.is-collapsed>:not(.job-section-heading) { display: none !important; }
+
 .pricing-grid {
   display: grid;
   grid-template-columns: 1.05fr 1.15fr 1.05fr .95fr;
@@ -9521,6 +9532,9 @@ main.stats-hidden .driver-app-strip {
   text-transform: capitalize;
 }
 
+.jo-party-notes { white-space: pre-line; color: var(--muted); }
+.jo-attachments { margin: 4px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.jo-attachments button { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
 .jo-note {
   padding: 10px 14px;
   border-radius: 14px;
@@ -11591,6 +11605,7 @@ main.stats-hidden .driver-app-strip {
 .map-picker-results button:hover { background: var(--ent-surface-2); }
 .map-picker-empty { padding: 10px 12px; font-size: 12px; color: var(--ent-muted); }
 .map-picker-warn { margin: -4px 18px 8px; font-size: 12px; color: var(--ent-warning-text); }
+.map-picker-ok { margin: -4px 18px 8px; font-size: 12px; color: var(--ent-success-text); }
 .map-picker-map {
   position: relative;
   flex: 1;

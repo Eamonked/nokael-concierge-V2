@@ -488,6 +488,27 @@ export interface Job {
   special_instructions?: string | null;
   operator_notes?: string | null;
 
+  // Stop details and cargo specs (supabase-job-stop-details.sql). Drivers see
+  // them inside special_instructions — driver_jobs composes the text.
+  pickup_building?: string | null;
+  pickup_company?: string | null;
+  pickup_notes?: string | null;
+  pickup_window_start?: string | null;
+  pickup_window_end?: string | null;
+  delivery_building?: string | null;
+  delivery_company?: string | null;
+  delivery_notes?: string | null;
+  payment_mode?: 'cod' | 'invoice' | 'card' | null;
+  vehicle_required?: string | null;
+  quantity?: number | null;
+  weight_kg?: number | null;
+  length_cm?: number | null;
+  width_cm?: number | null;
+  height_cm?: number | null;
+  handling_flags?: string[];
+  // Dispatch-only files in the private job-attachments bucket; never sent to drivers.
+  attachments?: JobAttachment[];
+
   // Pricing
   price_aed?: number | null;
   // ISO 4217 code for price_aed / driver_payout_aed (legacy column names;
@@ -1072,6 +1093,54 @@ export const getTrackingInfo = async (queryStr: string): Promise<TrackingResult 
   }
 
   return null;
+};
+
+// ==========================================
+// Job attachments (dispatch only)
+// ==========================================
+// Private bucket, path <organization_id>/<job_id>/<random>-<name>; storage
+// policies let org members read and operators+ upload/delete.
+
+export interface JobAttachment {
+  path: string;
+  name: string;
+  size: number;
+  type: string;
+  uploaded_at: string;
+}
+
+const ATTACHMENT_BUCKET = 'job-attachments';
+
+/** Uploads files for a job and returns the job's full attachment list. Failed files are reported, not thrown. */
+export const uploadJobAttachments = async (
+  job: Pick<Job, 'id' | 'organization_id' | 'attachments'>,
+  files: File[]
+): Promise<{ attachments: JobAttachment[]; failed: string[] }> => {
+  if (!supabase) throw new Error('Supabase not configured');
+  const org = job.organization_id || getActiveOrgId();
+  const added: JobAttachment[] = [];
+  const failed: string[] = [];
+  for (const file of files) {
+    const safe = file.name.replace(/[^\w.\-]+/g, '_').slice(-80);
+    const path = `${org}/${job.id}/${crypto.randomUUID().slice(0, 8)}-${safe}`;
+    const { error } = await supabase.storage.from(ATTACHMENT_BUCKET).upload(path, file, { contentType: file.type || undefined });
+    if (error) failed.push(file.name);
+    else added.push({ path, name: file.name, size: file.size, type: file.type, uploaded_at: new Date().toISOString() });
+  }
+  const attachments = [...(job.attachments ?? []), ...added];
+  if (added.length) {
+    const { error } = await supabase.from('jobs').update({ attachments }).eq('id', job.id!);
+    if (error) throw error;
+  }
+  return { attachments, failed };
+};
+
+/** A short-lived link to open or download one attachment. */
+export const jobAttachmentUrl = async (path: string): Promise<string> => {
+  if (!supabase) throw new Error('Supabase not configured');
+  const { data, error } = await supabase.storage.from(ATTACHMENT_BUCKET).createSignedUrl(path, 300);
+  if (error || !data) throw error ?? new Error('No link');
+  return data.signedUrl;
 };
 
 export const updateJob = async (id: string, updates: Partial<Job>): Promise<Job> => {

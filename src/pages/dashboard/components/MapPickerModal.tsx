@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next';
 import { X, Search, Loader2, MapPin, ExternalLink } from 'lucide-react';
 import { EMIRATE_CENTERS, emirateBias, validCoord, type LatLng } from '../../../lib/geo';
 import { getActiveTenant } from '../../../lib/tenant';
+import { parseMapInput, type MapInput } from '../../../lib/mapLink';
+import { supabase } from '../../../lib/supabase';
 import { useTheme } from '../../../context/ThemeContext';
 
 // ==========================================
@@ -17,6 +19,8 @@ import { useTheme } from '../../../context/ThemeContext';
 // building. The confirmed point is saved as the stop's lat/lng instead of
 // whatever the typed address happens to geocode to — the driver's
 // navigation, ETA, geofence alerts and arrival check all use it.
+// Dispatch can also paste a Google Maps link (full or maps.app.goo.gl) or
+// coordinates into the search box — the pin drops straight onto that point.
 
 const token = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
@@ -55,6 +59,22 @@ async function reverseLookup([lat, lng]: LatLng, language: string): Promise<stri
   const f = (await res.json())?.features?.[0];
   return f ? labelOf(f.properties) || null : null;
 }
+
+/** Expand a maps.app.goo.gl link on the server (browsers can't follow it cross-origin). */
+async function resolveShortLink(url: string, signal: AbortSignal): Promise<MapInput> {
+  const { data: { session } } = (await supabase?.auth.getSession()) ?? { data: { session: null } };
+  const res = await fetch('/api/maps/resolve', {
+    method: 'POST',
+    signal,
+    headers: { 'Content-Type': 'application/json', ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}) },
+    body: JSON.stringify({ url }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || `Request failed (${res.status}).`);
+  return json as MapInput;
+}
+
+type LinkNote = { tone: 'ok' | 'warn'; text: string } | null;
 
 const PIN_ICON = L.divIcon({
   html: `<svg width="34" height="44" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 3px 4px rgba(0,0,0,.35))"><path d="M17 1C8.2 1 1 8 1 16.8 1 28.5 17 43 17 43s16-14.5 16-26.2C33 8 25.8 1 17 1z" fill="#dc2626" stroke="#fff" stroke-width="2"/><circle cx="17" cy="16.5" r="5.5" fill="#fff"/></svg>`,
@@ -118,6 +138,7 @@ export const MapPickerModal: React.FC<MapPickerModalProps> = ({ title, initial, 
   const [searching, setSearching] = React.useState(false);
   const [searched, setSearched] = React.useState(false);
   const [fly, setFly] = React.useState<{ target: LatLng | null; nonce: number }>({ target: null, nonce: 0 });
+  const [linkNote, setLinkNote] = React.useState<LinkNote>(null);
   const lookupSeq = React.useRef(0);
 
   React.useEffect(() => {
@@ -126,10 +147,27 @@ export const MapPickerModal: React.FC<MapPickerModalProps> = ({ title, initial, 
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  // Live suggestions while typing.
+  // Live suggestions while typing; a pasted Google Maps link or coordinates
+  // drops the pin directly.
   React.useEffect(() => {
     const q = query.trim();
-    if (!token || q.length < 3) {
+    const pasted = parseMapInput(q);
+    setLinkNote(null);
+
+    if (pasted?.kind === 'coords') {
+      setResults([]);
+      setSearched(false);
+      dropFromLink(pasted);
+      return;
+    }
+    if (!pasted && /^https?:\/\//i.test(q)) {
+      setResults([]);
+      setSearched(false);
+      setLinkNote({ tone: 'warn', text: t('mapPicker.linkNotMaps', { defaultValue: 'That isn’t a Google Maps link. In Google Maps, tap Share → Copy link, or long-press the spot and copy its coordinates.' }) });
+      return;
+    }
+    const text = pasted?.kind === 'place' ? pasted.name : q;
+    if (pasted?.kind !== 'short' && (!token || text.length < 3)) {
       setResults([]);
       setSearched(false);
       return;
@@ -138,14 +176,30 @@ export const MapPickerModal: React.FC<MapPickerModalProps> = ({ title, initial, 
     const timer = window.setTimeout(async () => {
       setSearching(true);
       try {
-        setResults(await searchPlaces(q, emirate, language, controller.signal));
+        if (pasted?.kind === 'short') {
+          setResults([]);
+          setSearched(false);
+          const found = await resolveShortLink(pasted.url, controller.signal);
+          if (found.kind === 'coords') return dropFromLink(found);
+          if (found.kind === 'place' && token) {
+            // The link names the place but carries no point — search for it.
+            setResults(await searchPlaces(found.name, emirate, language, controller.signal));
+            setSearched(true);
+            setLinkNote({ tone: 'warn', text: t('mapPicker.linkNoPoint', { defaultValue: 'That link has no exact point. Pick the right match below, or copy the coordinates from Google Maps instead.' }) });
+          }
+          return;
+        }
+        setResults(await searchPlaces(text, emirate, language, controller.signal));
         setSearched(true);
-      } catch {
+      } catch (err) {
         // aborted / offline — tapping the map still works
+        if (pasted?.kind === 'short' && !controller.signal.aborted) {
+          setLinkNote({ tone: 'warn', text: t('mapPicker.linkFailed', { defaultValue: 'Couldn’t open that link. Open it in Google Maps, long-press the pin and paste the coordinates here.' }) });
+        }
       } finally {
         if (!controller.signal.aborted) setSearching(false);
       }
-    }, 300);
+    }, pasted?.kind === 'short' ? 0 : 300);
     return () => {
       controller.abort();
       window.clearTimeout(timer);
@@ -154,6 +208,7 @@ export const MapPickerModal: React.FC<MapPickerModalProps> = ({ title, initial, 
 
   /** A tapped or dragged point: look up its address for the operator to check. */
   const placeAt = (p: LatLng) => {
+    setLinkNote(null);
     setPin(p);
     const seq = ++lookupSeq.current;
     setLabel(null);
@@ -175,6 +230,20 @@ export const MapPickerModal: React.FC<MapPickerModalProps> = ({ title, initial, 
     setFly(f => ({ target: place.coords, nonce: f.nonce + 1 }));
   };
 
+  /** A point read from a Google Maps link or pasted coordinates. */
+  const dropFromLink = (found: Extract<MapInput, { kind: 'coords' }>) => {
+    placeAt(found.coords);
+    if (found.name) {
+      lookupSeq.current++; // Google's own name beats the reverse lookup
+      setLabel(found.name);
+      setLabelLoading(false);
+    }
+    setFly(f => ({ target: found.coords, nonce: f.nonce + 1 }));
+    setLinkNote(found.precise
+      ? { tone: 'ok', text: t('mapPicker.linkPlaced', { defaultValue: 'Pin placed from Google Maps. Check it, then confirm.' }) }
+      : { tone: 'warn', text: t('mapPicker.linkApprox', { defaultValue: 'That link only gives the map’s centre — drag the pin onto the exact spot.' }) });
+  };
+
   const confirm = () => pin && onConfirm({ coords: pin, label, useLabel: useLabel && !!label });
 
   return createPortal(
@@ -184,7 +253,7 @@ export const MapPickerModal: React.FC<MapPickerModalProps> = ({ title, initial, 
         <div className="map-picker-head">
           <div>
             <h3>{title}</h3>
-            <p>{t('mapPicker.hint', { defaultValue: 'Search for the place, then tap the map or drag the pin onto the exact entrance.' })}</p>
+            <p>{t('mapPicker.hint', { defaultValue: 'Search for the place, or paste a Google Maps link or coordinates. Then tap the map or drag the pin onto the exact entrance.' })}</p>
           </div>
           <button type="button" className="icon-button" onClick={onClose} aria-label={t('mapPicker.close', { defaultValue: 'Close' })}>
             <X className="w-4 h-4" />
@@ -204,7 +273,8 @@ export const MapPickerModal: React.FC<MapPickerModalProps> = ({ title, initial, 
                 if (results[0]) choose(results[0]);
               }
             }}
-            placeholder={t('mapPicker.searchPlaceholder', { defaultValue: 'Search a building, mall, hotel or street…' })}
+            onFocus={e => e.target.select()}
+            placeholder={t('mapPicker.searchPlaceholder', { defaultValue: 'Search a place, or paste a Google Maps link / coordinates…' })}
           />
           {searching && <Loader2 className="w-4 h-4 animate-spin" />}
           {(results.length > 0 || (searched && !searching)) && (
@@ -223,6 +293,7 @@ export const MapPickerModal: React.FC<MapPickerModalProps> = ({ title, initial, 
             </ul>
           )}
         </div>
+        {linkNote && <p className={linkNote.tone === 'ok' ? 'map-picker-ok' : 'map-picker-warn'}>{linkNote.text}</p>}
         {!token && <p className="map-picker-warn">{t('mapPicker.noToken', { defaultValue: 'Search is unavailable (no Mapbox token). Tap the map to place the pin.' })}</p>}
 
         <div className="map-picker-map">

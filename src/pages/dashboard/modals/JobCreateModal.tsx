@@ -1,8 +1,8 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { X, Loader2, MapPin, Plus } from 'lucide-react';
+import { X, Loader2, MapPin, Plus, ChevronDown, ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { supabase, createJob, updateJob, generateOtp, type Driver, type Job, type ItemType, type UrgencyType, type ServiceTier, type BusinessInquiry } from '../../../lib/supabase';
+import { supabase, createJob, updateJob, uploadJobAttachments, jobAttachmentUrl, generateOtp, type Driver, type Job, type ItemType, type UrgencyType, type ServiceTier, type BusinessInquiry } from '../../../lib/supabase';
 import { sendTelegramNotification, formatJobAssignmentNotification } from '../../../lib/notifications';
 import { geocodeAddress, validCoord, type LatLng } from '../../../lib/geo';
 import { AccountPicker, ClientReferenceInput, findAccountByName } from '../components/AccountPicker';
@@ -82,6 +82,21 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     price_aed: duplicateFrom.price_aed,
     special_instructions: duplicateFrom.special_instructions,
     confirmation_mode: duplicateFrom.confirmation_mode,
+    // Stop details, cargo and payment carry over; time windows and attachments don't.
+    pickup_building: duplicateFrom.pickup_building,
+    pickup_company: duplicateFrom.pickup_company,
+    pickup_notes: duplicateFrom.pickup_notes,
+    delivery_building: duplicateFrom.delivery_building,
+    delivery_company: duplicateFrom.delivery_company,
+    delivery_notes: duplicateFrom.delivery_notes,
+    payment_mode: duplicateFrom.payment_mode,
+    vehicle_required: duplicateFrom.vehicle_required,
+    quantity: duplicateFrom.quantity,
+    weight_kg: duplicateFrom.weight_kg,
+    length_cm: duplicateFrom.length_cm,
+    width_cm: duplicateFrom.width_cm,
+    height_cm: duplicateFrom.height_cm,
+    handling_flags: duplicateFrom.handling_flags,
   };
   const initialData: Partial<Job> | undefined = editJob ?? duplicateData ?? prefill;
   const [loading, setLoading] = React.useState(false);
@@ -117,20 +132,73 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     confirmation_mode: (initialData?.confirmation_mode || 'driver_only') as 'four_step' | 'driver_only'
   });
 
-  // Reference-drawer fields that have no Job column yet (payment mode, building/gate,
-  // per-stop company, time windows, per-stop notes, cargo specs, handling flags, attachments).
-  // They are layout-only: kept in local state and deliberately NOT part of the create/update
-  // payloads below, so nothing here can reach Supabase until matching columns exist.
+  // Stop details, cargo specs and payment mode (supabase-job-stop-details.sql).
+  // Drivers see them: driver_jobs folds them into the instructions text.
+  const numText = (n: number | null | undefined) => (n != null ? String(n) : '');
   const [extra, setExtra] = React.useState({
-    payment_mode: '',
-    pickup_building: '', pickup_company: '', pickup_window_start: '', pickup_window_end: '', pickup_notes: '',
-    delivery_building: '', delivery_company: '', delivery_notes: '',
-    vehicle_required: '', quantity: '1', weight_kg: '', dim_l: '', dim_w: '', dim_h: '',
-    handling: [] as string[],
+    payment_mode: initialData?.payment_mode || '',
+    pickup_building: initialData?.pickup_building || '',
+    pickup_company: initialData?.pickup_company || '',
+    pickup_window_start: isoToGstInput(initialData?.pickup_window_start),
+    pickup_window_end: isoToGstInput(initialData?.pickup_window_end),
+    pickup_notes: initialData?.pickup_notes || '',
+    delivery_building: initialData?.delivery_building || '',
+    delivery_company: initialData?.delivery_company || '',
+    delivery_notes: initialData?.delivery_notes || '',
+    vehicle_required: initialData?.vehicle_required || '',
+    quantity: numText(initialData?.quantity ?? 1),
+    weight_kg: numText(initialData?.weight_kg),
+    dim_l: numText(initialData?.length_cm),
+    dim_w: numText(initialData?.width_cm),
+    dim_h: numText(initialData?.height_cm),
+    handling: (initialData?.handling_flags ?? []) as string[],
   });
   const setX = <K extends keyof typeof extra>(key: K, value: (typeof extra)[K]) =>
     setExtra(prev => ({ ...prev, [key]: value }));
   const [files, setFiles] = React.useState<File[]>([]);
+
+  // Collapsible sections. Which ones an operator keeps folded is remembered
+  // on this browser, so a section they never use stays out of the way.
+  const [collapsed, setCollapsed] = React.useState<Set<string>>(() => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem('nk.jobForm.collapsed') || '[]'));
+    } catch {
+      return new Set();
+    }
+  });
+  const setSectionOpen = (id: string, open: boolean) => setCollapsed(prev => {
+    if (prev.has(id) !== open) return prev;
+    const next = new Set(prev);
+    if (open) next.delete(id); else next.add(id);
+    try { localStorage.setItem('nk.jobForm.collapsed', JSON.stringify([...next])); } catch { /* private mode */ }
+    return next;
+  });
+  const sectionClass = (base: string, id: string) => `${base}${collapsed.has(id) ? ' is-collapsed' : ''}`;
+  const heading = (id: string, n: string, title: string, hint: string) => {
+    const open = !collapsed.has(id);
+    return (
+      <div
+        className="job-section-heading job-section-toggle"
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
+        onClick={() => setSectionOpen(id, !open)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setSectionOpen(id, !open);
+          }
+        }}
+      >
+        <span>{n}</span>
+        <div>
+          <h3>{title}</h3>
+          <p>{hint}</p>
+        </div>
+        <ChevronDown className="job-section-chevron w-4 h-4" aria-hidden />
+      </div>
+    );
+  };
 
   // Points dispatch placed with "Pick on map". They win over the saved pin and
   // over looking up the typed address, whatever the address text says.
@@ -170,6 +238,10 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     if (formData.scheduled_delivery_start && formData.scheduled_delivery_end
         && formData.scheduled_delivery_end < formData.scheduled_delivery_start) {
       alert(t('jobCreateModal.deliverySlotOrder', { defaultValue: 'The delivery slot ends before it starts. Check the two times.' }));
+      return;
+    }
+    if (extra.pickup_window_start && extra.pickup_window_end && extra.pickup_window_end < extra.pickup_window_start) {
+      alert(t('jobCreateModal.pickupWindowOrder', { defaultValue: 'The pickup window ends before it starts. Check the two times.' }));
       return;
     }
     setLoading(true);
@@ -214,8 +286,10 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
           price_aed: editedPrice !== null && Number.isFinite(editedPrice) && editedPrice >= 0 ? editedPrice : null,
           ...(editedPayout !== undefined && { driver_payout_aed: editedPayout }),
           special_instructions: formData.special_instructions.trim() || null,
+          ...stopFields(),
           ...coords,
         });
+        await attachFiles(editJob);
         await onSuccess();
         onClose();
         return;
@@ -247,6 +321,7 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
         driver_id: formData.driver_id || null,
         special_instructions: formData.special_instructions.trim() || null,
         operator_notes: formData.operator_notes.trim() || null,
+        ...stopFields(),
         scheduled_pickup_at: formData.urgency === 'scheduled' ? gstInputToIso(formData.scheduled_pickup_at) : null,
         ...accountFields(),
         price_aed: priceValue,
@@ -264,6 +339,7 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
       };
       
       const result = await createJob(payload);
+      await attachFiles(result);
 
       // If it came from a quote, mark the source quote as converted.
       // 'completed' is the only DB-valid status besides pending/contacted
@@ -312,6 +388,55 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     scheduled_delivery_start: gstInputToIso(formData.scheduled_delivery_start),
     scheduled_delivery_end: gstInputToIso(formData.scheduled_delivery_end),
   });
+
+  /** Stop details, cargo specs and payment mode — identical for create and edit. */
+  const stopFields = (): Partial<Job> => {
+    const text = (v: string) => v.trim() || null;
+    const num = (v: string) => (v.trim() === '' || !Number.isFinite(Number(v)) || Number(v) < 0 ? null : Number(v));
+    const qty = Math.round(Number(extra.quantity));
+    return {
+      pickup_building: text(extra.pickup_building),
+      pickup_company: text(extra.pickup_company),
+      pickup_notes: text(extra.pickup_notes),
+      pickup_window_start: gstInputToIso(extra.pickup_window_start),
+      pickup_window_end: gstInputToIso(extra.pickup_window_end),
+      delivery_building: text(extra.delivery_building),
+      delivery_company: text(extra.delivery_company),
+      delivery_notes: text(extra.delivery_notes),
+      payment_mode: (extra.payment_mode || null) as Job['payment_mode'],
+      vehicle_required: extra.vehicle_required || null,
+      quantity: Number.isFinite(qty) && qty >= 1 ? qty : null,
+      weight_kg: num(extra.weight_kg),
+      length_cm: num(extra.dim_l),
+      width_cm: num(extra.dim_w),
+      height_cm: num(extra.dim_h),
+      handling_flags: extra.handling,
+    };
+  };
+
+  /**
+   * Uploads the files picked in section 06 once the job exists. The job is
+   * already saved, so a failed upload is reported rather than undoing it.
+   */
+  const attachFiles = async (job: Job) => {
+    if (!files.length || !job.id) return;
+    try {
+      const { failed } = await uploadJobAttachments(job, files);
+      if (failed.length) alert(t('jobCreateModal.attachFailed', { defaultValue: 'The job was saved, but these files did not upload:\n{{list}}', list: failed.join('\n') }));
+    } catch (err) {
+      console.error('Error saving job attachments:', err);
+      alert(t('jobCreateModal.attachFailed', { defaultValue: 'The job was saved, but these files did not upload:\n{{list}}', list: files.map(f => f.name).join('\n') }));
+    }
+  };
+
+  const openAttachment = async (path: string) => {
+    try {
+      window.open(await jobAttachmentUrl(path), '_blank', 'noopener');
+    } catch {
+      alert(t('jobCreateModal.attachOpenFailed', { defaultValue: 'Could not open that file. Try again.' }));
+    }
+  };
+
   const priceNumber = Number(formData.price_aed);
   const clientTotal = formData.price_aed.trim() !== '' && Number.isFinite(priceNumber)
     ? formatMoney(priceNumber, { decimals: 2 })
@@ -390,7 +515,19 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
         />
       )}
       <div className="modal-backdrop" onClick={onClose} />
-      <form className="account-drawer job-form-drawer job-create-drawer enterprise-mode" onSubmit={handleSubmit}>
+      <form
+        className="account-drawer job-form-drawer job-create-drawer enterprise-mode"
+        onSubmit={handleSubmit}
+        onInvalidCapture={e => {
+          // A required field inside a folded section: open it, then show the message.
+          const field = e.target as HTMLInputElement;
+          const id = field.closest<HTMLElement>('[data-section]')?.dataset.section;
+          if (id && collapsed.has(id)) {
+            setSectionOpen(id, true);
+            window.setTimeout(() => field.reportValidity?.(), 0);
+          }
+        }}
+      >
         <div className="job-form-header">
           <div>
             <span className="eyebrow">{isEdit ? (editJob?.job_ref || t('jobCreateModal.editTitle')) : isDuplicate ? t('jobCreateModal.duplicateEyebrow', { ref: duplicateFrom?.job_ref || '' }) : isQuoteConversion ? t('jobCreateModal.quoteEyebrow', { ref: quoteRef || '' }).trim() : t('jobCreateModal.newDispatchEyebrow')}</span>
@@ -403,14 +540,8 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
         </div>
 
         <div className="job-form-body">
-          <section className="job-form-section">
-            <div className="job-section-heading">
-              <span>01</span>
-              <div>
-                <h3>{t('jobCreateModal.pricingTitle')}</h3>
-                <p>{t('jobCreateModal.pricingHint')}</p>
-              </div>
-            </div>
+          <section className={sectionClass('job-form-section', 'pricing')} data-section="pricing">
+            {heading('pricing', '01', t('jobCreateModal.pricingTitle'), t('jobCreateModal.pricingHint'))}
             <div className="pricing-grid">
               {/* Row 1: money in, money out, what's left. Row 2: how it's billed. */}
               <Field label={t('jobCreateModal.priceLabel')}>
@@ -487,14 +618,8 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
           </section>
 
           <div className="route-form-grid">
-            <section className="route-form-section pickup">
-              <div className="job-section-heading">
-                <span>02</span>
-                <div>
-                  <h3>{t('jobCreateModal.pickupDetailsTitle')}</h3>
-                  <p>{t('jobCreateModal.pickupDetailsHint')}</p>
-                </div>
-              </div>
+            <section className={sectionClass('route-form-section pickup', 'pickup')} data-section="pickup">
+              {heading('pickup', '02', t('jobCreateModal.pickupDetailsTitle'), t('jobCreateModal.pickupDetailsHint'))}
               <div className="leg-fields leg-fields-3">
                 <Field label={t('jobCreateModal.mapLocation')} span2 required>
                   <div className="location-input">
@@ -532,14 +657,8 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
                 </Field>
               </div>
             </section>
-            <section className="route-form-section dropoff">
-              <div className="job-section-heading">
-                <span>03</span>
-                <div>
-                  <h3>{t('jobCreateModal.dropoffDetailsTitle')}</h3>
-                  <p>{t('jobCreateModal.dropoffDetailsHint')}</p>
-                </div>
-              </div>
+            <section className={sectionClass('route-form-section dropoff', 'dropoff')} data-section="dropoff">
+              {heading('dropoff', '03', t('jobCreateModal.dropoffDetailsTitle'), t('jobCreateModal.dropoffDetailsHint'))}
               <div className="leg-fields leg-fields-3">
                 <Field label={t('jobCreateModal.mapLocation')} span2 required>
                   <div className="location-input">
@@ -580,14 +699,8 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
             </section>
           </div>
 
-          <section className="job-form-section">
-            <div className="job-section-heading">
-              <span>04</span>
-              <div>
-                <h3>{t('jobCreateModal.cargoSpecialTitle')}</h3>
-                <p>{t('jobCreateModal.cargoSpecialHint')}</p>
-              </div>
-            </div>
+          <section className={sectionClass('job-form-section', 'cargo')} data-section="cargo">
+            {heading('cargo', '04', t('jobCreateModal.cargoSpecialTitle'), t('jobCreateModal.cargoSpecialHint'))}
             <div className="cargo-grid">
               <Field label={t('jobCreateModal.cargoType')}>
                 <select value={formData.item_type} onChange={e => set('item_type', e.target.value as ItemType)}>
@@ -673,14 +786,8 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
             </div>
           </section>
 
-          <section className="job-form-section">
-            <div className="job-section-heading">
-              <span>05</span>
-              <div>
-                <h3>{t('jobCreateModal.notesTitle')}</h3>
-                <p>{t('jobCreateModal.notesHint')}</p>
-              </div>
-            </div>
+          <section className={sectionClass('job-form-section', 'notes')} data-section="notes">
+            {heading('notes', '05', t('jobCreateModal.notesTitle'), t('jobCreateModal.notesHint'))}
             <div className="leg-fields">
               <Field label={t('jobCreateModal.driverInstructions')} wide={isEdit}>
                 <textarea rows={3} value={formData.special_instructions} onChange={e => set('special_instructions', e.target.value)} placeholder={t('jobCreateModal.driverInstructionsPlaceholder')} />
@@ -695,14 +802,8 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
             </div>
           </section>
 
-          <section className="job-form-section">
-            <div className="job-section-heading">
-              <span>06</span>
-              <div>
-                <h3>{t('jobCreateModal.attachmentsTitle')}</h3>
-                <p>{t('jobCreateModal.attachmentsHint')}</p>
-              </div>
-            </div>
+          <section className={sectionClass('job-form-section', 'attachments')} data-section="attachments">
+            {heading('attachments', '06', t('jobCreateModal.attachmentsTitle'), t('jobCreateModal.attachmentsHint'))}
             <label className="attachment-drop">
               <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={handleFiles} />
               <span><Plus className="w-4 h-4" /></span>
@@ -711,6 +812,18 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
                 <small>{t('jobCreateModal.attachTypes')}</small>
               </div>
             </label>
+            {(editJob?.attachments ?? []).map(file => (
+              <div className="attached-file" key={file.path}>
+                <span className="pdf-icon">{(file.name.split('.').pop() || 'FILE').slice(0, 4).toUpperCase()}</span>
+                <div>
+                  <b title={file.name}>{file.name}</b>
+                  <small>{formatFileSize(file.size)} · {t('jobCreateModal.attachSaved', { defaultValue: 'saved' })}</small>
+                </div>
+                <button type="button" aria-label={t('jobCreateModal.attachOpen', { defaultValue: 'Open file' })} onClick={() => openAttachment(file.path)}>
+                  <ExternalLink className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
             {files.map((file, index) => (
               <div className="attached-file" key={`${file.name}-${index}`}>
                 <span className="pdf-icon">{(file.name.split('.').pop() || 'FILE').slice(0, 4).toUpperCase()}</span>
