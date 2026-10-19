@@ -19,6 +19,7 @@ import { DateRangeSelector, useDateRange } from './components/DateRangeSelector'
 import { Status, type StatusKind } from './components/StatusBadge';
 import { StatCard } from './components/StatCard';
 import { JobOperations, JOB_CONTROLS_ID } from './components/JobOperations';
+import { JobRouteMap } from './components/JobRouteMap';
 import { formatMoney } from '../../lib/tenant';
 
 /* ------------------------------------------------------------------ */
@@ -58,20 +59,6 @@ export function StageBadge({ job }: { job: JobWithDriver }) {
   return <Status kind={stage === 'cancelled' ? 'neutral' : TONE_KIND[STAGE_TONE[stage]]}>{STAGE_LABEL[stage]}</Status>;
 }
 
-// Rough emirate positions for the corridor sketch — the same static geography
-// used by the reference mockup. Real GPS routing isn't in scope here; this is
-// a visual corridor indicator, not a navigational map.
-const emiratePoints: Record<string, { x: number; y: number }> = {
-  'Abu Dhabi': { x: 78, y: 232 },
-  Dubai: { x: 205, y: 132 },
-  Sharjah: { x: 240, y: 108 },
-  Ajman: { x: 258, y: 90 },
-  RAK: { x: 314, y: 54 },
-  'Ras Al Khaimah': { x: 314, y: 54 },
-  Fujairah: { x: 340, y: 118 },
-  'UMM Al Quwain': { x: 270, y: 76 },
-};
-
 function useClickAway(ref: React.RefObject<HTMLElement | null>, active: boolean, onAway: () => void) {
   React.useEffect(() => {
     if (!active) return;
@@ -81,52 +68,6 @@ function useClickAway(ref: React.RefObject<HTMLElement | null>, active: boolean,
     document.addEventListener('mousedown', handle);
     return () => document.removeEventListener('mousedown', handle);
   }, [ref, active, onAway]);
-}
-
-function RouteMap({ from, to, onExpand }: { from: string; to: string; onExpand: () => void }) {
-  const a = emiratePoints[from] ?? emiratePoints.Dubai;
-  const b = emiratePoints[to] ?? emiratePoints['Abu Dhabi'];
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const length = Math.hypot(dx, dy) || 1;
-  const bow = Math.min(26, length / 4);
-  const midX = (a.x + b.x) / 2;
-  const midY = (a.y + b.y) / 2;
-  const nx = -dy / length;
-  const ny = dx / length;
-  const route = `M${a.x} ${a.y} Q${midX + nx * bow} ${midY + ny * bow} ${b.x} ${b.y}`;
-
-  return (
-    <div className="jw-map">
-      <svg viewBox="0 0 400 280" preserveAspectRatio="xMidYMid meet" role="img" aria-label={`Route from ${from} to ${to}`}>
-        <rect width="400" height="280" fill="#ecedef" />
-        <path d="M0 0H330L318 34L272 74L226 108L178 138L120 190L60 222L0 224Z" fill="#d5dde5" />
-        <path d="M360 80L400 70V210L352 190Z" fill="#d5dde5" />
-        <path
-          d="M78 232L205 132L240 108L258 90L314 54"
-          stroke="#ffffff" strokeWidth="7" fill="none" strokeLinecap="round" strokeLinejoin="round"
-        />
-        <path d="M205 132L272 128L340 118" stroke="#ffffff" strokeWidth="5" fill="none" strokeLinecap="round" />
-        <path d={route} stroke="#b8d62b" strokeWidth="5" fill="none" strokeLinecap="round" />
-        {Object.entries(emiratePoints)
-          .filter(([name]) => name !== 'Ras Al Khaimah') // avoid drawing the RAK duplicate twice
-          .map(([name, point]) => {
-            const active = name === from || name === to;
-            return (
-              <g key={name}>
-                <circle cx={point.x} cy={point.y} r={active ? 6 : 3.5} fill={active ? '#ffffff' : '#8b8f96'} stroke={active ? '#171719' : 'none'} strokeWidth="2.5" />
-                <text x={point.x + 10} y={point.y + 4} fontSize={active ? 12 : 10} fontWeight={active ? 700 : 500} fill={active ? '#171719' : '#6b6f76'}>
-                  {name}
-                </text>
-              </g>
-            );
-          })}
-      </svg>
-      <button className="jw-map-expand" onClick={onExpand} aria-label="Open live map" title="Open live map">
-        <Icon name="expand" size={16} />
-      </button>
-    </div>
-  );
 }
 
 function JobList({
@@ -377,7 +318,7 @@ function JobDetailPanel({
       </div>
 
       <div className="jw-route-body">
-        <RouteMap from={job.pickup_emirate} to={job.delivery_emirate} onExpand={onOpenMap} />
+        <JobRouteMap job={job} onExpand={onOpenMap} />
         <ol className="jw-timeline" aria-label="Chain of custody">
           {steps.map((step, index) => {
             const reached = step.done;

@@ -6,7 +6,7 @@ import { fieldClass } from './constants';
 import { emirateBias, validCoord, type LatLng } from '../../lib/geo';
 
 // Address autocomplete backed by the Mapbox Search Box API (same VITE_MAPBOX_TOKEN
-// as lib/eta.ts), which knows malls, towers and hotels as well as streets.
+// as lib/route.ts), which knows malls, towers and hotels as well as streets.
 // Limited to the selected emirate (lib/geo emirateBias). Without a token it
 // degrades to a plain text input — typing always works. A picked suggestion or
 // "use my location" also reports the exact point (onChange's second argument),

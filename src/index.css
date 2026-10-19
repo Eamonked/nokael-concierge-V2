@@ -9213,13 +9213,40 @@ main.stats-hidden .driver-app-strip {
   display: flex;
 }
 
-.jw-map svg {
-  width: 100%;
-  height: 100%;
+.jw-map .leaflet-container {
+  flex: 1;
+  background: #ecedef;
+  font: inherit;
+}
+
+/* ETA chip over the job route map (JobRouteMap). Above Leaflet's panes (z 400). */
+.jw-map-eta {
+  position: absolute;
+  top: 12px;
+  inset-inline-start: 12px;
+  z-index: 500;
+  display: grid;
+  gap: 1px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .94);
+  color: #171719;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .12);
+}
+
+.jw-map-eta small {
+  font-size: 11px;
+  color: #6b6f76;
+}
+
+.jw-map-eta b {
+  font-size: 18px;
+  line-height: 1.15;
 }
 
 .jw-map-expand {
   position: absolute;
+  z-index: 500;
   top: 12px;
   inset-inline-end: 12px;
   width: 40px;

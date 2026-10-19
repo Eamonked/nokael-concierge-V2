@@ -12,8 +12,9 @@ import { supabase, assignDriverToJob, updateJob, type Driver, type JobWithDriver
 import { jobStage, STAGE_LABEL } from '../../lib/jobStage';
 import { getDriverPositions, isOnline, type DriverPosition } from '../../lib/dispatch';
 import { validCoord, distanceMeters, formatDistance, geocodeAddress, type LatLng } from '../../lib/geo';
-import { getEtaMinutes } from '../../lib/eta';
+import { useLiveRoute } from '../../lib/route';
 import { TERMINAL_STATUSES } from './constants';
+import { formatDateTime } from '../../lib/tenant';
 import { useCanWrite } from './permissions';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -104,7 +105,6 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
   const [positionsError, setPositionsError] = React.useState(false);
   const [geofence, setGeofence] = React.useState(DEFAULT_GEOFENCE);
   const [assigning, setAssigning] = React.useState<string | null>(null);
-  const [eta, setEta] = React.useState<{ key: string; minutes: number | null; loading: boolean } | null>(null);
 
   // Clock for "online" / "stale" as time passes without new data.
   const [now, setNow] = React.useState(() => Date.now());
@@ -214,27 +214,14 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
   const selectedJob = selection?.kind === 'job' ? openJobs.find(j => j.id === selection.id) || null : null;
   const selectedDriver = selection?.kind === 'driver' ? driverRows.find(r => r.driver.id === selection.id) || null : null;
 
-  // Where the selected job is heading next.
-  const nextStop = selectedJob ? (() => {
-    const pickedUp = !!selectedJob.driver_pickup_at;
-    const target = pickedUp ? validCoord(selectedJob.delivery_lat, selectedJob.delivery_lng) : validCoord(selectedJob.pickup_lat, selectedJob.pickup_lng);
-    return { kind: pickedUp ? 'delivery' as const : 'pickup' as const, target, address: pickedUp ? selectedJob.delivery_location : selectedJob.pickup_location };
-  })() : null;
   const selectedJobDriver = selectedJob?.driver_id ? driverPos(selectedJob.driver_id, selectedJob) : null;
 
-  // Live ETA (Mapbox) for the selected job's driver → next stop. Recomputed when
-  // the driver moves more than ~200 m, not on every poll.
-  const etaKey = selectedJob && selectedJobDriver?.pos && nextStop?.target
-    ? `${selectedJob.id}:${nextStop.kind}:${selectedJobDriver.pos.map(v => v.toFixed(3)).join(',')}`
+  // Road route + ETA from the driver to the next stop (same rules as the client
+  // portal; refetches only when lib/route says so, not on every position poll).
+  const live = useLiveRoute(selectedJob, selectedJobDriver?.pos ?? null, selectedJobDriver?.at);
+  const nextStop = live.stop
+    ? { ...live.stop, address: live.stop.kind === 'delivery' ? selectedJob?.delivery_location : selectedJob?.pickup_location }
     : null;
-  React.useEffect(() => {
-    if (!etaKey || !selectedJobDriver?.pos || !nextStop?.target) { setEta(null); return; }
-    let alive = true;
-    setEta({ key: etaKey, minutes: null, loading: true });
-    getEtaMinutes(selectedJobDriver.pos[0], selectedJobDriver.pos[1], nextStop.target[0], nextStop.target[1])
-      .then(minutes => { if (alive) setEta({ key: etaKey, minutes, loading: false }); });
-    return () => { alive = false; };
-  }, [etaKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- Map content per mode -------------------------------------------------
   const flyTarget: LatLng | null = selectedDriver?.pos
@@ -349,7 +336,12 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
             <div className="dm-stats">
               <div>
                 <small>{nextStop?.kind === 'delivery' ? t('liveMap.etaDropoff', { defaultValue: 'ETA to drop-off' }) : t('liveMap.etaPickup', { defaultValue: 'ETA to pickup' })}</small>
-                <b>{eta?.loading ? '…' : eta?.minutes != null ? t('liveMap.minutes', { defaultValue: '{{count}} min', count: eta.minutes }) : '—'}</b>
+                <b>
+                  {nextStop?.arrived ? t('liveMap.arrived', { defaultValue: 'Arrived' })
+                    : live.loading ? '…'
+                    : live.minutes != null ? t('liveMap.minutes', { defaultValue: '{{count}} min', count: live.minutes }) : '—'}
+                </b>
+                {live.arriveAt && !nextStop?.arrived && <small>{formatDateTime(live.arriveAt, { timeStyle: 'short' })}</small>}
               </div>
               <div>
                 <small>{t('liveMap.distance', { defaultValue: 'Distance' })}</small>
@@ -592,7 +584,7 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
             );
           })}
 
-          {/* Selected job: stops, geofence radius, line from driver to next stop */}
+          {/* Selected job: stops, geofence radius, road route from driver to next stop */}
           {selectedJob && jobPickup && (
             <>
               <Marker position={jobPickup} icon={ICON.pickup} title={t('liveMap.pickup')} />
@@ -609,7 +601,11 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
               )}
             </>
           )}
-          {selectedJob && selectedJobDriver?.pos && nextStop?.target && (
+          {selectedJob && live.coords.length > 1 && (
+            <Polyline positions={live.coords} pathOptions={{ color: '#2563eb', weight: 4, opacity: 0.85 }} />
+          )}
+          {/* No road route yet (no token / lookup failed): fall back to a straight hint. */}
+          {selectedJob && !live.coords.length && !nextStop?.arrived && selectedJobDriver?.pos && nextStop?.target && (
             <Polyline positions={[selectedJobDriver.pos, nextStop.target]} pathOptions={{ color: '#64748b', weight: 2, dashArray: '6 6' }} />
           )}
           {selectedJob && !selectedJob.driver_id && jobPickup && jobDrop && (

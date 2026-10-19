@@ -10,7 +10,8 @@ import {
   getBusinessContacts,
   deleteBusinessContact,
 } from '../../../lib/supabase';
-import { getEtaMinutes } from '../../../lib/eta';
+import { useLiveRoute } from '../../../lib/route';
+import { validCoord } from '../../../lib/geo';
 import {
   getBusinessRenewalStatus,
   getMonthlyVolumeByMonth,
@@ -43,55 +44,13 @@ const getInitials = (name: string) => {
 };
 
 /**
- * Live ETA for a single job, computed on demand via Mapbox Directions —
- * never stored, since it depends on the driver's current position. Refetches
- * every 60s while the row is mounted (i.e. only while the drawer is open).
+ * Live ETA for a single job — the same lookup and refetch rules as the Live
+ * Map and the client portal (lib/route), so all three show the same number.
  */
 function useJobEta(job: JobWithDriver): number | null {
-  const [eta, setEta] = React.useState<number | null>(null);
-
-  React.useEffect(() => {
-    let cancelled = false;
-
-    const fetchEta = async () => {
-      let from: [number, number] | null = null;
-      let to: [number, number] | null = null;
-
-      if (
-        job.status === 'driver_pickup' &&
-        job.driver_lat != null && job.driver_lng != null &&
-        job.pickup_lat != null && job.pickup_lng != null
-      ) {
-        from = [job.driver_lat, job.driver_lng];
-        to = [job.pickup_lat, job.pickup_lng];
-      } else if (
-        job.status === 'driver_delivery' &&
-        job.driver_lat != null && job.driver_lng != null &&
-        job.delivery_lat != null && job.delivery_lng != null
-      ) {
-        from = [job.driver_lat, job.driver_lng];
-        to = [job.delivery_lat, job.delivery_lng];
-      }
-
-      if (!from || !to) {
-        if (!cancelled) setEta(null);
-        return;
-      }
-
-      const minutes = await getEtaMinutes(from[0], from[1], to[0], to[1]);
-      if (!cancelled) setEta(minutes);
-    };
-
-    fetchEta();
-    const interval = setInterval(fetchEta, 60000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [job.id, job.status, job.driver_lat, job.driver_lng, job.pickup_lat, job.pickup_lng, job.delivery_lat, job.delivery_lng]);
-
-  return eta;
+  const driver = validCoord(job.driver_lat, job.driver_lng);
+  const live = useLiveRoute(job, driver, job.driver_updated_at);
+  return live.stop?.arrived ? null : live.minutes;
 }
 
 const ShipmentRow: React.FC<{ job: JobWithDriver }> = ({ job }) => {
