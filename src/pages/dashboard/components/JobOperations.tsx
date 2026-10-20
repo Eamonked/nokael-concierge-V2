@@ -211,36 +211,24 @@ export function JobOperations({
     updateJob(job.id!, flag).then(() => onUpdate()).catch(() => { /* the message still went out */ });
   };
 
-  const whatsappTargets = [
-    { id: 'sender' as const, label: t('jobDetailModal.whatsapp.sender'), sent: job.sender_notified, reachable: !!job.sender_phone },
-    { id: 'driver' as const, label: t('jobDetailModal.whatsapp.pilot'), sent: job.driver_notified, reachable: !!job.driver?.phone },
-    { id: 'recipient' as const, label: t('jobDetailModal.whatsapp.client'), sent: job.recipient_notified, reachable: !!job.recipient_phone },
+  // One row per person: a single WhatsApp button sends the full message (route,
+  // tracking link, their code) and records that it went out; copy/open give
+  // dispatch the link on its own.
+  const recipients = [
+    { id: 'sender' as const, role: t('jobDetailModal.share.sender', { defaultValue: 'Sender' }), name: job.sender_name, phone: job.sender_phone, sent: job.sender_notified, url: trackUrl('sender'), openLabel: t('jobDetailModal.tracking.open', { defaultValue: 'Open tracking page' }) },
+    { id: 'driver' as const, role: t('jobDetailModal.share.driver', { defaultValue: 'Driver' }), name: job.driver?.full_name || '', phone: job.driver?.phone || '', sent: job.driver_notified, url: DRIVER_APP_URL, openLabel: t('jobDetailModal.share.openDriverApp', { defaultValue: 'Open driver web app' }) },
+    { id: 'recipient' as const, role: t('jobDetailModal.share.recipient', { defaultValue: 'Recipient' }), name: job.recipient_name, phone: job.recipient_phone, sent: job.recipient_notified, url: trackUrl('recipient'), openLabel: t('jobDetailModal.tracking.open', { defaultValue: 'Open tracking page' }) },
   ];
-
-  const trackingLinks = (['sender', 'recipient'] as const)
-    .map(party => ({
-      id: `track-${party}`,
-      label: party === 'sender' ? t('jobDetailModal.tracking.sender', { defaultValue: 'Sender' }) : t('jobDetailModal.tracking.recipient', { defaultValue: 'Recipient' }),
-      url: trackUrl(party),
-      phone: party === 'sender' ? job.sender_phone : job.recipient_phone,
-      message: buildMessage(party),
-    }))
-    .filter(link => link.url);
 
   // Hand-off codes dispatch may need to read out or resend. Driver-only jobs use
   // just the sender's and recipient's codes; four-step jobs add the driver's.
   const codes = [
-    { id: 'code-sender', label: 'Sender code', hint: 'Driver enters it at pickup', code: job.otp_sender, phone: job.sender_phone, to: 'sender' as const },
+    { id: 'code-sender', label: 'Sender code', hint: 'Driver enters it at pickup', code: job.otp_sender },
     ...(!driverOnly && job.otp_driver_pickup
-      ? [{ id: 'code-driver', label: 'Driver code', hint: 'Driver gives it at both hand-offs', code: job.otp_driver_pickup, phone: job.driver?.phone || '', to: 'driver' as const }]
+      ? [{ id: 'code-driver', label: 'Driver code', hint: 'Driver gives it at both hand-offs', code: job.otp_driver_pickup }]
       : []),
-    { id: 'code-recipient', label: 'Recipient code', hint: 'Driver enters it at delivery', code: job.otp_recipient, phone: job.recipient_phone, to: 'recipient' as const },
+    { id: 'code-recipient', label: 'Recipient code', hint: 'Driver enters it at delivery', code: job.otp_recipient },
   ];
-  const codeMessage = (to: 'sender' | 'driver' | 'recipient', code: string) =>
-    to === 'driver'
-      ? `Nokael Job #${job.job_ref}: your hand-off code is ${code}.`
-      : `Nokael Job #${job.job_ref}: your ${to === 'sender' ? 'handover' : 'delivery'} code is ${code}. Give it to the driver only when you ${to === 'sender' ? 'hand over' : 'receive'} the package.`;
-
   // ── Cancel ──────────────────────────────────────────────────────────────────
   const confirmCancel = async () => {
     const reason = customFailReason.trim() || (failReason === 'custom' ? 'Custom' : tEn(`failureReasons.${failReason}`));
@@ -414,11 +402,6 @@ export function JobOperations({
                     <button type="button" className="jo-icon" onClick={() => copy(c.id, c.code!)} aria-label={`Copy ${c.label.toLowerCase()}`} title="Copy code">
                       {copied === c.id ? <Check /> : <Copy />}
                     </button>
-                    {c.phone && (
-                      <button type="button" className="jo-icon" onClick={() => openWhatsApp(c.phone, codeMessage(c.to, c.code!))} aria-label={`Send ${c.label.toLowerCase()} on WhatsApp`} title="Send on WhatsApp">
-                        <MessageSquare />
-                      </button>
-                    )}
                   </div>
                 )}
               </li>
@@ -467,48 +450,39 @@ export function JobOperations({
           </ol>
         </section>
 
-        {/* ── Client & driver messages ────────────────────────────────────── */}
+        {/* ── Send to each person: one row each ───────────────────────────── */}
         <section className="jo-section">
-          <h3>{t('jobDetailModal.whatsapp.title')}</h3>
-          <div className="jo-wa">
-            {whatsappTargets.map(target => (
-              <button key={target.id} type="button" className={target.sent ? 'sent' : ''} disabled={!target.reachable} onClick={() => sendWhatsApp(target.id)}>
-                <MessageSquare />
-                <b>{target.label}</b>
-                <small>{target.sent ? t('jobDetailModal.whatsapp.dispatched') : t('jobDetailModal.whatsapp.ready')}</small>
-              </button>
-            ))}
-          </div>
-          <small className="jo-sub">Links</small>
-          <ul className="jo-links">
-            {trackingLinks.map(link => (
-              <li key={link.id}>
-                <b>{link.label}</b>
-                <span title={link.url}>{link.url.replace(/^https?:\/\//, '')}</span>
-                <button type="button" className="jo-icon" onClick={() => copy(link.id, link.url)} aria-label={t('jobDetailModal.verification.copyLinkTitle')} title={t('jobDetailModal.verification.copyLinkTitle')}>
-                  {copied === link.id ? <Check /> : <Copy />}
-                </button>
-                {link.phone && (
-                  <button type="button" className="jo-icon" onClick={() => openWhatsApp(link.phone, link.message)}
-                    aria-label={t('jobDetailModal.tracking.sendWhatsApp', { defaultValue: 'Send on WhatsApp' })} title={t('jobDetailModal.tracking.sendWhatsApp', { defaultValue: 'Send on WhatsApp' })}>
+          <h3>{t('jobDetailModal.share.title', { defaultValue: 'Send job details' })}</h3>
+          <ul className="jo-share">
+            {recipients.map(r => (
+              <li key={r.id} className={r.sent ? 'sent' : ''}>
+                <div className="jo-share-who">
+                  <small>{r.role}</small>
+                  <b>{r.name || '—'}</b>
+                  {r.phone && <span>{r.phone}</span>}
+                </div>
+                <span className={`jo-share-status${r.sent ? ' sent' : ''}`}>
+                  {r.sent ? <><Check />{t('jobDetailModal.share.sent', { defaultValue: 'Sent' })}</> : t('jobDetailModal.share.notSent', { defaultValue: 'Not sent' })}
+                </span>
+                <div className="jo-share-actions">
+                  {r.url && (
+                    <>
+                      <button type="button" className="jo-icon" onClick={() => copy(`link-${r.id}`, r.url)} aria-label={t('jobDetailModal.verification.copyLinkTitle')} title={t('jobDetailModal.verification.copyLinkTitle')}>
+                        {copied === `link-${r.id}` ? <Check /> : <Copy />}
+                      </button>
+                      <a className="jo-icon" href={r.url} target="_blank" rel="noopener noreferrer" aria-label={r.openLabel} title={r.openLabel}>
+                        <ExternalLink />
+                      </a>
+                    </>
+                  )}
+                  <button type="button" className="jo-btn jo-share-send" disabled={!r.phone} onClick={() => sendWhatsApp(r.id)}
+                    title={r.phone ? undefined : t('jobDetailModal.share.noPhone', { defaultValue: 'No phone number on this job' })}>
                     <MessageSquare />
+                    {r.sent ? t('jobDetailModal.share.resend', { defaultValue: 'Resend' }) : t('jobDetailModal.share.send', { defaultValue: 'WhatsApp' })}
                   </button>
-                )}
-                <a className="jo-icon" href={link.url} target="_blank" rel="noopener noreferrer" aria-label={t('jobDetailModal.tracking.open', { defaultValue: 'Open tracking page' })} title={t('jobDetailModal.tracking.open', { defaultValue: 'Open tracking page' })}>
-                  <ExternalLink />
-                </a>
+                </div>
               </li>
             ))}
-            <li>
-              <b>Driver</b>
-              <span title={DRIVER_APP_URL}>{DRIVER_APP_URL.replace(/^https?:\/\//, '')}</span>
-              <button type="button" className="jo-icon" onClick={() => copy('driver-app', DRIVER_APP_URL)} aria-label={t('jobDetailModal.verification.copyLinkTitle')} title={t('jobDetailModal.verification.copyLinkTitle')}>
-                {copied === 'driver-app' ? <Check /> : <Copy />}
-              </button>
-              <a className="jo-icon" href={DRIVER_APP_URL} target="_blank" rel="noopener noreferrer" aria-label="Open driver web app" title="Open driver web app">
-                <ExternalLink />
-              </a>
-            </li>
           </ul>
         </section>
 

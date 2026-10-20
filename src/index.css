@@ -9206,6 +9206,8 @@ main.stats-hidden .driver-app-strip {
 
 .jw-map {
   position: relative;
+  /* Keep Leaflet's layers (z-index 400–1000) inside the map, below drawers and modals. */
+  isolation: isolate;
   min-height: 300px;
   border-radius: 22px;
   overflow: hidden;
@@ -9297,9 +9299,13 @@ main.stats-hidden .driver-app-strip {
   box-shadow: 0 0 0 4px var(--surface);
 }
 
-.jw-stop.reached .jw-stop-dot,
-.jw-stop.current .jw-stop-dot {
+.jw-stop.reached .jw-stop-dot {
   background: var(--accent-ink);
+}
+
+/* The next step is in progress: amber until it's done, then green like the rest. */
+.jw-stop.current .jw-stop-dot {
+  background: var(--color-warning);
 }
 
 .jw-stop-time {
@@ -9335,7 +9341,7 @@ main.stats-hidden .driver-app-strip {
 
 .jw-stop-card {
   padding: 10px 14px;
-  border: 1px solid var(--line);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 45%, var(--line));
   border-radius: 16px;
   background: var(--surface-2);
   display: grid;
@@ -9347,7 +9353,7 @@ main.stats-hidden .driver-app-strip {
 .jw-radio {
   width: 18px;
   height: 18px;
-  border: 2px solid var(--accent-ink);
+  border: 2px solid var(--color-warning);
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -9358,7 +9364,7 @@ main.stats-hidden .driver-app-strip {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--accent-ink);
+  background: var(--color-warning);
 }
 
 .jw-callout {
@@ -9799,85 +9805,110 @@ main.stats-hidden .driver-app-strip {
   font-size: 12.5px;
 }
 
-.jo-wa {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.jo-wa button {
-  padding: 12px 8px;
-  border: 1px solid var(--accent);
-  border-radius: 14px;
-  background: var(--surface);
-  color: var(--text);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  font-size: 13px;
-}
-
-.jo-wa button:hover:not(:disabled) {
-  background: var(--surface-2);
-}
-
-.jo-wa button svg {
-  color: var(--accent-ink);
-}
-
-.jo-wa button small {
-  color: var(--accent-ink);
-  font-size: 11.5px;
-}
-
-.jo-wa button.sent {
-  border-color: var(--line);
-}
-
-.jo-wa button.sent svg,
-.jo-wa button.sent small {
-  color: var(--faint);
-}
-
-.jo-wa button:disabled {
-  opacity: .45;
-}
-
-.jo-links {
+.jo-share {
   margin: 0;
   padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-
-.jo-links li {
-  padding: 4px 4px 4px 14px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
   gap: 8px;
-  font-size: 13px;
 }
 
-.jo-links b {
-  width: 76px;
-  flex: 0 0 auto;
-  font-weight: 600;
+.jo-share li {
+  padding: 10px 10px 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
 }
 
-.jo-links span {
-  flex: 1;
+.jo-share-who {
   min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.jo-share-who small {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.jo-share-who b {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.jo-share-who span {
   color: var(--muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+}
+
+.jo-share-status {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--ent-warning-bg);
+  color: var(--ent-warning-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.jo-share-status.sent {
+  background: color-mix(in srgb, var(--accent-ink) 14%, transparent);
+  color: var(--accent-ink);
+}
+
+.jo-share-status svg {
+  width: 13px;
+  height: 13px;
+}
+
+.jo-share-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.jo-share-send {
+  margin-inline-start: 4px;
+  border-color: #25d366;
+  background: #25d366;
+  color: #fff;
+}
+
+.jo-share-send:hover:not(:disabled) {
+  background: #1ebe5a;
+}
+
+.jo-share li.sent .jo-share-send {
+  border-color: var(--line);
+  background: transparent;
+  color: var(--text);
+}
+
+.jo-share li.sent .jo-share-send:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+@media (max-width: 560px) {
+  .jo-share li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .jo-share-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
 }
 
 .jo-dialog-backdrop {
@@ -10380,6 +10411,7 @@ main.stats-hidden .driver-app-strip {
 }
 
 .dm-modes {
+  flex-shrink: 0;
   padding: 6px;
   border-bottom: 1px solid var(--ent-line);
   display: grid;
@@ -10967,8 +10999,11 @@ main.stats-hidden .driver-app-strip {
     min-height: 0;
   }
 
+  /* Stacked above the map: give the list a real height. Its contents are a
+     shrinkable flex column, so with only a max-height it collapsed to its
+     border and the tabs and driver statuses disappeared. */
   .dm-list {
-    max-height: 320px;
+    height: 360px;
   }
 
   .dm-map {

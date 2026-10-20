@@ -822,6 +822,18 @@
       "assign": "Failed to assign driver: {{error}}",
       "savePayout": "Could not save payout: {{error}}",
       "unlockOtp": "Could not unlock code entry: {{error}}"
+    },
+    "share": {
+      "title": "Send job details",
+      "sender": "Sender",
+      "driver": "Driver",
+      "recipient": "Recipient",
+      "sent": "Sent",
+      "notSent": "Not sent",
+      "send": "WhatsApp",
+      "resend": "Resend",
+      "noPhone": "No phone number on this job",
+      "openDriverApp": "Open driver web app"
     }
   },
   "settings": {
