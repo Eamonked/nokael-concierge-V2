@@ -833,7 +833,11 @@
       "send": "WhatsApp",
       "resend": "Resend",
       "noPhone": "No phone number on this job",
-      "openDriverApp": "Open driver web app"
+      "openDriverApp": "Open driver web app",
+      "viewingNow": "Viewing now",
+      "lastSeen": "Last seen {{ago}}",
+      "lastSeenVisits": "Last seen {{ago}} · {{count}} visits",
+      "notOpened": "Link not opened yet"
     }
   },
   "settings": {

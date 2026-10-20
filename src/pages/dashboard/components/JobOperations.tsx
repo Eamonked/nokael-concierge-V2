@@ -1,8 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import {
-  AlertTriangle, Check, CheckCircle2, CheckSquare, Copy, Download, ExternalLink, Loader2, MessageSquare, RotateCcw, Undo2, Zap,
+  AlertTriangle, Check, CheckCircle2, CheckSquare, Copy, Download, ExternalLink, Eye, Loader2, MessageSquare, RotateCcw, Undo2, Zap,
 } from 'lucide-react';
 import { downloadCocForJob } from '../../../lib/cocPdf';
 import {
@@ -15,6 +15,7 @@ import { WriteGuard } from '../permissions';
 import { noteLocalStageChange } from '../../../lib/jobStage';
 import { formatMoney, isoToZonedInput } from '../../../lib/tenant';
 import { jobAttachmentUrl } from '../../../lib/supabase';
+import { useLinkViews, VIEWING_NOW_MS, type LinkView } from '../../../lib/dispatch';
 
 /* ------------------------------------------------------------------ */
 /* Everything dispatch needs to run a single job beyond the headline   */
@@ -214,10 +215,35 @@ export function JobOperations({
   // One row per person: a single WhatsApp button sends the full message (route,
   // tracking link, their code) and records that it went out; copy/open give
   // dispatch the link on its own.
+  // When each client opened their link (live). The clock only re-renders the
+  // "x min ago" text; it makes no requests.
+  const views = useLinkViews(job.id);
+  const [clock, setClock] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    if (!views.sender && !views.recipient) return;
+    const id = setInterval(() => setClock(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, [!!views.sender, !!views.recipient]);
+  const seenLabel = (v?: LinkView): { text: string; live: boolean } | null => {
+    if (!v) return null;
+    const last = new Date(v.last_seen_at).getTime();
+    if (Math.max(clock, Date.now()) - last < VIEWING_NOW_MS) return { text: t('jobDetailModal.share.viewingNow', { defaultValue: 'Viewing now' }), live: true };
+    const ago = formatDistanceToNow(last, { addSuffix: true });
+    return {
+      text: v.visits > 1
+        ? t('jobDetailModal.share.lastSeenVisits', { defaultValue: 'Last seen {{ago}} · {{count}} visits', ago, count: v.visits })
+        : t('jobDetailModal.share.lastSeen', { defaultValue: 'Last seen {{ago}}', ago }),
+      live: false,
+    };
+  };
+  // The dashboard's own "open" skips the view count (?staff=1), so dispatch
+  // checking the page doesn't look like the client.
+  const staffUrl = (url: string) => url ? `${url}${url.includes('?') ? '&' : '?'}staff=1` : url;
+
   const recipients = [
-    { id: 'sender' as const, role: t('jobDetailModal.share.sender', { defaultValue: 'Sender' }), name: job.sender_name, phone: job.sender_phone, sent: job.sender_notified, url: trackUrl('sender'), openLabel: t('jobDetailModal.tracking.open', { defaultValue: 'Open tracking page' }) },
-    { id: 'driver' as const, role: t('jobDetailModal.share.driver', { defaultValue: 'Driver' }), name: job.driver?.full_name || '', phone: job.driver?.phone || '', sent: job.driver_notified, url: DRIVER_APP_URL, openLabel: t('jobDetailModal.share.openDriverApp', { defaultValue: 'Open driver web app' }) },
-    { id: 'recipient' as const, role: t('jobDetailModal.share.recipient', { defaultValue: 'Recipient' }), name: job.recipient_name, phone: job.recipient_phone, sent: job.recipient_notified, url: trackUrl('recipient'), openLabel: t('jobDetailModal.tracking.open', { defaultValue: 'Open tracking page' }) },
+    { id: 'sender' as const, role: t('jobDetailModal.share.sender', { defaultValue: 'Sender' }), name: job.sender_name, phone: job.sender_phone, sent: job.sender_notified, url: trackUrl('sender'), openUrl: staffUrl(trackUrl('sender')), seen: seenLabel(views.sender), notOpened: job.sender_notified, openLabel: t('jobDetailModal.tracking.open', { defaultValue: 'Open tracking page' }) },
+    { id: 'driver' as const, role: t('jobDetailModal.share.driver', { defaultValue: 'Driver' }), name: job.driver?.full_name || '', phone: job.driver?.phone || '', sent: job.driver_notified, url: DRIVER_APP_URL, openUrl: DRIVER_APP_URL, seen: null, notOpened: false, openLabel: t('jobDetailModal.share.openDriverApp', { defaultValue: 'Open driver web app' }) },
+    { id: 'recipient' as const, role: t('jobDetailModal.share.recipient', { defaultValue: 'Recipient' }), name: job.recipient_name, phone: job.recipient_phone, sent: job.recipient_notified, url: trackUrl('recipient'), openUrl: staffUrl(trackUrl('recipient')), seen: seenLabel(views.recipient), notOpened: job.recipient_notified, openLabel: t('jobDetailModal.tracking.open', { defaultValue: 'Open tracking page' }) },
   ];
 
   // Hand-off codes dispatch may need to read out or resend. Driver-only jobs use
@@ -460,6 +486,9 @@ export function JobOperations({
                   <small>{r.role}</small>
                   <b>{r.name || '—'}</b>
                   {r.phone && <span>{r.phone}</span>}
+                  {r.seen
+                    ? <em className={`jo-share-seen${r.seen.live ? ' live' : ''}`}><Eye />{r.seen.text}</em>
+                    : r.notOpened && <em className="jo-share-seen">{t('jobDetailModal.share.notOpened', { defaultValue: 'Link not opened yet' })}</em>}
                 </div>
                 <span className={`jo-share-status${r.sent ? ' sent' : ''}`}>
                   {r.sent ? <><Check />{t('jobDetailModal.share.sent', { defaultValue: 'Sent' })}</> : t('jobDetailModal.share.notSent', { defaultValue: 'Not sent' })}
@@ -470,7 +499,7 @@ export function JobOperations({
                       <button type="button" className="jo-icon" onClick={() => copy(`link-${r.id}`, r.url)} aria-label={t('jobDetailModal.verification.copyLinkTitle')} title={t('jobDetailModal.verification.copyLinkTitle')}>
                         {copied === `link-${r.id}` ? <Check /> : <Copy />}
                       </button>
-                      <a className="jo-icon" href={r.url} target="_blank" rel="noopener noreferrer" aria-label={r.openLabel} title={r.openLabel}>
+                      <a className="jo-icon" href={r.openUrl} target="_blank" rel="noopener noreferrer" aria-label={r.openLabel} title={r.openLabel}>
                         <ExternalLink />
                       </a>
                     </>

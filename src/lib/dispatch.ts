@@ -2,6 +2,7 @@
 // Live dispatch: driver positions and geofence events
 // (see supabase-map-geofence.sql)
 // ==========================================
+import React from 'react';
 import { supabase } from './supabase';
 
 export interface DriverPosition {
@@ -72,3 +73,41 @@ export const acknowledgeJobEvent = async (id: string): Promise<void> => {
     .eq('id', id);
   if (error) throw error;
 };
+
+// ==========================================
+// Client link views (supabase-link-views-migration.sql in the portal repo)
+// ==========================================
+
+export interface LinkView {
+  party: 'sender' | 'recipient';
+  first_seen_at: string;
+  last_seen_at: string;
+  visits: number;
+}
+
+/** A client counts as "viewing now" this soon after the page's last heartbeat (sent every 2 min). */
+export const VIEWING_NOW_MS = 3 * 60 * 1000;
+
+/**
+ * When the sender / recipient opened the link dispatch sent them, kept live:
+ * loaded once, then updated by realtime as the client's page reports in.
+ * No polling.
+ */
+export function useLinkViews(jobId: string | undefined): Partial<Record<LinkView['party'], LinkView>> {
+  const [views, setViews] = React.useState<Partial<Record<LinkView['party'], LinkView>>>({});
+  React.useEffect(() => {
+    setViews({});
+    if (!jobId || !supabase) return;
+    const sb = supabase;
+    let alive = true;
+    const put = (row: LinkView) => { if (alive) setViews(prev => ({ ...prev, [row.party]: row })); };
+    sb.from('job_link_views').select('party, first_seen_at, last_seen_at, visits').eq('job_id', jobId)
+      .then(({ data }) => (data as LinkView[] | null)?.forEach(put));
+    const channel = sb.channel(`link-views:${jobId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'job_link_views', filter: `job_id=eq.${jobId}` },
+        payload => { if (payload.new && (payload.new as LinkView).party) put(payload.new as LinkView); })
+      .subscribe();
+    return () => { alive = false; sb.removeChannel(channel); };
+  }, [jobId]);
+  return views;
+}
