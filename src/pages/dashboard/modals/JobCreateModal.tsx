@@ -1,12 +1,14 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { X, Loader2, MapPin, Plus, ChevronDown, ExternalLink } from 'lucide-react';
+import { X, Loader2, MapPin, Plus, ChevronDown, ExternalLink, ArrowUpDown, Navigation } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase, createJob, updateJob, uploadJobAttachments, jobAttachmentUrl, generateOtp, type Driver, type Job, type ItemType, type UrgencyType, type ServiceTier, type BusinessInquiry } from '../../../lib/supabase';
 import { sendTelegramNotification, formatJobAssignmentNotification } from '../../../lib/notifications';
-import { geocodeAddress, validCoord, type LatLng } from '../../../lib/geo';
+import { geocodeAddress, validCoord, distanceMeters, formatDistance, type LatLng } from '../../../lib/geo';
 import { AccountPicker, ClientReferenceInput, findAccountByName } from '../components/AccountPicker';
 import { MapPickerModal, type MapPickerResult } from '../components/MapPickerModal';
+import { jobToDraft, sameAddress } from '../../../lib/jobDraft';
+import { loadHandoverPoints } from '../../../lib/cocPdf';
 
 import { getActiveTenant, isoToZonedInput, zonedInputToIso, regionOptions, formatMoney } from '../../../lib/tenant';
 
@@ -48,56 +50,22 @@ interface JobCreateModalProps {
    * portal, POD reports and billing. Unlinked jobs are one-offs.
    */
   businessInquiries?: BusinessInquiry[];
+  /**
+   * The old job a converted client-app re-booking repeats. Lets the form offer
+   * that job's COC handover GPS for the stops (duplicates use duplicateFrom).
+   */
+  sourceJob?: Job;
+  /** The starting data is sourceJob the other way round (a "send it back" re-booking). */
+  sourceReversed?: boolean;
 }
 
-export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSuccess, initialData: prefill, drivers, editJob, duplicateFrom, quoteRef, businessInquiries }) => {
+export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSuccess, initialData: prefill, drivers, editJob, duplicateFrom, quoteRef, businessInquiries, sourceJob, sourceReversed }) => {
   const { t } = useTranslation('dashboard');
   const isEdit = !!editJob;
   const isDuplicate = !!duplicateFrom;
   const isQuoteConversion = !editJob && !duplicateFrom && !!prefill?.quote_id;
-  // A duplicate copies only the reusable commercial/route details. Driver, internal
-  // notes, quote link, status, schedule time and every token/OTP are deliberately
-  // NOT carried over — the create path issues fresh ones.
-  const duplicateData: Partial<Job> | undefined = duplicateFrom && {
-    sender_name: duplicateFrom.sender_name,
-    sender_phone: duplicateFrom.sender_phone,
-    recipient_name: duplicateFrom.recipient_name,
-    recipient_phone: duplicateFrom.recipient_phone,
-    pickup_emirate: duplicateFrom.pickup_emirate,
-    pickup_location: duplicateFrom.pickup_location,
-    pickup_lat: duplicateFrom.pickup_lat,
-    pickup_lng: duplicateFrom.pickup_lng,
-    delivery_emirate: duplicateFrom.delivery_emirate,
-    delivery_location: duplicateFrom.delivery_location,
-    delivery_lat: duplicateFrom.delivery_lat,
-    delivery_lng: duplicateFrom.delivery_lng,
-    item_type: duplicateFrom.item_type,
-    urgency: duplicateFrom.urgency,
-    company_name: duplicateFrom.company_name,
-    // Same account and campaign: duplicating is how dispatch books the next
-    // recipient of a multi-drop campaign. The delivery slot is NOT copied.
-    business_id: duplicateFrom.business_id,
-    client_reference: duplicateFrom.client_reference,
-    service_tier: duplicateFrom.service_tier,
-    price_aed: duplicateFrom.price_aed,
-    special_instructions: duplicateFrom.special_instructions,
-    confirmation_mode: duplicateFrom.confirmation_mode,
-    // Stop details, cargo and payment carry over; time windows and attachments don't.
-    pickup_building: duplicateFrom.pickup_building,
-    pickup_company: duplicateFrom.pickup_company,
-    pickup_notes: duplicateFrom.pickup_notes,
-    delivery_building: duplicateFrom.delivery_building,
-    delivery_company: duplicateFrom.delivery_company,
-    delivery_notes: duplicateFrom.delivery_notes,
-    payment_mode: duplicateFrom.payment_mode,
-    vehicle_required: duplicateFrom.vehicle_required,
-    quantity: duplicateFrom.quantity,
-    weight_kg: duplicateFrom.weight_kg,
-    length_cm: duplicateFrom.length_cm,
-    width_cm: duplicateFrom.width_cm,
-    height_cm: duplicateFrom.height_cm,
-    handling_flags: duplicateFrom.handling_flags,
-  };
+  // A duplicate copies only the reusable commercial/route details (see jobToDraft).
+  const duplicateData: Partial<Job> | undefined = duplicateFrom && jobToDraft(duplicateFrom);
   const initialData: Partial<Job> | undefined = editJob ?? duplicateData ?? prefill;
   const [loading, setLoading] = React.useState(false);
   const [formData, setFormData] = React.useState({
@@ -218,9 +186,86 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
 
   const applyPick = (field: Stop, result: MapPickerResult) => {
     setPins(prev => ({ ...prev, [field]: result.coords }));
+    setPinSource(prev => ({ ...prev, [field]: null }));
     if (result.useLabel && result.label) set(`${field}_location`, result.label);
     setPicking(null);
   };
+
+  // ── Reverse a repeat job ────────────────────────────────────────────────────
+  // The old job this one repeats (Duplicate job, or a converted re-booking), and
+  // whether the form currently has it the other way round. Its COC log knows
+  // where the driver actually handed over, which can be better than the typed
+  // address; dispatch chooses which to use.
+  const source = duplicateFrom ?? sourceJob;
+  const [reversed, setReversed] = React.useState(!!sourceReversed);
+  const [pinSource, setPinSource] = React.useState<Record<Stop, 'coc' | 'booked' | null>>({ pickup: null, delivery: null });
+  type StopChoice = { coc: LatLng | null; booked: LatLng | null };
+  const [gpsChoice, setGpsChoice] = React.useState<Record<Stop, StopChoice> | null>(null);
+  const handover = React.useRef<ReturnType<typeof loadHandoverPoints> | null>(null);
+
+  /** Offers the source job's handover GPS for the stops that are still its stops. */
+  const offerGps = async (form: typeof formData, isReversed: boolean) => {
+    if (!source?.id || source.status !== 'completed') return;
+    handover.current ??= loadHandoverPoints(source.id).catch(() => ({ pickup: null, delivery: null }));
+    const points = await handover.current;
+    const choiceFor = (s: Stop): StopChoice => {
+      const from: Stop = isReversed ? (s === 'pickup' ? 'delivery' : 'pickup') : s;
+      // A stop the client or dispatch re-typed is a different place: no offer.
+      if (!sameAddress(form[`${s}_location`], source[`${from}_location`])) return { coc: null, booked: null };
+      return { coc: points[from], booked: validCoord(source[`${from}_lat`], source[`${from}_lng`]) };
+    };
+    const choice = { pickup: choiceFor('pickup'), delivery: choiceFor('delivery') };
+    if (choice.pickup.coc || choice.delivery.coc) setGpsChoice(choice);
+  };
+
+  const chooseGps = (use: 'coc' | 'booked') => {
+    if (!gpsChoice) return;
+    const nextPins = { ...pins };
+    const nextSource = { ...pinSource };
+    (['pickup', 'delivery'] as Stop[]).forEach(s => {
+      const point = use === 'coc' ? (gpsChoice[s].coc ?? gpsChoice[s].booked) : gpsChoice[s].booked;
+      if (!point) return;
+      nextPins[s] = point;
+      nextSource[s] = use === 'coc' && gpsChoice[s].coc ? 'coc' : 'booked';
+    });
+    setPins(nextPins);
+    setPinSource(nextSource);
+    setGpsChoice(null);
+  };
+
+  /** Pickup ⇄ drop-off: address, emirate, contact, building, company, notes and pin. */
+  const swapStops = () => {
+    const pinOf = (s: Stop) => pins[s] ?? knownPin(s);
+    const from = { pickup: pinOf('pickup'), delivery: pinOf('delivery') };
+    const sourceOf = (s: Stop) => pinSource[s] ?? (pins[s] ? null : from[s] ? 'booked' : null);
+    const next = {
+      ...formData,
+      sender_name: formData.recipient_name, recipient_name: formData.sender_name,
+      sender_phone: formData.recipient_phone, recipient_phone: formData.sender_phone,
+      pickup_location: formData.delivery_location, delivery_location: formData.pickup_location,
+      pickup_emirate: formData.delivery_emirate, delivery_emirate: formData.pickup_emirate,
+    };
+    setFormData(next);
+    setExtra(prev => ({
+      ...prev,
+      pickup_building: prev.delivery_building, delivery_building: prev.pickup_building,
+      pickup_company: prev.delivery_company, delivery_company: prev.pickup_company,
+      pickup_notes: prev.delivery_notes, delivery_notes: prev.pickup_notes,
+    }));
+    // Pins travel with their stop (set explicitly: the swapped text no longer
+    // matches the starting data, so knownPin would drop them).
+    setPins({ pickup: from.delivery, delivery: from.pickup });
+    setPinSource({ pickup: sourceOf('delivery'), delivery: sourceOf('pickup') });
+    const isReversed = !reversed;
+    setReversed(isReversed);
+    void offerGps(next, isReversed);
+  };
+
+  // A converted re-booking opens with the choice straight away (duplicates ask on swap).
+  React.useEffect(() => {
+    if (sourceJob && !duplicateFrom && !editJob) void offerGps(formData, reversed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /** '' → null (cleared); a valid amount → number; anything unparseable → undefined (leave the column alone). */
   const parseMoney = (raw: string): number | null | undefined => {
@@ -482,13 +527,19 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
       <span className={`pin-status${exact ? ' exact' : saved ? ' saved' : ''}`}>
         {point ? (
           <>
-            {exact ? t('jobCreateModal.pinExact', { defaultValue: 'Exact pin set' }) : t('jobCreateModal.pinSaved', { defaultValue: 'Saved pin' })}
+            {exact
+              ? pinSource[field] === 'coc'
+                ? t('jobCreateModal.pinCoc', { defaultValue: 'COC GPS (where the driver handed over)' })
+                : pinSource[field] === 'booked'
+                  ? t('jobCreateModal.pinBooked', { defaultValue: 'Booked pin' })
+                  : t('jobCreateModal.pinExact', { defaultValue: 'Exact pin set' })
+              : t('jobCreateModal.pinSaved', { defaultValue: 'Saved pin' })}
             {' · '}
             <a href={`https://www.google.com/maps/search/?api=1&query=${point[0]},${point[1]}`} target="_blank" rel="noreferrer">
               {point[0].toFixed(5)}, {point[1].toFixed(5)}
             </a>
             {exact && (
-              <button type="button" onClick={() => setPins(prev => ({ ...prev, [field]: null }))}>
+              <button type="button" onClick={() => { setPins(prev => ({ ...prev, [field]: null })); setPinSource(prev => ({ ...prev, [field]: null })); }}>
                 {t('jobCreateModal.pinClear', { defaultValue: 'Clear' })}
               </button>
             )}
@@ -513,6 +564,47 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
           onConfirm={result => applyPick(picking, result)}
           onClose={() => setPicking(null)}
         />
+      )}
+      {gpsChoice && (
+        <div className="map-picker-layer" role="dialog" aria-modal="true" aria-labelledby="gps-choice-title">
+          <div className="map-picker-backdrop" onClick={() => setGpsChoice(null)} />
+          <div className="gps-choice">
+            <h3 id="gps-choice-title">{t('jobCreateModal.gpsChoiceTitle', { defaultValue: 'Which locations should this job use?' })}</h3>
+            <p>
+              {t('jobCreateModal.gpsChoiceHint', {
+                defaultValue: '{{ref}} recorded the GPS where the driver actually handed over. It can be more exact than the address typed when the job was booked.',
+                ref: source?.job_ref || t('jobCreateModal.gpsChoiceOldJob', { defaultValue: 'The original job' }),
+              })}
+            </p>
+            <button type="button" className="gps-choice-option primary" onClick={() => chooseGps('coc')}>
+              <Navigation className="w-4 h-4" />
+              <span>
+                <b>{t('jobCreateModal.gpsChoiceCoc', { defaultValue: 'GPS recorded on the COC' })}</b>
+                {(['pickup', 'delivery'] as Stop[]).map(s => {
+                  const c = gpsChoice[s];
+                  const label = s === 'pickup' ? t('jobCreateModal.gpsChoicePickup', { defaultValue: 'Pickup' }) : t('jobCreateModal.gpsChoiceDropoff', { defaultValue: 'Drop-off' });
+                  return (
+                    <small key={s}>
+                      {label}:{' '}
+                      {c.coc
+                        ? c.booked
+                          ? t('jobCreateModal.gpsChoiceAway', { defaultValue: '{{d}} from the booked pin', d: formatDistance(distanceMeters(c.coc, c.booked)) })
+                          : t('jobCreateModal.gpsChoiceRecorded', { defaultValue: 'recorded handover point' })
+                        : t('jobCreateModal.gpsChoiceNone', { defaultValue: 'no GPS recorded, keeps the booked address' })}
+                    </small>
+                  );
+                })}
+              </span>
+            </button>
+            <button type="button" className="gps-choice-option" onClick={() => chooseGps('booked')}>
+              <MapPin className="w-4 h-4" />
+              <span>
+                <b>{t('jobCreateModal.gpsChoiceBooked', { defaultValue: 'Address entered when the job was booked' })}</b>
+                <small>{t('jobCreateModal.gpsChoiceBookedHint', { defaultValue: 'The original typed address and pin' })}</small>
+              </span>
+            </button>
+          </div>
+        </div>
       )}
       <div className="modal-backdrop" onClick={onClose} />
       <form
@@ -616,6 +708,19 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
             </div>
             </>)}
           </section>
+
+          {!isEdit && (formData.pickup_location.trim() || formData.delivery_location.trim()) && (
+            <div className="route-swap-row">
+              <button type="button" className="route-swap-button" onClick={swapStops}
+                title={t('jobCreateModal.swapStopsHint', { defaultValue: 'Moves the address, contact, building, company, notes and pin of each stop to the other side' })}>
+                <ArrowUpDown className="w-3.5 h-3.5" />
+                {t('jobCreateModal.swapStops', { defaultValue: 'Swap pickup ⇄ drop-off' })}
+              </button>
+              {source && reversed && (
+                <span>{t('jobCreateModal.reversedOf', { defaultValue: 'Return trip of {{ref}}', ref: source.job_ref || '' })}</span>
+              )}
+            </div>
+          )}
 
           <div className="route-form-grid">
             <section className={sectionClass('route-form-section pickup', 'pickup')} data-section="pickup">

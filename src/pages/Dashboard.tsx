@@ -26,7 +26,9 @@ import {
   type Job,
   type JobWithDriver,
   clearStaleAuthSession,
+  supabase,
 } from '../lib/supabase';
+import { jobToDraft, reverseDraft, sameAddress } from '../lib/jobDraft';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n/config';
@@ -169,6 +171,8 @@ export default function Dashboard() {
   const [editingJob, setEditingJob] = React.useState<JobWithDriver | null>(null);
   const [duplicatingJob, setDuplicatingJob] = React.useState<JobWithDriver | null>(null);
   const [jobPrefillData, setJobPrefillData] = React.useState<Partial<Job> | undefined>(undefined);
+  // The old job a converted re-booking repeats (offers its COC GPS in the form).
+  const [jobPrefillSource, setJobPrefillSource] = React.useState<{ job: Job; reversed: boolean } | null>(null);
   const [lostModalQuote, setLostModalQuote] = React.useState<QuoteRequest | null>(null);
 
   // ── View / filter state ──────────────────────────────────────────────────────
@@ -205,7 +209,46 @@ export default function Dashboard() {
     setLostModalQuote,
   });
 
-  const handleConvertToJob = (quote: QuoteRequest) => {
+  const handleConvertToJob = async (quote: QuoteRequest) => {
+    // A client-app re-booking repeats an old job: start from that job (contacts,
+    // stop details, cargo, price), the other way round if the client chose
+    // "send it back", keeping the quote's own address text and link.
+    if (quote.rebook_of_job_id) {
+      let original: Job | null = jobs.find(j => j.id === quote.rebook_of_job_id) ?? null;
+      if (!original && supabase) {
+        const { data } = await supabase.from('jobs').select('*').eq('id', quote.rebook_of_job_id).maybeSingle();
+        original = (data as Job | null) ?? null;
+      }
+      if (original) {
+        const isReversed = !sameAddress(quote.pickup_location, original.pickup_location)
+          && (sameAddress(quote.pickup_location, original.delivery_location) || sameAddress(quote.delivery_location, original.pickup_location));
+        const draft = isReversed ? reverseDraft(jobToDraft(original)) : jobToDraft(original);
+        // The client may have re-typed a stop: their text wins, and the old pin
+        // only stays where the address is unchanged.
+        const stop = (s: 'pickup' | 'delivery') => {
+          const typed = s === 'pickup' ? quote.pickup_location : quote.delivery_location;
+          const same = sameAddress(typed, draft[`${s}_location`]);
+          return {
+            [`${s}_location`]: typed || draft[`${s}_location`],
+            [`${s}_lat`]: same ? draft[`${s}_lat`] : (s === 'pickup' ? quote.pickup_lat : quote.delivery_lat) ?? null,
+            [`${s}_lng`]: same ? draft[`${s}_lng`] : (s === 'pickup' ? quote.pickup_lng : quote.delivery_lng) ?? null,
+          };
+        };
+        setJobPrefillData({
+          ...draft,
+          ...stop('pickup'),
+          ...stop('delivery'),
+          item_type: (quote.item_type as any) || draft.item_type,
+          urgency: (quote.urgency as any) || draft.urgency,
+          special_instructions: [draft.special_instructions, quote.notes].filter(Boolean).join('\n') || null,
+          quote_id: quote.id,
+        });
+        setJobPrefillSource({ job: original, reversed: isReversed });
+        setShowJobCreateModal(true);
+        return;
+      }
+    }
+    setJobPrefillSource(null);
     setJobPrefillData({
       sender_name: quote.name,
       sender_phone: quote.phone,
@@ -680,11 +723,14 @@ export default function Dashboard() {
             key={jobPrefillData?.quote_id || 'manual-new'}
             initialData={jobPrefillData}
             quoteRef={requests.find(r => r.id === jobPrefillData?.quote_id)?.tracking_id}
+            sourceJob={jobPrefillSource?.job}
+            sourceReversed={jobPrefillSource?.reversed}
             drivers={approvedDrivers}
             businessInquiries={businessInquiries}
             onClose={() => {
               setShowJobCreateModal(false);
               setJobPrefillData(undefined);
+              setJobPrefillSource(null);
             }}
             onSuccess={fetchData}
           />

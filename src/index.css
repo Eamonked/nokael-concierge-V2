@@ -11648,6 +11648,61 @@ main.stats-hidden .driver-app-strip {
   place-items: center;
   padding: 16px;
 }
+/* Job form: pickup ⇄ drop-off swap + "COC GPS or booked address?" choice */
+.route-swap-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 22px 0;
+}
+.route-swap-row span { color: var(--ent-muted); font-size: 11px; }
+.route-swap-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--ent-line-strong);
+  border-radius: 999px;
+  background: var(--ent-surface);
+  color: var(--ent-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.route-swap-button:hover { border-color: var(--ent-strong); }
+.gps-choice {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(460px, 100%);
+  padding: 20px;
+  border-radius: 10px;
+  background: var(--ent-surface);
+  color: var(--ent-text);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, .35);
+}
+.gps-choice h3 { margin: 0; font-size: 15px; }
+.gps-choice p { margin: 0 0 4px; color: var(--ent-muted); font-size: 12px; line-height: 1.5; }
+.gps-choice-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--ent-line);
+  border-radius: 8px;
+  background: var(--ent-surface);
+  color: var(--ent-text);
+  text-align: left;
+  cursor: pointer;
+}
+.gps-choice-option:hover { border-color: var(--ent-strong); }
+.gps-choice-option.primary { border-color: var(--ent-strong); }
+.gps-choice-option svg { flex-shrink: 0; margin-top: 2px; }
+.gps-choice-option span { display: flex; flex-direction: column; gap: 2px; }
+.gps-choice-option b { font-size: 13px; }
+.gps-choice-option small { color: var(--ent-muted); font-size: 11px; }
+
 .map-picker-backdrop {
   position: absolute;
   inset: 0;
