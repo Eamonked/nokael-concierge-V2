@@ -166,6 +166,12 @@ export interface QuoteRequest {
   company_name?: string;
   corporate_code?: string;
   repeat_business?: boolean;
+  // 'website' (quote form) or 'rebook' (client app, Nokael-Confirmation-Portal
+  // supabase-client-app-migration.sql). Re-books carry the job they repeat.
+  source?: 'website' | 'rebook' | string;
+  rebook_of_job_id?: string | null;
+  preferred_date?: string | null;
+  notes?: string | null;
   // UTM Attribution
   utm_source?: string;
   utm_medium?: string;

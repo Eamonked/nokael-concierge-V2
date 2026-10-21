@@ -10,6 +10,7 @@ import { DateRangeSelector, useDateRange } from './components/DateRangeSelector'
 import { StatCards } from './components/StatCards';
 import { Corridor } from './components/Corridor';
 import { Status } from './components/StatusBadge';
+import { MarketingInsights } from './components/MarketingInsights';
 import { useTranslation } from 'react-i18next';
 
 type QuoteFilter = 'Active' | 'All' | 'Pending' | 'Contacted' | 'Converted' | 'Lost';
@@ -51,8 +52,8 @@ function matchesFilter(request: QuoteRequest, filter: QuoteFilter) {
 
 function requestDetails(request: QuoteRequest) {
   const item = (request.item_type || '').replace(/_/g, ' ');
-  const urgency = request.urgency || '';
-  return [item, urgency].filter(Boolean).join(' · ');
+  const urgency = request.preferred_date ? `${request.urgency || 'scheduled'} ${formatDate(request.preferred_date)}` : request.urgency || '';
+  return [item, urgency, request.notes].filter(Boolean).join(' · ');
 }
 
 function QuoteRowMenu({
@@ -310,6 +311,8 @@ export function QuotesView({
         ]}
       />
 
+      <MarketingInsights from={dateRange.from} to={dateRange.to} quotes={ranged} />
+
       {/* Enhanced table with refined spacing and borders */}
       <div className="table-card">
         <div className="table-head quote-requests-grid">
@@ -330,6 +333,9 @@ export function QuotesView({
             <div className="table-row quote-requests-grid" key={request.id || ref}>
               <span>
                 <b className="mono">{ref}</b>
+                {request.source === 'rebook' && (
+                  <small className="quote-rebook-badge" title="Booked again from the client app">Re-book</small>
+                )}
                 <small className="request-details">{requestDetails(request)}</small>
               </span>
               <span className="person">

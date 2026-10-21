@@ -14,7 +14,20 @@ import { getVerificationSteps, isDriverOnly, stepI18nKey, type CocStepKey } from
 import { WriteGuard } from '../permissions';
 import { noteLocalStageChange } from '../../../lib/jobStage';
 import { formatMoney, isoToZonedInput } from '../../../lib/tenant';
-import { jobAttachmentUrl } from '../../../lib/supabase';
+import { jobAttachmentUrl, supabase } from '../../../lib/supabase';
+
+interface ClientFeedback {
+  party: 'sender' | 'recipient';
+  rating: number | null;
+  comment: string | null;
+  lead_source: string | null;
+  lead_source_other: string | null;
+  google_review_clicked_at: string | null;
+}
+const LEAD_SOURCE_LABELS: Record<string, string> = {
+  google: 'Google', instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', linkedin: 'LinkedIn',
+  referral: 'referral', saw_vehicle: 'seeing a driver', repeat: 'used us before', other: 'other',
+};
 import { useLinkViews, VIEWING_NOW_MS, type LinkView } from '../../../lib/dispatch';
 
 /* ------------------------------------------------------------------ */
@@ -218,6 +231,19 @@ export function JobOperations({
   // When each client opened their link (live). The clock only re-renders the
   // "x min ago" text; it makes no requests.
   const views = useLinkViews(job.id);
+
+  // The client's post-delivery survey (client app migration). Read once per
+  // completed job; a missing table just shows nothing.
+  const [feedback, setFeedback] = React.useState<ClientFeedback[]>([]);
+  React.useEffect(() => {
+    if (job.status !== 'completed' || !job.id || !supabase) { setFeedback([]); return; }
+    let alive = true;
+    supabase.from('job_client_feedback')
+      .select('party, rating, comment, lead_source, lead_source_other, google_review_clicked_at')
+      .eq('job_id', job.id)
+      .then(({ data }) => { if (alive) setFeedback((data as ClientFeedback[]) || []); });
+    return () => { alive = false; };
+  }, [job.id, job.status]);
   const [clock, setClock] = React.useState(() => Date.now());
   React.useEffect(() => {
     if (!views.sender && !views.recipient) return;
@@ -298,6 +324,15 @@ export function JobOperations({
               <span>
                 {t('jobDetailModal.coc.linksClose', { defaultValue: 'Client links close 24 hours after delivery. Send the certificate from here when a client asks.' })}
               </span>
+              {feedback.map((f) => (
+                <small key={f.party} className="jo-client-feedback">
+                  <b>{f.party === 'sender' ? 'Sender' : 'Recipient'}:</b>{' '}
+                  {f.rating ? `${'★'.repeat(f.rating)}${'☆'.repeat(5 - f.rating)}` : 'No rating'}
+                  {f.lead_source && ` · heard via ${LEAD_SOURCE_LABELS[f.lead_source] || f.lead_source}${f.lead_source_other ? ` (${f.lead_source_other})` : ''}`}
+                  {f.google_review_clicked_at && ' · opened Google review'}
+                  {f.comment && <> · “{f.comment}”</>}
+                </small>
+              ))}
             </div>
             <div className="jo-banner-actions">
               <button type="button" className="jo-btn" disabled={!!busy} onClick={async () => {

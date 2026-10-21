@@ -9,6 +9,7 @@ import { DomainCard } from './components/DomainCard';
 import { CocTemplateCard } from './components/CocTemplateCard';
 import { getOnboardingMe, type OnboardingMe } from '../../lib/onboarding';
 import { findCountry } from '../../lib/countries';
+import { supabase } from '../../lib/supabase';
 
 interface SettingsViewProps {
   theme: 'light' | 'dark';
@@ -18,7 +19,43 @@ interface SettingsViewProps {
   currentRole?: string | null;
 }
 
-type SettingsTab = 'organization' | 'coc' | 'notifications' | 'preferences' | 'companies';
+/** organizations.branding.google_review_url, via org_set_google_review_url (owner/admin). */
+function GoogleReviewField({ orgId, initial, canEdit }: { orgId: string; initial: string; canEdit: boolean }) {
+  const [url, setUrl] = React.useState(initial);
+  const [saved, setSaved] = React.useState(initial);
+  const [state, setState] = React.useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  React.useEffect(() => { setUrl(initial); setSaved(initial); }, [initial]);
+
+  const save = async () => {
+    if (!supabase) return;
+    setState('saving');
+    const { error } = await supabase.rpc('org_set_google_review_url', { p_org: orgId, p_url: url.trim() });
+    if (error) { setState('error'); return; }
+    setSaved(url.trim());
+    setState('saved');
+  };
+
+  return (
+    <div className="settings-form-grid">
+      <div className="field wide">
+        <span>Review link (https://g.page/r/… or the “Ask for reviews” link from Google Business Profile)</span>
+        <input type="url" value={url} placeholder="https://g.page/r/…/review" disabled={!canEdit}
+          onChange={(e) => { setUrl(e.target.value); setState('idle'); }} />
+        {state === 'error' && <small style={{ color: 'var(--ent-danger-text)' }}>Could not save. The link must start with https://</small>}
+        {state === 'saved' && <small style={{ color: 'var(--ent-success-text)' }}>Saved</small>}
+      </div>
+      {canEdit && (
+        <div className="settings-form-footer">
+          <button className="primary" disabled={state === 'saving' || url.trim() === saved} onClick={save}>
+            {state === 'saving' ? 'Saving…' : 'Save review link'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+type SettingsTab ='organization' | 'coc' | 'notifications' | 'preferences' | 'companies';
 
 export function SettingsView({ theme, onThemeChange, userEmail, orgId, currentRole }: SettingsViewProps) {
   const { t, i18n } = useTranslation('dashboard');
@@ -180,6 +217,18 @@ export function SettingsView({ theme, onThemeChange, userEmail, orgId, currentRo
                     </div>
                   )}
                 </div>
+
+                {me && orgId && (
+                  <div className="settings-form-card">
+                    <div className="settings-section-heading">
+                      <div>
+                        <h3>Google reviews</h3>
+                        <p>Clients who rate a delivery 4 or 5 stars are offered this link on their tracking page.</p>
+                      </div>
+                    </div>
+                    <GoogleReviewField orgId={orgId} initial={(orgBranding as { google_review_url?: string }).google_review_url || ''} canEdit={canManageOrg} />
+                  </div>
+                )}
 
                 {me && !me.isPlatformAdmin && (
                   <div className="settings-form-card">

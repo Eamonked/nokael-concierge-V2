@@ -3944,6 +3944,44 @@ main.stats-hidden .driver-app-strip {
   font-size: 8px;
 }
 
+.quote-rebook-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--ent-info-bg);
+  color: var(--ent-info-text);
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+.marketing-insights {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px 24px;
+  padding: 14px 18px;
+  margin-bottom: 14px;
+}
+.marketing-insights-head { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.marketing-insights-head b { font-size: 12px; }
+.marketing-insights-head small, .marketing-insights-empty { color: var(--ent-faint); font-size: 10px; }
+.marketing-insights-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.marketing-insights-kpis div { display: flex; flex-direction: column; gap: 2px; }
+.marketing-insights-kpis span, .marketing-insights-label { color: var(--ent-faint); font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; }
+.marketing-insights-kpis strong { font-size: 18px; }
+.marketing-insights-kpis small { color: var(--ent-faint); font-size: 9px; }
+.marketing-insights-sources { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.marketing-source-row { display: grid; grid-template-columns: 96px minmax(0, 1fr) 24px; align-items: center; gap: 8px; font-size: 11px; }
+.marketing-source-bar { height: 6px; border-radius: 999px; background: color-mix(in srgb, currentColor 10%, transparent); overflow: hidden; }
+.marketing-source-bar i { display: block; height: 100%; border-radius: inherit; background: var(--ent-info-strong); }
+.marketing-source-row b { text-align: right; }
+@media (max-width: 760px) {
+  .marketing-insights { grid-template-columns: 1fr; }
+}
+
 .table-empty {
   padding: 30px 18px;
   color: var(--ent-faint);
