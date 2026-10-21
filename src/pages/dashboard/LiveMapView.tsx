@@ -531,11 +531,12 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
           {/* Map labels follow the UI language. OSM's standard tiles label places in the
               local language (Arabic in the UAE); Mapbox labels them in English. Without a
               Mapbox token, OSM is used for both. OSM has no dark style, so dark mode inverts
-              it with a CSS filter (.dm-tiles-dark). */}
+              it with a CSS filter (.dm-tiles-dark). The Mapbox navigation styles carry
+              live traffic colouring on roads, which OSM can't provide. */}
           {import.meta.env.VITE_MAPBOX_TOKEN && !isArabic ? (
             <TileLayer
               key={isDark ? 'tiles-en-dark' : 'tiles-en'}
-              url={`https://api.mapbox.com/styles/v1/mapbox/${isDark ? 'dark-v11' : 'streets-v12'}/tiles/512/{z}/{x}/{y}{r}?access_token=${import.meta.env.VITE_MAPBOX_TOKEN}`}
+              url={`https://api.mapbox.com/styles/v1/mapbox/${isDark ? 'navigation-night-v1' : 'navigation-day-v1'}/tiles/512/{z}/{x}/{y}{r}?access_token=${import.meta.env.VITE_MAPBOX_TOKEN}`}
               tileSize={512}
               zoomOffset={-1}
               attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -602,7 +603,11 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
             </>
           )}
           {selectedJob && live.coords.length > 1 && (
-            <Polyline positions={live.coords} pathOptions={{ color: '#2563eb', weight: 4, opacity: 0.85 }} />
+            <>
+              {/* White casing keeps the route readable over traffic-coloured roads. */}
+              <Polyline positions={live.coords} pathOptions={{ color: '#ffffff', weight: 8, opacity: 0.9 }} />
+              <Polyline positions={live.coords} pathOptions={{ color: '#2563eb', weight: 5, opacity: 0.95 }} />
+            </>
           )}
           {/* No road route yet (no token / lookup failed): fall back to a straight hint. */}
           {selectedJob && !live.coords.length && !nextStop?.arrived && selectedJobDriver?.pos && nextStop?.target && (
