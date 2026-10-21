@@ -14,7 +14,11 @@ export interface DriverPosition {
   is_tracking_active: boolean;
 }
 
-/** A driver is "online" when the app has sent a fix this recently and tracking is on. */
+/**
+ * A driver is "online" when the app has sent a fix this recently and tracking is on.
+ * Must match the 'online' window in get_driver_presence (supabase-driver-presence.sql),
+ * or the Live Map and the Drivers tab disagree.
+ */
 export const ONLINE_WITHIN_MS = 5 * 60 * 1000;
 
 export const isOnline = (p: DriverPosition | undefined, now = Date.now()): boolean =>

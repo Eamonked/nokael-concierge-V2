@@ -10,7 +10,7 @@
 --     the app polls jobs every 25 s while it is open
 --
 -- presence:
---   online    sharing GPS, last fix within 2 minutes
+--   online    sharing GPS, last fix within 5 minutes (matches the Live Map)
 --   app_open  app in use within 3 minutes, but no recent GPS
 --             (switched Offline, or precise location turned off)
 --   offline   neither
@@ -39,7 +39,8 @@ begin
   select
     d.id,
     case
-      when t.is_tracking_active and t.last_location_update_at > now() - interval '2 minutes' then 'online'
+      -- 5 min, same as ONLINE_WITHIN_MS in src/lib/dispatch.ts (the Live Map).
+      when t.is_tracking_active and t.last_location_update_at > now() - interval '5 minutes' then 'online'
       when s.last_seen_at > now() - interval '3 minutes' then 'app_open'
       else 'offline'
     end,
