@@ -253,6 +253,24 @@ export const formatDateTime = (
   }
 };
 
+/**
+ * A pickup/delivery window in the company's timezone, for people to read:
+ * "Tue 21 Oct, 3:00–5:00 pm", "Tue 21 Oct, from 3:00 pm". Empty without one.
+ */
+export const formatWindow = (start?: string | null, end?: string | null, tenant: TenantProfile = active): string => {
+  if (!start && !end) return '';
+  const tz = tenant.settings.timezone;
+  const time = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: tz });
+  const day = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: tz });
+  if (start && end) {
+    const st = time(start), et = time(end);
+    if (day(start) !== day(end)) return `${day(start)}, ${st} – ${day(end)}, ${et}`;
+    // "3:00 pm–5:00 pm" → "3:00–5:00 pm" when both share am/pm.
+    return `${day(start)}, ${st.slice(-2) === et.slice(-2) ? st.slice(0, -3) : st}–${et}`;
+  }
+  return start ? `${day(start)}, from ${time(start)}` : `${day(end!)}, by ${time(end!)}`;
+};
+
 /** Region choices for a picker; keeps a legacy/unknown current value selectable. */
 export const regionOptions = (current?: string | null, tenant: TenantProfile = active): string[] => {
   const list = tenant.settings.regions ?? [];

@@ -302,7 +302,7 @@ export function getDashboardStats(
 // (not a fresh Date.now() inline) purely so this stays a pure, unit-testable
 // (data, now) -> data function like everything else in this file.
 
-export type AlertType = 'slaBreach' | 'stalledJob' | 'failedHandoff' | 'signalLost';
+export type AlertType = 'slaBreach' | 'deliveryLate' | 'stalledJob' | 'failedHandoff' | 'signalLost';
 export type AlertSeverity = 'critical' | 'warning' | 'info';
 
 export interface Alert {
@@ -329,11 +329,22 @@ export function getAlerts(jobs: JobWithDriver[], now: number = Date.now()): Aler
     if (!job.id) continue;
     const jobRef = job.job_ref || job.id;
 
-    // SLA breach — still waiting for a driver past the scheduled pickup window
-    if (job.status === 'pending' && job.scheduled_pickup_at) {
-      const scheduled = new Date(job.scheduled_pickup_at).getTime();
-      if (scheduled < now) {
-        alerts.push({ id: `${job.id}-slaBreach`, jobId: job.id, jobRef, type: 'slaBreach', severity: 'critical', detectedAt: job.scheduled_pickup_at });
+    // SLA breach — still waiting for a driver past the pickup window start
+    // (or the scheduled pickup, for jobs booked without a window)
+    const pickupStart = job.pickup_window_start || job.scheduled_pickup_at;
+    if (job.status === 'pending' && pickupStart) {
+      if (new Date(pickupStart).getTime() < now) {
+        alerts.push({ id: `${job.id}-slaBreach`, jobId: job.id, jobRef, type: 'slaBreach', severity: 'critical', detectedAt: pickupStart });
+      }
+    }
+
+    // Delivery window missed — collected but not delivered by the window end
+    // (or its start, when the window is open-ended)
+    const deliveryDeadline = job.scheduled_delivery_end || job.scheduled_delivery_start;
+    if (deliveryDeadline && job.driver_pickup_at && !job.driver_delivery_at
+        && !['completed', 'cancelled', 'returned'].includes(job.status)) {
+      if (new Date(deliveryDeadline).getTime() < now) {
+        alerts.push({ id: `${job.id}-deliveryLate`, jobId: job.id, jobRef, type: 'deliveryLate', severity: 'critical', detectedAt: deliveryDeadline });
       }
     }
 

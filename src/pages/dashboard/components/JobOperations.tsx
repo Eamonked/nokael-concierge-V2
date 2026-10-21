@@ -13,7 +13,7 @@ import { FAILURE_REASON_KEYS, getStageConfig } from '../constants';
 import { getVerificationSteps, isDriverOnly, stepI18nKey, type CocStepKey } from '../verificationSteps';
 import { WriteGuard } from '../permissions';
 import { noteLocalStageChange } from '../../../lib/jobStage';
-import { formatMoney, isoToZonedInput } from '../../../lib/tenant';
+import { formatMoney, formatWindow } from '../../../lib/tenant';
 import { jobAttachmentUrl, supabase } from '../../../lib/supabase';
 
 interface ClientFeedback {
@@ -46,15 +46,6 @@ const MAX_OTP_ATTEMPTS = 5;
 export const JOB_CONTROLS_ID = 'job-dispatch-controls';
 /** Where drivers without the Android app sign in (served by the Confirmation Portal). */
 const DRIVER_APP_URL = `${COC_DOMAIN}/driver-app/`;
-
-/** "21 Oct 09:00 – 11:00" in the company's timezone. */
-const windowText = (start?: string | null, end?: string | null): string | null => {
-  const fmt = (iso?: string | null) => isoToZonedInput(iso).replace('T', ' ');
-  const a = fmt(start), b = fmt(end);
-  if (!a && !b) return null;
-  if (a && b && a.slice(0, 10) === b.slice(0, 10)) return `${a} – ${b.slice(11)}`;
-  return [a, b].filter(Boolean).join(' – ');
-};
 
 const VEHICLE_LABELS: Record<string, string> = {
   motorbike: 'Motorbike', cargo_van: 'Cargo van', flatbed_3t: '3-ton flatbed', refrigerated: 'Refrigerated',
@@ -184,13 +175,18 @@ export function JobOperations({
     return token ? `${COC_DOMAIN}/${token}/${party === 'sender' ? 'client-pickup' : 'client-delivery'}` : '';
   };
 
+  const pickupWindow = formatWindow(job.pickup_window_start, job.pickup_window_end);
+  const deliveryWindow = formatWindow(job.scheduled_delivery_start, job.scheduled_delivery_end);
+
   const buildMessage = (type: 'sender' | 'driver' | 'recipient') => {
     const ref = `Job #${job.job_ref}`;
     if (type === 'driver') {
       return [
         `New job assigned — ${ref}`,
         `Pickup: ${job.pickup_location}, ${job.pickup_emirate}`,
+        ...(pickupWindow ? [`Pickup window: ${pickupWindow}`] : []),
         `Delivery: ${job.delivery_location}, ${job.delivery_emirate}`,
+        ...(deliveryWindow ? [`Delivery window: ${deliveryWindow}`] : []),
         `Item: ${job.item_type} | Urgency: ${job.urgency}`,
         `Sender: ${job.sender_name} | Recipient: ${job.recipient_name}`,
         '',
@@ -207,6 +203,8 @@ export function JobOperations({
         ? `Hi ${name}, your Nokael pickup is confirmed (${ref}).`
         : `Hi ${name}, a package from ${job.sender_name} is on its way to you (${ref}).`,
       `Route: ${job.pickup_location} → ${job.delivery_location}`,
+      sender && pickupWindow ? `Pickup window: ${pickupWindow}` : '',
+      deliveryWindow ? `Delivery window: ${deliveryWindow}` : '',
       `Item: ${job.item_type}`,
       '',
       `Track it live: ${trackUrl(type)}`,
@@ -380,9 +378,9 @@ export function JobOperations({
           <div className="jo-parties">
             {[
               { key: 'sender', title: t('jobDetailModal.details.consignor'), name: job.sender_name, phone: job.sender_phone, emirate: job.pickup_emirate, place: job.pickup_location,
-                building: job.pickup_building, company: job.pickup_company, notes: job.pickup_notes, window: windowText(job.pickup_window_start, job.pickup_window_end) },
+                building: job.pickup_building, company: job.pickup_company, notes: job.pickup_notes, window: formatWindow(job.pickup_window_start, job.pickup_window_end) },
               { key: 'recipient', title: t('jobDetailModal.details.consignee'), name: job.recipient_name, phone: job.recipient_phone, emirate: job.delivery_emirate, place: job.delivery_location,
-                building: job.delivery_building, company: job.delivery_company, notes: job.delivery_notes, window: null },
+                building: job.delivery_building, company: job.delivery_company, notes: job.delivery_notes, window: formatWindow(job.scheduled_delivery_start, job.scheduled_delivery_end) },
             ].map(party => (
               <div key={party.key} className="jo-party">
                 <small>{party.title}</small>

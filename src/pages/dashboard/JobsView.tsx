@@ -20,7 +20,7 @@ import { Status, type StatusKind } from './components/StatusBadge';
 import { StatCard } from './components/StatCard';
 import { JobOperations, JOB_CONTROLS_ID } from './components/JobOperations';
 import { JobRouteMap } from './components/JobRouteMap';
-import { formatMoney } from '../../lib/tenant';
+import { formatMoney, formatWindow } from '../../lib/tenant';
 
 /* ------------------------------------------------------------------ */
 /* Jobs workspace — list + active card on the left, job detail on the  */
@@ -30,6 +30,9 @@ import { formatMoney } from '../../lib/tenant';
 /* ------------------------------------------------------------------ */
 
 type JobFilter = 'All' | 'Pending' | 'In transit' | 'Completed' | 'Returned' | 'Cancelled';
+/** When the job starts: its pickup window, else the scheduled pickup, else when it was booked. */
+const pickupAt = (job: JobWithDriver) => job.pickup_window_start || job.scheduled_pickup_at || job.created_at;
+
 const JOB_FILTERS: JobFilter[] = ['All', 'Pending', 'In transit', 'Completed', 'Returned', 'Cancelled'];
 
 function matchesFilter(job: JobWithDriver, filter: JobFilter): boolean {
@@ -123,7 +126,7 @@ function JobList({
             <span className="jw-route" title={`${job.pickup_location} → ${job.delivery_location}`}>
               {job.pickup_emirate} – {job.delivery_emirate}
             </span>
-            <span className="jw-when">{job.scheduled_pickup_at ? formatDate(job.scheduled_pickup_at) : job.created_at ? formatDate(job.created_at) : '—'}</span>
+            <span className="jw-when">{pickupAt(job) ? formatDate(pickupAt(job)!) : '—'}</span>
             <strong className="jw-tier">{job.urgency}</strong>
           </button>
         ))}
@@ -307,12 +310,12 @@ function JobDetailPanel({
 
       <div className="jw-corridor">
         <div>
-          <small>{job.scheduled_pickup_at ? formatDate(job.scheduled_pickup_at) : job.created_at ? formatDate(job.created_at) : '—'}</small>
+          <small>{formatWindow(job.pickup_window_start, job.pickup_window_end) || (pickupAt(job) ? formatDate(pickupAt(job)!) : '—')}</small>
           <b>{job.pickup_emirate}</b>
         </div>
         <span className="jw-duration">{job.price_aed != null ? formatMoney(job.price_aed, { currency: job.currency }) : job.item_type}</span>
         <div className="end">
-          <small>{job.client_delivery_at ? formatDate(job.client_delivery_at) : '—'}</small>
+          <small>{job.client_delivery_at ? formatDate(job.client_delivery_at) : formatWindow(job.scheduled_delivery_start, job.scheduled_delivery_end) || '—'}</small>
           <b>{job.delivery_emirate}</b>
         </div>
       </div>
@@ -387,7 +390,7 @@ export function JobsView({
 
   const query = search.trim().toLowerCase();
   const visible = jobs
-    .filter((job) => !job.created_at || dateRange.includes(job.created_at, job.scheduled_pickup_at || job.created_at))
+    .filter((job) => !job.created_at || dateRange.includes(job.created_at, pickupAt(job) || job.created_at))
     .filter((job) => matchesFilter(job, filter))
     .filter((job) => {
       if (!query) return true;

@@ -334,6 +334,10 @@
         "label": "SLA breach",
         "desc": "This job is still waiting for a driver past its scheduled pickup window."
       },
+      "deliveryLate": {
+        "label": "Delivery window missed",
+        "desc": "Collected but not delivered by the end of its delivery window."
+      },
       "stalledJob": {
         "label": "Stalled job",
         "desc": "No driver location update for a while during an active delivery."
