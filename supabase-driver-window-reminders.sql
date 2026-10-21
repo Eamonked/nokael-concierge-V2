@@ -18,6 +18,10 @@
 --     a window re-arms it.
 --   * Buffer: organizations.settings.reminder_buffer_min (default 15).
 -- Safe to run more than once.
+--
+-- SUPERSEDED in part by supabase-driver-reminder-state.sql: the jobs columns
+-- below and the reminder_* functions' storage moved to job_reminder_state.
+-- Run that file after this one. The cron job and _push_on_job parts still stand.
 -- =============================================================================
 
 alter table public.jobs
