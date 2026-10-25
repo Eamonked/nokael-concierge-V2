@@ -1,8 +1,8 @@
 import { supabase } from './supabase';
 import { validCoord, type LatLng } from './geo';
-import { formatDateTime, tenantDisplayName, getActiveTenant, type TenantProfile } from './tenant';
+import { formatDateTime, tenantDisplayName, getActiveTenant, isDefaultTenant, tenantWhatsApp, type TenantProfile } from './tenant';
 import {
-  renderCocPdf, normalizeCocTemplate, loadLogo, cocFileName,
+  renderCocPdf, normalizeCocTemplate, loadLogo, cocFileName, cocPromo,
   type CocJobData, type CocTemplate, type DriverContact, type PodFix,
 } from './cocRender';
 
@@ -33,6 +33,7 @@ export async function buildCocPdf(
     issuedBy: `issued by ${brand} dispatch`,
     template,
     logo: template.show_logo ? await loadLogo(tenant.branding.logo_url) : null,
+    promo: cocPromo(brand, isDefaultTenant(tenant) ? 'nokael.com' : tenant.custom_domain, tenantWhatsApp(tenant)),
   });
   return { doc, fileName: cocFileName(brand, job.job_ref) };
 }
