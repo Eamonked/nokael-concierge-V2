@@ -19,7 +19,7 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 const TenantPublic = lazy(() => import('./pages/tenant/TenantPublic'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 
-import { DubaiLanding, AbuDhabiLanding, DocumentLanding, SparePartsLanding } from './pages/LandingPages';
+import { DubaiLanding, AbuDhabiLanding, DocumentLanding, LegalLanding, SparePartsLanding } from './pages/LandingPages';
 import { TermsAndConditions, PrivacyPolicy } from './pages/Legal';
 import { captureUTMs, trackPageView } from './lib/analytics';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -209,6 +209,7 @@ export default function App() {
               <Route path="/urgent-delivery-abu-dhabi" element={<AbuDhabiLanding />} />
               <Route path="/document-delivery-uae" element={<DocumentLanding />} />
               <Route path="/spare-parts-delivery-uae" element={<SparePartsLanding />} />
+              <Route path="/legal-document-courier-uae" element={<LegalLanding />} />
               <Route path="/track" element={<Track />} />
               <Route path="/track/:trackingId" element={<Track />} />
               <Route path="/business-account" element={<BusinessAccountInquiry />} />

@@ -197,7 +197,7 @@ export default function TrackPilotPanel({ activeJob, currentTrackingId }: TrackP
             </span>
           ) : (
             <span className="text-[10px] text-brand-muted uppercase tracking-wider font-bold">
-              {t('pilotPanel.custody.insuredTransit')}
+              {t('pilotPanel.custody.awaitingPickup')}
             </span>
           )}
         </div>

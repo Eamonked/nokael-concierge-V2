@@ -12,8 +12,8 @@
     "ctaEyebrow": "Instant Dispatch",
     "ctaLabel": "WhatsApp Dispatch",
     "callCenterTemplate": "Call Center: {{phone}}",
-    "startingFrom": "Starting From",
-    "priceTemplate": "AED {{price}}",
+    "startingFrom": "Pricing",
+    "priceValue": "Quoted per route",
     "responseTime": "Response Time",
     "responseTimeValue": "2-5 Mins",
     "status": "Status",
@@ -32,22 +32,22 @@
   "operationalOverview": "Operational Overview",
 
   "sla": {
-    "title": "Service Level Agreement (SLA)",
-    "guaranteedDispatch": {
-      "title": "Guaranteed Dispatch",
-      "desc": "Driver assigned within 5 minutes of confirmation. Immediate pickup within 30-60 minutes across major hubs."
+    "title": "What You Get",
+    "fastDispatch": {
+      "title": "Fast Dispatch",
+      "desc": "A named driver is assigned within minutes of confirmation. Pickup is usually within 30–60 minutes in major business areas."
     },
     "directPointToPoint": {
       "title": "Direct Point-to-Point",
       "desc": "No sorting hubs, no warehouses, no shared loads. Your item stays with one driver from pickup to dropoff."
     },
-    "fullInsurance": {
-      "title": "Full Insurance",
-      "desc": "Comprehensive transit insurance for all business documents and industrial spare parts up to AED 50,000."
+    "chainOfCustody": {
+      "title": "Chain of Custody",
+      "desc": "The sender and the recipient each confirm the handover with a one-time code. Every handover is recorded with time and GPS."
     },
     "realTimeProof": {
       "title": "Real-time Proof",
-      "desc": "Instant proof of delivery (POD) sent via WhatsApp with recipient signature and timestamp."
+      "desc": "You get a live tracking link during the run, then a Chain of Custody certificate the moment it is delivered."
     }
   },
 
@@ -86,7 +86,8 @@
       "0": { "name": "Document Delivery" },
       "1": { "name": "Spare Parts" },
       "2": { "name": "Dubai Dispatch" },
-      "3": { "name": "Abu Dhabi Dispatch" }
+      "3": { "name": "Abu Dhabi Dispatch" },
+      "4": { "name": "Legal Documents" }
     }
   },
 
@@ -119,7 +120,7 @@
     "content": {
       "0": "In the legal and corporate world, some documents are too important for standard courier services. Nokael provides a premium document dispatch service that prioritizes security and chain of custody.",
       "1": "Our drivers handle your sensitive materials with the utmost care, providing hand-to-hand delivery from the sender directly to the recipient. We understand the critical nature of legal deadlines and government tender submissions.",
-      "2": "Every document delivery includes real-time tracking and immediate proof of delivery via WhatsApp, giving you total peace of mind for your most important assets."
+      "2": "Custody changes hands with a one-time code at pickup and another at delivery. You can follow the run on a live tracking link, and you get a Chain of Custody certificate showing who held the document, where and when, with GPS for every handover."
     }
   },
 
@@ -132,5 +133,39 @@
       "1": "We specialize in the rapid transport of critical components that are too urgent for traditional freight. Our drivers can pick up directly from suppliers or warehouses and deliver straight to the site where the part is needed.",
       "2": "From heavy industrial components to delicate electronic parts, we get your operations back on track as quickly as possible."
     }
+  },
+
+  "legal": {
+    "title": "Legal Document Courier.",
+    "subtitle": "Same-day hand-to-hand delivery for law firms in DIFC, ADGM and across the UAE, with proof of every handover you can put on file.",
+    "industryLabel": "Law Firms",
+    "content": {
+      "0": "A signed agreement, a court filing or a power of attorney cannot go through a sorting hub. Nokael assigns one named driver who carries your document from your office straight to the recipient: DIFC to ADGM, a court registry, a notary or a client's office.",
+      "1": "Custody changes hands with one-time codes. Your team gives the driver a code at pickup, and the recipient confirms delivery with their own code. Each handover is recorded with the time and GPS location, and you can follow the run on a live tracking link.",
+      "2": "When the document arrives, you receive a Chain of Custody certificate: who held it, where and when, and the total time in custody. Keep it on the matter file as proof of delivery."
+    },
+    "proofHeading": "Proof you can put on the file.",
+    "proofPoints": {
+      "0": "One named driver, your document only. No hubs, no shared vans.",
+      "1": "One-time code at pickup and at delivery, so custody only passes to the right person.",
+      "2": "Live tracking link while the document is on the road.",
+      "3": "Chain of Custody certificate with time and GPS for every handover."
+    }
+  },
+
+  "custodySample": {
+    "heading": "Get a sample Chain of Custody certificate",
+    "body": "See exactly what you receive after every delivery. Leave your details and download a sample certificate (PDF).",
+    "name": "Your name",
+    "company": "Firm or company",
+    "email": "Work email",
+    "phone": "WhatsApp number",
+    "submit": "Download the sample",
+    "sending": "Sending…",
+    "thanks": "Thanks. Your sample is ready.",
+    "download": "Download sample certificate (PDF)",
+    "bookCta": "Book a delivery on WhatsApp",
+    "error": "Something went wrong. Please try again or message us on WhatsApp.",
+    "privacy": "We use your details only to follow up about Nokael. No spam, and we never share them."
   }
 }

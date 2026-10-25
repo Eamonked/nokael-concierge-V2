@@ -44,12 +44,12 @@ export function getStructuredData(canonicalUrl: string, metadata: PageMetadata, 
   schemas.push({
     "@context": "https://schema.org",
     "@type": "Service",
-    serviceType: "Dedicated  Executive Transit",
+    serviceType: "Dedicated same-day courier",
     provider: { "@type": "LocalBusiness", name: "Nokael" },
     areaServed: "UAE",
     hasOfferCatalog: {
       "@type": "OfferCatalog",
-      name: "Private Point -to-point Logistics",
+      name: "Point-to-point courier services",
       itemListElement: [
         {
           "@type": "Offer",
@@ -139,11 +139,11 @@ export function buildSeoContent(metadata: PageMetadata): string {
       </section>
 
       <section style="background:#f9f9f9;padding:30px;border-radius:12px;margin-bottom:40px;border:1px solid #eee;">
-        <h2 style="margin-top:0;">Pricing & Logistics SLA</h2>
+        <h2 style="margin-top:0;">Pricing & Service</h2>
         <ul style="list-style:none;padding:0;">
           <li style="margin-bottom:10px;"><strong>Pricing:</strong> Premium dedicated service, quoted per route before dispatch</li>
-          <li style="margin-bottom:10px;"><strong>Guaranteed SLA:</strong> ${metadata.sla ?? "Fast dispatch"}</li>
-          <li style="margin-bottom:10px;"><strong>Insurance:</strong> Fully insured transit for all business items</li>
+          <li style="margin-bottom:10px;"><strong>Typical timing:</strong> ${metadata.sla ?? "Fast dispatch"}</li>
+          <li style="margin-bottom:10px;"><strong>Proof of custody:</strong> One-time code at pickup and delivery, live tracking link, and a Chain of Custody certificate with time and GPS for every handover</li>
           <li style="margin-bottom:10px;"><strong>Availability:</strong> 24/7 Emergency Dispatch</li>
         </ul>
       </section>
@@ -153,7 +153,7 @@ export function buildSeoContent(metadata: PageMetadata): string {
 
       <section style="border-top:1px solid #eee;padding-top:30px;">
         <h2>Reliable UAE Business Logistics</h2>
-        <p>Nokael is a fully licensed UAE logistics operator specializing in high-priority, time-critical logistics for legal, corporate, and industrial sectors across the emirates.</p>
+        <p>Nokael runs high-priority, time-critical deliveries for legal, corporate and industrial clients across the emirates: one named driver per job, no sorting hubs, and a recorded chain of custody from pickup to delivery.</p>
       </section>
 
       <nav style="margin-top:50px;padding:20px;background:#eee;border-radius:8px;">
@@ -172,7 +172,7 @@ export function buildSeoContent(metadata: PageMetadata): string {
 
 /**
  * Injects SEO metadata and visible content into the HTML template.
- * The SPA mounts *inside* the injected content, so crawlers and users see the same HTML.
+ * The React app renders the same content for JS users; non-JS crawlers get the <noscript> article.
  */
 export function injectMetadata(
   html: string,
@@ -187,7 +187,8 @@ export function injectMetadata(
   const robots = isProduction ? "index,follow" : "noindex,follow";
   const seoContent = skipContent ? "" : buildSeoContent(metadata);
 
-  // Injects SEO article BEFORE the React root
+  // Injects the SEO article BEFORE the React root, inside <noscript>: crawlers that don't run JS
+  // (most AI bots) read it, JS users never see it, and nothing is hidden with CSS (cloaking risk).
   let finalHtml = html;
   const rootTag = '<div id="root">';
   const rootIndex = html.indexOf(rootTag);
@@ -196,7 +197,7 @@ export function injectMetadata(
     const beforeRoot = html.substring(0, rootIndex);
     const afterRoot = html.substring(rootIndex);
     finalHtml = beforeRoot + 
-      (seoContent ? `<div id="seo-content" aria-hidden="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;">${seoContent}</div>` : "") + 
+      (seoContent ? `<noscript id="seo-content">${seoContent}</noscript>` : "") + 
       afterRoot;
   }
 

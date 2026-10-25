@@ -3,10 +3,11 @@ import { motion } from 'motion/react';
 import { MapPin, Zap, MessageSquare, Phone, ArrowRight, Shield, Clock, CheckCircle2, Navigation, Truck, User, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE, PRICE_TIER_SAME_DAY } from '../constants';
+import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE } from '../constants';
 import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import CustodySampleForm from '../components/CustodySampleForm';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -21,9 +22,11 @@ interface LandingProps {
   industryLabel?: string;
   heroImg: string;
   content: string[];
+  /** Optional block shown right after the trust bar (e.g. a lead form). */
+  extra?: React.ReactNode;
 }
 
-export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, industryLabel, heroImg, content }: LandingProps) => {
+export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, industryLabel, heroImg, content, extra }: LandingProps) => {
   const { t } = useTranslation('landingPages');
   // The "from" side of the Corridor Performance list mirrors the page's own
   // city badge; industry pages (no `city` prop) fall back to the same default
@@ -121,7 +124,7 @@ export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, in
             <div className="flex flex-wrap items-center gap-8 border-t border-brand-border pt-8">
               <div>
                 <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-1">{t('chrome.startingFrom')}</p>
-                <p className="text-xl font-display font-medium text-brand-neon">{t('chrome.priceTemplate', { price: PRICE_TIER_SAME_DAY })}</p>
+                <p className="text-xl font-display font-medium text-brand-neon">{t('chrome.priceValue')}</p>
               </div>
               <div className="w-px h-8 bg-brand-border hidden sm:block" />
               <div>
@@ -154,6 +157,12 @@ export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, in
         </div>
       </div>
 
+      {extra && (
+        <section className="pt-24 bg-brand-bg">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">{extra}</div>
+        </section>
+      )}
+
       {/* Content Section */}
       <section className="py-32 bg-brand-bg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -172,9 +181,9 @@ export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, in
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 text-brand-neon">
                       <CheckCircle2 className="w-5 h-5" />
-                      <span className="text-xs font-bold uppercase tracking-widest">{t('sla.guaranteedDispatch.title')}</span>
+                      <span className="text-xs font-bold uppercase tracking-widest">{t('sla.fastDispatch.title')}</span>
                     </div>
-                    <p className="text-sm text-brand-muted">{t('sla.guaranteedDispatch.desc')}</p>
+                    <p className="text-sm text-brand-muted">{t('sla.fastDispatch.desc')}</p>
                   </div>
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 text-brand-neon">
@@ -186,9 +195,9 @@ export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, in
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 text-brand-neon">
                       <CheckCircle2 className="w-5 h-5" />
-                      <span className="text-xs font-bold uppercase tracking-widest">{t('sla.fullInsurance.title')}</span>
+                      <span className="text-xs font-bold uppercase tracking-widest">{t('sla.chainOfCustody.title')}</span>
                     </div>
-                    <p className="text-sm text-brand-muted">{t('sla.fullInsurance.desc')}</p>
+                    <p className="text-sm text-brand-muted">{t('sla.chainOfCustody.desc')}</p>
                   </div>
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 text-brand-neon">
@@ -272,7 +281,8 @@ export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, in
                       { key: '0', name: t('otherServices.items.0.name'), path: '/document-delivery-uae' },
                       { key: '1', name: t('otherServices.items.1.name'), path: '/spare-parts-delivery-uae' },
                       { key: '2', name: t('otherServices.items.2.name'), path: '/urgent-delivery-dubai' },
-                      { key: '3', name: t('otherServices.items.3.name'), path: '/urgent-delivery-abu-dhabi' }
+                      { key: '3', name: t('otherServices.items.3.name'), path: '/urgent-delivery-abu-dhabi' },
+                      { key: '4', name: t('otherServices.items.4.name'), path: '/legal-document-courier-uae' }
                     ].filter(s => s.path !== window.location.pathname).slice(0, 2).map((s, i) => (
                       <Link 
                         key={i} 
@@ -346,6 +356,36 @@ export const SparePartsLanding = () => {
       industryLabel={t('spareParts.industryLabel')}
       heroImg="https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=1920"
       content={[t('spareParts.content.0'), t('spareParts.content.1'), t('spareParts.content.2')]}
+    />
+  );
+};
+
+export const LegalLanding = () => {
+  const { t } = useTranslation('landingPages');
+  return (
+    <LandingTemplate
+      title={t('legal.title')}
+      subtitle={t('legal.subtitle')}
+      industry="Law Firms"
+      industryLabel={t('legal.industryLabel')}
+      heroImg="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&q=80&w=1920"
+      content={[t('legal.content.0'), t('legal.content.1'), t('legal.content.2')]}
+      extra={
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+          <div className="space-y-6">
+            <h2 className="text-3xl md:text-4xl font-display font-medium tracking-tight text-brand-text">{t('legal.proofHeading')}</h2>
+            <ul className="space-y-4">
+              {['0', '1', '2', '3'].map((k) => (
+                <li key={k} className="flex items-start gap-3 text-sm text-brand-muted leading-relaxed">
+                  <CheckCircle2 className="w-5 h-5 text-brand-neon shrink-0" />
+                  <span>{t(`legal.proofPoints.${k}`)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <CustodySampleForm source="legal_landing" />
+        </div>
+      }
     />
   );
 };

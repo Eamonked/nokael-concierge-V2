@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { MessageSquare, ArrowRight, Zap, Shield, MapPin, Clock, CheckCircle2, ChevronRight, Phone, X, Navigation, Package, Truck, Star, Building2, User, Volume2, VolumeX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE, PRICE_TIER_SAME_DAY, PRICE_TIER_DEDICATED, DEFAULT_WA_MESSAGE } from '../constants';
+import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE, DEFAULT_WA_MESSAGE } from '../constants';
 import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
 import { cn } from '../lib/utils';
 
@@ -101,7 +101,7 @@ const Hero = () => {
             <div className="flex flex-wrap items-center gap-4 mb-12">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full hero-glass">
                 <CheckCircle2 className="w-3.5 h-3.5 text-brand-neon" />
-                <span className="text-[11px] font-semibold text-brand-neon">{t('hero.badgeLicensed')}</span>
+                <span className="text-[11px] font-semibold text-brand-neon">{t('hero.badgeCustody')}</span>
               </div>
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-surface border border-brand-border">
                 <Clock className="w-3.5 h-3.5 text-brand-muted" />
@@ -116,11 +116,11 @@ const Hero = () => {
               </div>
               <div className="hero-glass rounded-2xl p-3 sm:p-4">
                 <p className="hero-fg-soft text-[11px] uppercase tracking-wider mb-3 font-semibold">{t('hero.stats.sameDay.label')}</p>
-                <p className="text-2xl sm:text-3xl font-display font-semibold tracking-tight text-brand-neon hero-shadow">{t('hero.stats.sameDay.priceTemplate', { price: PRICE_TIER_SAME_DAY })}</p>
+                <p className="text-2xl sm:text-3xl font-display font-semibold tracking-tight text-brand-neon hero-shadow">{t('hero.stats.sameDay.value')}</p>
               </div>
               <div className="hero-glass rounded-2xl p-3 sm:p-4">
                 <p className="hero-fg-soft text-[11px] uppercase tracking-wider mb-3 font-semibold">{t('hero.stats.dedicated.label')}</p>
-                <p className="text-2xl sm:text-3xl font-display font-semibold tracking-tight hero-fg">{t('hero.stats.dedicated.priceTemplate', { price: PRICE_TIER_DEDICATED })}</p>
+                <p className="text-2xl sm:text-3xl font-display font-semibold tracking-tight hero-fg">{t('hero.stats.dedicated.value')}</p>
               </div>
               <div className="hero-glass rounded-2xl p-3 sm:p-4">
                 <p className="hero-fg-soft text-[11px] uppercase tracking-wider mb-3 font-semibold">{t('hero.stats.tracking.label')}</p>
@@ -295,6 +295,49 @@ const SupportingSection = () => {
   );
 };
 
+const CustodyProof = () => {
+  const { t } = useTranslation('home');
+  const steps = [
+    { key: '0', icon: Package },
+    { key: '1', icon: Navigation },
+    { key: '2', icon: Shield },
+  ];
+
+  return (
+    <section className="section-spacing bg-brand-surface/20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-16 max-w-3xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-neon/10 border border-brand-neon/20 mb-6">
+            <div className="w-1 h-1 rounded-full bg-brand-neon" />
+            <p className="text-[11px] font-bold uppercase tracking-wider text-brand-neon">{t('custodyProof.eyebrow')}</p>
+          </div>
+          <h2 className="text-4xl md:text-6xl font-display font-medium tracking-tight mb-8 text-brand-text">
+            {t('custodyProof.heading')}
+          </h2>
+          <p className="text-xl text-brand-muted leading-relaxed">{t('custodyProof.intro')}</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          {steps.map((step) => (
+            <div key={step.key} className="dispatch-card h-full">
+              <div className="w-10 h-10 rounded-xl bg-brand-input flex items-center justify-center mb-6">
+                <step.icon className="w-5 h-5 text-brand-neon" />
+              </div>
+              <h3 className="text-lg font-bold mb-3 text-brand-text">{t(`custodyProof.steps.${step.key}.title`)}</h3>
+              <p className="text-sm text-brand-muted leading-relaxed">{t(`custodyProof.steps.${step.key}.desc`)}</p>
+            </div>
+          ))}
+        </div>
+
+        <Link to="/legal-document-courier-uae" className="inline-flex items-center gap-2 text-sm font-bold text-brand-neon hover:underline">
+          {t('custodyProof.cta')}
+          <ArrowRight className="w-4 h-4 rtl:-scale-x-100" />
+        </Link>
+      </div>
+    </section>
+  );
+};
+
 const ServiceCards = () => {
   const { t } = useTranslation('home');
   // This message goes to Nokael's own dispatch number, not the customer —
@@ -310,14 +353,12 @@ const ServiceCards = () => {
     {
       key: 'sameDay',
       analyticsId: 'same-day',
-      price: PRICE_TIER_SAME_DAY,
       featureCount: 6,
       highlight: true
     },
     {
       key: 'dedicated',
       analyticsId: 'dedicated',
-      price: PRICE_TIER_DEDICATED,
       featureCount: 6
     }
   ];
@@ -352,7 +393,7 @@ const ServiceCards = () => {
               <div className="pt-6 mb-8 text-center">
                 <h3 className="text-3xl font-display font-medium mb-4 text-brand-text tracking-tighter uppercase">{t(`serviceCards.${s.key}.title`)}</h3>
                 <div className="flex flex-col items-center">
-                  <span className="text-5xl font-display font-medium text-brand-neon leading-none tracking-tighter mb-2">{t(`serviceCards.${s.key}.priceTemplate`, { price: s.price })}</span>
+                  <span className="text-5xl font-display font-medium text-brand-neon leading-none tracking-tighter mb-2">{t(`serviceCards.${s.key}.price`)}</span>
                   <span className="text-xs text-brand-muted italic font-medium">{t(`serviceCards.${s.key}.subtext`)}</span>
                 </div>
               </div>
@@ -507,11 +548,6 @@ const TrustGrounded = () => {
                 referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-brand-bg via-transparent to-transparent" />
-              <div className="absolute bottom-8 left-8 right-8 p-6 glass rounded-2xl">
-                <p className="text-xs font-medium leading-relaxed italic">
-                  {t('trustGrounded.quote')}
-                </p>
-              </div>
             </div>
           </div>
           
@@ -601,11 +637,11 @@ const FinalAction = () => {
         <div className="flex flex-wrap items-center justify-center gap-4">
           <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-brand-surface border border-brand-border">
             <CheckCircle2 className="w-4 h-4 text-brand-neon" />
-            <span className="text-xs font-semibold text-brand-text">{t('finalAction.badgeLicensed')}</span>
+            <span className="text-xs font-semibold text-brand-text">{t('finalAction.badgeCustody')}</span>
           </div>
           <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-brand-surface border border-brand-border">
             <Shield className="w-4 h-4 text-brand-blue" />
-            <span className="text-xs font-semibold text-brand-text">{t('finalAction.badgeInsured')}</span>
+            <span className="text-xs font-semibold text-brand-text">{t('finalAction.badgeCodes')}</span>
           </div>
           <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-brand-surface border border-brand-border">
             <Zap className="w-4 h-4 text-brand-neon" />
@@ -663,6 +699,7 @@ export default function Home() {
       <TrustBar />
       <Differentiators />
       <SupportingSection />
+      <CustodyProof />
       <ServiceCards />
       <BusinessAccounts />
       <CorridorStatus />

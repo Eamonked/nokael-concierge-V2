@@ -186,7 +186,7 @@
       "returning": "قيد الإرجاع إلى المرسل",
       "handoverSigned": "تم توقيع التسليم",
       "activeCustody": "حراسة نشطة",
-      "insuredTransit": "عبور مؤمّن"
+      "awaitingPickup": "بانتظار الاستلام"
     },
     "action": {
       "cancelled": "الاستفسار عن الإلغاء",

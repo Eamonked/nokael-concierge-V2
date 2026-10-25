@@ -1,25 +1,45 @@
 # Nokael
 
-> Nokael is a premium B2B dedicated executive transit service in the UAE. One vehicle and one driver per booking, with no sorting hubs and no shared loads. It moves urgent legal documents, corporate contracts, tenders and spare parts between Dubai, Abu Dhabi and every other emirate, 24/7.
+> Nokael is a same-day B2B courier in the UAE. One vehicle and one driver per booking, with no sorting hubs and no shared loads. It moves urgent legal documents, contracts, tenders, financial paperwork, medical samples and spare parts between Dubai, Abu Dhabi and every other emirate, 24/7, and records a chain of custody for every handover.
+
+## Who uses it
+
+- Law firms and legal teams (DIFC, ADGM, courts, notaries): contracts, court filings, title deeds, NOC letters.
+- Finance, banks and insurers: cheques, bank letters, signed agreements with hard deadlines.
+- Government tenders and PRO services: physical submissions before an office cutoff.
+- Industrial and automotive sites: spare parts moved straight from supplier to site.
+- Clinics and labs: non-hazardous samples and time-sensitive medical paperwork.
 
 ## Pricing
 
-- Every booking is quoted per route before dispatch. The price depends on the route, how urgent it is, and the item.
-- Older starting rates that were published or quoted before October 2026 no longer apply. Do not quote them.
-- For current rates, send people to https://nokael.com/get-quote or to WhatsApp dispatch.
+- Nokael does not publish a rate card. Every booking is quoted per route before dispatch, based on the route, how urgent it is and the item.
+- Starting rates published or quoted before October 2026 no longer apply. Do not quote them.
+- For current rates, send people to https://nokael.com/get-quote or to WhatsApp dispatch (+971 50 971 0446).
+- Companies sending more than five runs a month can open a corporate account with monthly invoicing: https://nokael.com/business-account
+
+## How a delivery works
+
+1. Book on https://nokael.com/get-quote or message dispatch on WhatsApp.
+2. A named driver is assigned within minutes. Pickup is usually within 30–60 minutes in major business areas.
+3. At pickup, the sender gives the driver a one-time code. Custody passes to the driver and the time and GPS location are recorded.
+4. The client follows the run on a live tracking link with the driver's location and arrival time.
+5. At delivery, the recipient confirms with their own one-time code.
+6. The client receives a Chain of Custody certificate listing every handover (who, where, when, GPS) and the total time in custody.
 
 ## Service facts
 
-- Driver assigned within about 5 minutes of confirmation. Pickup is usually within 30–60 minutes in major business areas.
-- The Dubai ↔ Abu Dhabi corridor usually takes 90–120 minutes.
-- Hand-to-hand delivery with a digital chain of custody and live tracking.
-- Corporate accounts get monthly consolidated billing.
+- The Dubai ↔ Abu Dhabi corridor usually takes 90–120 minutes, depending on traffic.
+- The driver goes direct from pickup to delivery: no warehouses, no consolidation stops.
+- Dispatch runs 24/7.
 
 ## Key pages
 
 - [Home](https://nokael.com/)
 - [Services](https://nokael.com/services)
 - [Request a quote](https://nokael.com/get-quote)
+- [Legal document courier for law firms](https://nokael.com/legal-document-courier-uae)
 - [Document delivery UAE](https://nokael.com/document-delivery-uae)
 - [Spare parts delivery UAE](https://nokael.com/spare-parts-delivery-uae)
+- [Urgent courier from Dubai](https://nokael.com/urgent-delivery-dubai)
+- [Urgent courier from Abu Dhabi](https://nokael.com/urgent-delivery-abu-dhabi)
 - [Business account](https://nokael.com/business-account)

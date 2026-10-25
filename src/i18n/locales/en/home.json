@@ -9,19 +9,19 @@
     "ctaEyebrow": "Urgent Pickup",
     "ctaLabel": "Dispatch via WhatsApp",
     "callLabel": "Call Now: {{phone}}",
-    "badgeLicensed": "Licensed UAE Operator",
-    "badgeDispatch": "Dispatch in 30 min",
+    "badgeCustody": "Chain of Custody on every job",
+    "badgeDispatch": "Driver assigned in minutes",
     "stats": {
       "avgDispatch": { "label": "Avg. Dispatch", "value": "2–5 min" },
-      "sameDay": { "label": "Starting From", "priceTemplate": "AED {{price}}" },
-      "dedicated": { "label": "Dedicated", "priceTemplate": "On Quote" },
+      "sameDay": { "label": "Pricing", "value": "Per route" },
+      "dedicated": { "label": "Dedicated", "value": "On quote" },
       "tracking": { "label": "Tracking", "value": "Live GPS" }
     }
   },
 
   "trustBar": {
     "corridorTime": { "value": "90 min", "label": "Dubai → Abu Dhabi" },
-    "dispatch": { "value": "30 min", "label": "Guaranteed dispatch" },
+    "dispatch": { "value": "30–60 min", "label": "Typical pickup time" },
     "dedicated": { "value": "100%", "label": "Dedicated driver, no hubs" },
     "availability": { "value": "24/7", "label": "Dispatch available" }
   },
@@ -54,19 +54,40 @@
     }
   },
 
+  "custodyProof": {
+    "eyebrow": "Proof, not promises",
+    "heading": "You can prove it arrived.",
+    "intro": "Every job leaves a record you can show a client, a court or an auditor.",
+    "steps": {
+      "0": {
+        "title": "Code at pickup",
+        "desc": "You give the driver a one-time code. Custody passes to them, and the time and GPS location are logged."
+      },
+      "1": {
+        "title": "Live tracking link",
+        "desc": "Follow the driver on the map with a live arrival time."
+      },
+      "2": {
+        "title": "Code at delivery + certificate",
+        "desc": "The recipient confirms with their own code. You get a Chain of Custody certificate: who, where and when, with GPS for every handover."
+      }
+    },
+    "cta": "See how it works for legal documents"
+  },
+
   "serviceCards": {
     "eyebrow": "Pricing",
     "heading": "Simple. No surprises.",
     "sameDay": {
       "badge": "MOST POPULAR",
       "title": "SAME-DAY",
-      "priceTemplate": "From AED {{price}}",
-      "subtext": "Driver assigned within the hour",
+      "price": "Quoted per route",
+      "subtext": "Driver assigned in minutes",
       "features": {
         "0": "90–120 min Dubai ↔ Abu Dhabi",
         "1": "One driver, your item only — no shared loads",
-        "2": "WhatsApp updates at pickup and delivery",
-        "3": "Fully insured transit",
+        "2": "One-time code at pickup and at delivery",
+        "3": "Live tracking link + Chain of Custody certificate",
         "4": "Pay on confirmation — no account needed",
         "5": "Best for: same-day documents, parts, parcels"
       },
@@ -75,14 +96,14 @@
     "dedicated": {
       "badge": "MAXIMUM CERTAINTY",
       "title": "DEDICATED",
-      "priceTemplate": "Custom Quote",
+      "price": "Custom quote",
       "subtext": "Your time, locked in advance.",
       "features": {
         "0": "Choose exact pickup time — we hold it",
         "1": "Driver assigned the night before",
         "2": "Priority over all same-day bookings",
         "3": "90–120 min Dubai ↔ Abu Dhabi",
-        "4": "WhatsApp updates at every stage",
+        "4": "Live tracking and a Chain of Custody certificate",
         "5": "Best for: tenders, court filings, flights"
       },
       "cta": "Book Dedicated"
@@ -114,7 +135,6 @@
   "trustGrounded": {
     "headingLine1": "The call you make",
     "headingLine2": "when nothing else will do.",
-    "quote": "\"Used for urgent personal and business deliveries across UAE. Direct driver assignment, no third parties.\"",
     "sections": {
       "0": { "title": "Personal emergencies", "body": "Passport in Dubai, flight from Abu Dhabi in three hours. We have handled this exact situation. Call us." },
       "1": { "title": "Tenders and filings", "body": "Physical submission deadlines do not move. We have delivered contracts to government offices in Abu Dhabi before the 2 PM cutoff for clients who called at 10." },
@@ -127,8 +147,8 @@
     "headingLine2": "We'll handle the rest.",
     "ctaWhatsapp": "WhatsApp Dispatch",
     "ctaCall": "Call Dispatch",
-    "badgeLicensed": "Licensed UAE operator",
-    "badgeInsured": "Fully insured",
+    "badgeCustody": "Chain of Custody certificate",
+    "badgeCodes": "One-time code at every handover",
     "badgeDirectAssignment": "Direct driver assignment"
   }
 }

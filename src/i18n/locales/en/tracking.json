@@ -186,7 +186,7 @@
       "returning": "Returning to Sender",
       "handoverSigned": "Handover Signed",
       "activeCustody": "Active Custody",
-      "insuredTransit": "Insured Transit"
+      "awaitingPickup": "Awaiting Pickup"
     },
     "action": {
       "cancelled": "Inquire Regarding Cancellation",

@@ -3,7 +3,7 @@ import i18n from '../i18n/config';
 import { findCountry } from './countries';
 import { isPlatformHost, normalizeHost } from './hosts';
 import {
-  NOKAEL_ORG_ID, WHATSAPP_NUMBER, PHONE_NUMBER, PRICE_TIER_SAME_DAY, PRICE_TIER_DEDICATED, BUSINESS_ACCOUNT_WA_MESSAGE,
+  NOKAEL_ORG_ID, WHATSAPP_NUMBER, PHONE_NUMBER, BUSINESS_ACCOUNT_WA_MESSAGE,
 } from '../constants';
 
 // ==========================================
@@ -81,8 +81,7 @@ export const NOKAEL_TENANT: TenantProfile = {
     job_ref_prefix: 'NOK',
     map_center: [55.0, 25.0],
     languages: ['en', 'ar'],
-    price_same_day: PRICE_TIER_SAME_DAY,
-    price_dedicated: PRICE_TIER_DEDICATED,
+    // Nokael is quote-only: no published price tiers, so the quote form hides its estimate.
   },
 };
 
