@@ -39,4 +39,6 @@ Typical route:
 Estimated monthly delivery volume:
 Best contact person:`;
 
-
+// Tag on business_inquiries rows that came from the sample Chain of Custody
+// download (CustodySampleForm); the dashboard's Follow-ups tab looks for it.
+export const SAMPLE_CERT_LEAD_TAG = 'Requested sample Chain of Custody certificate';

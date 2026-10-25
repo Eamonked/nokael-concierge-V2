@@ -3,6 +3,7 @@
     "jobs": "Jobs",
     "map": "Map",
     "quotes": "Quotes",
+    "followUps": "Follow-ups",
     "drivers": "Drivers",
     "business": "Business",
     "team": "Team",
@@ -24,6 +25,10 @@
     "quotes": {
       "title": "Quote Requests",
       "subtitle": "Review and manage incoming rate and delivery requests."
+    },
+    "followUps": {
+      "title": "Follow-ups",
+      "subtitle": "Who to message today: open quotes, new leads and clients worth a second booking."
     },
     "drivers": {
       "title": "Drivers",
@@ -359,6 +364,71 @@
     "empty": {
       "title": "All clear",
       "body": "There are no open operational alerts. We'll show them here as soon as something needs attention."
+    }
+  },
+  "followUps": {
+    "tabs": {
+      "due": "Due",
+      "upcoming": "Upcoming",
+      "snoozed": "Snoozed",
+      "done": "Done"
+    },
+    "kinds": {
+      "quote": {
+        "label": "Quote",
+        "why": "Asked for a quote and hasn't booked yet."
+      },
+      "lead": {
+        "label": "Sample certificate",
+        "why": "Downloaded the sample Chain of Custody certificate."
+      },
+      "first": {
+        "label": "First delivery",
+        "why": "Only one delivery with us so far. Invite them to book again."
+      },
+      "repeat": {
+        "label": "Repeat client",
+        "why_one": "{{count}} delivery in 30 days. Offer a business account.",
+        "why_other": "{{count}} deliveries in 30 days. Offer a business account."
+      }
+    },
+    "dueSince": "Due {{when}}",
+    "dueIn": "Due {{when}}",
+    "snoozedUntil": "Back {{when}}",
+    "whatsapp": "WhatsApp",
+    "copy": "Copy message",
+    "copied": "Copied",
+    "done": "Done",
+    "undo": "Undo",
+    "snooze": "Snooze",
+    "snoozeDays_one": "{{count}} day",
+    "snoozeDays_other": "{{count}} days",
+    "noNumber": "No WhatsApp number on file",
+    "open": {
+      "quote": "Open quotes",
+      "lead": "Open lead",
+      "first": "Open job",
+      "repeat": "Open latest job"
+    },
+    "saveFailed": "Couldn't save: {{message}}",
+    "stateMissing": "Done and Snooze aren't switched on yet (the follow_up_state table hasn't been added to the database). You can still message everyone from here.",
+    "empty": {
+      "due": {
+        "title": "Nobody to chase",
+        "body": "Pending quotes, sample-certificate leads, first-time clients and busy repeat clients show up here when it's time to message them."
+      },
+      "upcoming": {
+        "title": "Nothing coming up",
+        "body": "Follow-ups that aren't due yet show here."
+      },
+      "snoozed": {
+        "title": "Nothing snoozed",
+        "body": "Snoozed follow-ups come back to Due when the snooze ends."
+      },
+      "done": {
+        "title": "Nothing done yet",
+        "body": "Follow-ups you mark done are kept here."
+      }
     }
   },
   "team": {

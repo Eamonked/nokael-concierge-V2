@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Download, Mail, MessageSquare } from 'lucide-react';
 import { submitBusinessInquiry, type BusinessInquiry } from '../lib/supabase';
 import { getStoredUTMs, trackFormSubmission, trackWhatsAppClick } from '../lib/analytics';
-import { WHATSAPP_NUMBER } from '../constants';
+import { WHATSAPP_NUMBER, SAMPLE_CERT_LEAD_TAG } from '../constants';
 
 const SAMPLE_PDF = '/samples/nokael-sample-chain-of-custody.pdf';
 
@@ -24,7 +24,7 @@ export default function CustodySampleForm({ source }: { source: string }) {
     try {
       await submitBusinessInquiry({
         ...form,
-        urgent_express_dedicated_needs: `Requested sample Chain of Custody certificate (${source})`,
+        urgent_express_dedicated_needs: `${SAMPLE_CERT_LEAD_TAG} (${source})`,
         ...getStoredUTMs(),
       } as BusinessInquiry);
       trackFormSubmission({ email: form.email, phone_number: form.phone_whatsapp, first_name: form.contact_person });

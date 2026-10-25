@@ -17,6 +17,7 @@ import {
   Settings,
   RefreshCw,
   BarChart3,
+  MessageSquareReply,
 } from 'lucide-react';
 import {
   type QuoteRequest,
@@ -46,6 +47,8 @@ import { GeofenceAlerts } from './dashboard/components/GeofenceAlerts';
 const LiveMapView = React.lazy(() => import('./dashboard/LiveMapView').then(m => ({ default: m.LiveMapView })));
 import { TeamPanel } from './dashboard/TeamPanel';
 import { AlertsView } from './dashboard/AlertsView';
+import { FollowUpsView } from './dashboard/FollowUpsView';
+import { getFollowUps, bucketOf, useFollowUpState } from './dashboard/followUps';
 import { SettingsView } from './dashboard/SettingsView';
 import { JobCreateModal } from './dashboard/modals/JobCreateModal';
 import { LostQuoteModal } from './dashboard/modals/LostQuoteModal';
@@ -67,11 +70,11 @@ import {
   getAlerts,
   type JobStatusFilter,
 } from './dashboard/selectors';
-import { getActiveTenant } from '../lib/tenant';
+import { getActiveTenant, tenantDisplayName } from '../lib/tenant';
 
 export default function Dashboard() {
   const { t } = useTranslation('dashboard');
-  const [activeTab, setActiveTab] = React.useState<'pipeline' | 'map' | 'quotes' | 'drivers' | 'business' | 'team' | 'alerts' | 'settings'>('pipeline');
+  const [activeTab, setActiveTab] = React.useState<'pipeline' | 'map' | 'quotes' | 'followups' | 'drivers' | 'business' | 'team' | 'alerts' | 'settings'>('pipeline');
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
 
@@ -297,6 +300,12 @@ export default function Dashboard() {
   const stats             = getDashboardStats(requests, drivers, businessInquiries);
   const alerts             = React.useMemo(() => getAlerts(jobs), [jobs]);
   const criticalAlertCount = alerts.filter(a => a.severity === 'critical').length;
+  const followUpState      = useFollowUpState(orgId);
+  const followUps          = React.useMemo(
+    () => getFollowUps({ jobs, requests, inquiries: businessInquiries, brand: tenantDisplayName(getActiveTenant()) }),
+    [jobs, requests, businessInquiries],
+  );
+  const followUpsDue       = followUps.filter(f => bucketOf(f, followUpState.state.get(f.key)) === 'due').length;
 
   // ── Loading gate ─────────────────────────────────────────────────────────────
   if (loading && !selectedDriver) {
@@ -312,6 +321,7 @@ export default function Dashboard() {
     { id: 'pipeline', label: t('nav.jobs'),     icon: LayoutDashboard },
     { id: 'map',      label: t('nav.map'),      icon: MapPin },
     { id: 'quotes',   label: t('nav.quotes'),   icon: FileText, badge: stats.pending },
+    { id: 'followups', label: t('nav.followUps'), icon: MessageSquareReply, badge: followUpsDue },
     { id: 'drivers',  label: t('nav.drivers'),  icon: Truck,    badge: stats.pendingDrivers },
     { id: 'business', label: t('nav.business'), icon: Shield,   badge: stats.pendingBusiness },
     { id: 'team',     label: t('nav.team'),     icon: Users },
@@ -323,6 +333,7 @@ export default function Dashboard() {
     pipeline: { title: t('tabMeta.pipeline.title'), subtitle: t('tabMeta.pipeline.subtitle') },
     map:      { title: t('tabMeta.map.title'),      subtitle: t('tabMeta.map.subtitle') },
     quotes:   { title: t('tabMeta.quotes.title'),   subtitle: t('tabMeta.quotes.subtitle') },
+    followups: { title: t('tabMeta.followUps.title'), subtitle: t('tabMeta.followUps.subtitle') },
     drivers:  { title: t('tabMeta.drivers.title'),  subtitle: t('tabMeta.drivers.subtitle') },
     business: { title: t('tabMeta.business.title'), subtitle: t('tabMeta.business.subtitle') },
     team:     { title: t('tabMeta.team.title'),     subtitle: t('tabMeta.team.subtitle') },
@@ -347,6 +358,7 @@ export default function Dashboard() {
   const CONTEXT_STATS: Record<typeof activeTab, { title: string; value: number; icon: any; tone?: StatTone }[]> = {
     pipeline: [],  // JobsView has its own stat cards with additional metrics
     quotes: [],
+    followups: [],
     drivers: [],  // Removed duplicate stats - DriversView has its own metric filters
     business: [],  // BusinessView has its own metric filters
     map: [],
@@ -632,6 +644,19 @@ export default function Dashboard() {
                 setJobPrefillData(undefined);
                 setShowJobCreateModal(true);
               })}
+            />
+          ) : activeTab === 'followups' ? (
+            <FollowUpsView
+              items={followUps}
+              state={followUpState.state}
+              stateMissing={followUpState.missing}
+              onSave={followUpState.save}
+              onOpenQuote={() => setActiveTab('quotes')}
+              onOpenInquiry={id => {
+                const inquiry = businessInquiries.find(b => b.id === id);
+                if (inquiry) setSelectedBusiness(inquiry);
+              }}
+              onOpenJob={openJob}
             />
           ) : activeTab === 'business' ? (
             <BusinessView
