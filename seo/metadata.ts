@@ -163,6 +163,90 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
     ],
   },
 
+  "/medical-sample-courier-uae": {
+    title: "Medical Sample Courier for Clinics and Labs in the UAE | Nokael",
+    description:
+      "Same-day medical sample courier between clinics, labs and hospitals in Dubai, Abu Dhabi and across the UAE. One named driver, one-time codes at every handover, and a Chain of Custody certificate.",
+    h1: "Medical Sample Courier for Clinics and Labs Across the UAE",
+    content: `Same-day, direct delivery of packaged lab samples, specimens, medical records and small medical supplies. One named driver collects from your clinic and drives straight to the lab, hospital or pharmacy, with no sorting hubs and no shared vans.
+      Custody changes hands with one-time codes: your team gives the driver a code at pickup, and the lab confirms receipt with their own code. Each handover is recorded with time and GPS, and you can follow the run on a live tracking link.
+      Samples travel in the packaging your clinic prepares, such as a sealed cool box; tell dispatch about temperature or handling needs when you book. After delivery you receive a Chain of Custody certificate showing who held the package, where and when, and the total time in custody. Download a sample certificate on this page.`,
+    sla: "Pickup usually within 30–60 min",
+    zones: ["Dubai Healthcare City", "Dubai Science Park", "Abu Dhabi hospitals", "Private labs", "Clinics", "Pharmacies"],
+    faqs: [
+      {
+        q: "What medical items do you carry?",
+        a: "Packaged lab samples and specimens, medical records, prescriptions, and small medical supplies or equipment that fit in a car. Tell dispatch before booking if an item is classed as dangerous goods so we can confirm whether we can take it.",
+      },
+      {
+        q: "Do you keep samples cold?",
+        a: "Samples travel in the packaging your clinic provides, such as a sealed cool box with ice packs. The driver goes direct with no hub stops, which keeps the time in transit short. Tell dispatch about any temperature needs when you book.",
+      },
+      ...CORE_FAQS,
+    ],
+    breadcrumb: [
+      { name: "Home", url: "/" },
+      { name: "Services", url: "/services" },
+      { name: "Medical Sample Courier", url: "/medical-sample-courier-uae" },
+    ],
+  },
+
+  "/hr-document-courier-uae": {
+    title: "HR Document and Passport Courier in the UAE | Nokael",
+    description:
+      "Same-day courier for passports, visa paperwork and employment contracts in Dubai, Abu Dhabi and across the UAE. One named driver, one-time codes at every handover, and a Chain of Custody certificate.",
+    h1: "HR Document and Passport Courier Across the UAE",
+    content: `Same-day, hand-to-hand delivery of passports, Emirates ID and visa paperwork, signed offer letters, employment contracts and attested certificates. One named driver carries them straight from your office to the employee, your PRO, a typing centre or another branch.
+      Custody changes hands with one-time codes: your team gives the driver a code at pickup, and the recipient confirms delivery with their own code. Each handover is recorded with time and GPS, and you can follow the run on a live tracking link.
+      After delivery you receive a Chain of Custody certificate showing who held the documents, where and when, and the total time in custody. Keep it on the employee file. Download a sample certificate on this page.`,
+    sla: "Pickup usually within 30–60 min",
+    zones: ["Head offices", "Branches", "Employee homes", "Typing centres", "Free zones"],
+    faqs: [
+      {
+        q: "What HR documents do you carry?",
+        a: "Passports, Emirates ID and visa paperwork, employment contracts, offer letters, attested certificates, and payroll or personnel files.",
+      },
+      {
+        q: "Can you return a passport to an employee at home?",
+        a: "Yes. The driver delivers to the employee's address, and the employee confirms receipt with their own one-time code, so you have a record that the right person received it.",
+      },
+      ...CORE_FAQS,
+    ],
+    breadcrumb: [
+      { name: "Home", url: "/" },
+      { name: "Services", url: "/services" },
+      { name: "HR Document Courier", url: "/hr-document-courier-uae" },
+    ],
+  },
+
+  "/banking-document-courier-uae": {
+    title: "Banking and Finance Document Courier in the UAE | Nokael",
+    description:
+      "Same-day courier for cheques, bank guarantees and signed agreements between banks, finance teams and clients in DIFC, ADGM and across the UAE. One named driver and a Chain of Custody certificate.",
+    h1: "Banking and Finance Document Courier: DIFC, ADGM and Across the UAE",
+    content: `Same-day, hand-to-hand delivery of cheques, bank guarantees, signed facility agreements, KYC and account-opening paperwork. One named driver carries the original straight from your office to the bank branch, the client or the other party.
+      Custody changes hands with one-time codes: your team gives the driver a code at pickup, and the recipient confirms delivery with their own code. Each handover is recorded with time and GPS, and you can follow the run on a live tracking link.
+      After delivery you receive a Chain of Custody certificate showing who held the document, where and when, and the total time in custody. Keep it with the transaction record. Download a sample certificate on this page.`,
+    sla: "Pickup usually within 30–60 min",
+    zones: ["DIFC", "ADGM", "Bank branches", "Business Bay", "Finance teams", "Free zones"],
+    faqs: [
+      {
+        q: "What finance documents do you carry?",
+        a: "Cheques and cheque books, bank guarantees, signed facility and loan agreements, KYC and account-opening paperwork, audit files and board resolutions.",
+      },
+      {
+        q: "Can the driver collect a signed copy and bring it back?",
+        a: "Yes. Tell dispatch when you book. The driver can wait for the signature or collect it later, and each handover is recorded with a one-time code, time and GPS.",
+      },
+      ...CORE_FAQS,
+    ],
+    breadcrumb: [
+      { name: "Home", url: "/" },
+      { name: "Services", url: "/services" },
+      { name: "Banking Document Courier", url: "/banking-document-courier-uae" },
+    ],
+  },
+
   "/spare-parts-delivery-uae": {
     title: "Urgent Spare Parts Delivery UAE | Nokael",
     description:

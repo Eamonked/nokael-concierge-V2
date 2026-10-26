@@ -87,7 +87,10 @@
       "1": { "name": "Spare Parts" },
       "2": { "name": "Dubai Dispatch" },
       "3": { "name": "Abu Dhabi Dispatch" },
-      "4": { "name": "Legal Documents" }
+      "4": { "name": "Legal Documents" },
+      "5": { "name": "Medical Samples" },
+      "6": { "name": "HR Documents" },
+      "7": { "name": "Banking Documents" }
     }
   },
 
@@ -153,6 +156,57 @@
     }
   },
 
+  "medical": {
+    "title": "Medical Sample Courier.",
+    "subtitle": "Same-day direct delivery of lab samples, specimens and medical records between clinics, labs and hospitals across the UAE, with a record of every handover.",
+    "industryLabel": "Clinics & Labs",
+    "content": {
+      "0": "A sample going to an outside lab should not wait in a sorting hub or ride around in a shared van. Nokael assigns one named driver who collects from your clinic and drives straight to the lab, hospital or pharmacy, across town or between Dubai and Abu Dhabi.",
+      "1": "Custody changes hands with one-time codes. Your team gives the driver a code at pickup, and the lab confirms receipt with their own code. Each handover is recorded with the time and GPS location, and you can follow the run on a live tracking link.",
+      "2": "Samples travel in the packaging your clinic prepares, such as a sealed cool box. Tell dispatch about temperature or handling needs when you book. After delivery you receive a Chain of Custody certificate showing who held the package, where and when, and the total time in custody."
+    },
+    "proofHeading": "A handover record for every sample.",
+    "proofPoints": {
+      "0": "One named driver, your package only, straight from clinic to lab with no hub stops.",
+      "1": "One-time code at pickup and at delivery, so the package only passes to the right person.",
+      "2": "Live tracking link while the sample is on the road.",
+      "3": "Chain of Custody certificate with time and GPS for every handover, and the total time in custody."
+    }
+  },
+  "hr": {
+    "title": "HR Document Courier.",
+    "subtitle": "Same-day hand-to-hand delivery of passports, visa paperwork and employment contracts between your office, your employees and your PRO, with proof of every handover.",
+    "industryLabel": "HR & PRO Teams",
+    "content": {
+      "0": "Passports, Emirates ID paperwork, signed offer letters and attested certificates are hard to replace. Nokael assigns one named driver who carries them straight from your office to the employee, your PRO, a typing centre or another branch.",
+      "1": "Custody changes hands with one-time codes. Your team gives the driver a code at pickup, and the recipient confirms delivery with their own code. Each handover is recorded with the time and GPS location, and you can follow the run on a live tracking link.",
+      "2": "After delivery you receive a Chain of Custody certificate: who held the documents, where and when, and the total time in custody. Keep it on the employee file to show when a passport left your office and who received it."
+    },
+    "proofHeading": "Know exactly who has the passport.",
+    "proofPoints": {
+      "0": "One named driver, your documents only. No hubs, no shared vans.",
+      "1": "One-time code at pickup and at delivery, so documents only pass to the right person.",
+      "2": "Live tracking link while the documents are on the road.",
+      "3": "Chain of Custody certificate with time and GPS for every handover."
+    }
+  },
+  "finance": {
+    "title": "Banking Document Courier.",
+    "subtitle": "Same-day hand-to-hand delivery of cheques, bank guarantees and signed agreements between banks, finance teams and clients across the UAE, with proof of every handover.",
+    "industryLabel": "Banks & Finance",
+    "content": {
+      "0": "A cheque, a bank guarantee or a signed facility agreement should not pass through a sorting hub. Nokael assigns one named driver who carries the original from your office straight to the bank branch, the client or the other party: DIFC to ADGM, or across town.",
+      "1": "Custody changes hands with one-time codes. Your team gives the driver a code at pickup, and the recipient confirms delivery with their own code. Each handover is recorded with the time and GPS location, and you can follow the run on a live tracking link.",
+      "2": "After delivery you receive a Chain of Custody certificate: who held the document, where and when, and the total time in custody. Keep it with the transaction record as proof of when the original left and who received it."
+    },
+    "proofHeading": "Proof for the transaction record.",
+    "proofPoints": {
+      "0": "One named driver, your document only. No hubs, no shared vans.",
+      "1": "One-time code at pickup and at delivery, so the original only passes to the right person.",
+      "2": "Live tracking link while the document is on the road.",
+      "3": "Chain of Custody certificate with time and GPS for every handover."
+    }
+  },
   "custodySample": {
     "heading": "Get a sample Chain of Custody certificate",
     "body": "See exactly what you receive after every delivery. Leave your details and download a sample certificate (PDF).",

@@ -235,6 +235,18 @@ export const Footer = () => {
                 <Link to="/spare-parts-delivery-uae" className="hover:text-brand-neon transition-colors">{t('footer.partsDelivery')}</Link>
               </li>
               <li>
+                <Link to="/legal-document-courier-uae" className="hover:text-brand-neon transition-colors">{t('footer.legalCourier')}</Link>
+              </li>
+              <li>
+                <Link to="/medical-sample-courier-uae" className="hover:text-brand-neon transition-colors">{t('footer.medicalCourier')}</Link>
+              </li>
+              <li>
+                <Link to="/hr-document-courier-uae" className="hover:text-brand-neon transition-colors">{t('footer.hrCourier')}</Link>
+              </li>
+              <li>
+                <Link to="/banking-document-courier-uae" className="hover:text-brand-neon transition-colors">{t('footer.financeCourier')}</Link>
+              </li>
+              <li>
                 <Link to="/about" className="hover:text-brand-neon transition-colors">{t('footer.about')}</Link>
               </li>
             </ul>

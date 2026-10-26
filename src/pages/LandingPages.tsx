@@ -282,7 +282,10 @@ export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, in
                       { key: '1', name: t('otherServices.items.1.name'), path: '/spare-parts-delivery-uae' },
                       { key: '2', name: t('otherServices.items.2.name'), path: '/urgent-delivery-dubai' },
                       { key: '3', name: t('otherServices.items.3.name'), path: '/urgent-delivery-abu-dhabi' },
-                      { key: '4', name: t('otherServices.items.4.name'), path: '/legal-document-courier-uae' }
+                      { key: '4', name: t('otherServices.items.4.name'), path: '/legal-document-courier-uae' },
+                      { key: '5', name: t('otherServices.items.5.name'), path: '/medical-sample-courier-uae' },
+                      { key: '6', name: t('otherServices.items.6.name'), path: '/hr-document-courier-uae' },
+                      { key: '7', name: t('otherServices.items.7.name'), path: '/banking-document-courier-uae' }
                     ].filter(s => s.path !== window.location.pathname).slice(0, 2).map((s, i) => (
                       <Link 
                         key={i} 
@@ -360,32 +363,72 @@ export const SparePartsLanding = () => {
   );
 };
 
-export const LegalLanding = () => {
+// Audience pages (law firms, clinics, HR, finance): the shared template plus
+// a proof list and the sample-certificate lead form. Copy lives under
+// landingPages.<page> (title, subtitle, industryLabel, content.0-2,
+// proofHeading, proofPoints.0-3); `source` tags the lead in business_inquiries.
+const CustodyLanding = ({ page, industry, heroImg, source }: { page: string; industry: string; heroImg: string; source: string }) => {
   const { t } = useTranslation('landingPages');
   return (
     <LandingTemplate
-      title={t('legal.title')}
-      subtitle={t('legal.subtitle')}
-      industry="Law Firms"
-      industryLabel={t('legal.industryLabel')}
-      heroImg="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&q=80&w=1920"
-      content={[t('legal.content.0'), t('legal.content.1'), t('legal.content.2')]}
+      title={t(`${page}.title`)}
+      subtitle={t(`${page}.subtitle`)}
+      industry={industry}
+      industryLabel={t(`${page}.industryLabel`)}
+      heroImg={heroImg}
+      content={[t(`${page}.content.0`), t(`${page}.content.1`), t(`${page}.content.2`)]}
       extra={
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           <div className="space-y-6">
-            <h2 className="text-3xl md:text-4xl font-display font-medium tracking-tight text-brand-text">{t('legal.proofHeading')}</h2>
+            <h2 className="text-3xl md:text-4xl font-display font-medium tracking-tight text-brand-text">{t(`${page}.proofHeading`)}</h2>
             <ul className="space-y-4">
               {['0', '1', '2', '3'].map((k) => (
                 <li key={k} className="flex items-start gap-3 text-sm text-brand-muted leading-relaxed">
                   <CheckCircle2 className="w-5 h-5 text-brand-neon shrink-0" />
-                  <span>{t(`legal.proofPoints.${k}`)}</span>
+                  <span>{t(`${page}.proofPoints.${k}`)}</span>
                 </li>
               ))}
             </ul>
           </div>
-          <CustodySampleForm source="legal_landing" />
+          <CustodySampleForm source={source} />
         </div>
       }
     />
   );
 };
+
+export const LegalLanding = () => (
+  <CustodyLanding
+    page="legal"
+    industry="Law Firms"
+    heroImg="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&q=80&w=1920"
+    source="legal_landing"
+  />
+);
+
+export const MedicalLanding = () => (
+  <CustodyLanding
+    page="medical"
+    industry="Clinics & Labs"
+    heroImg="https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&q=80&w=1920"
+    source="medical_landing"
+  />
+);
+
+export const HrLanding = () => (
+  <CustodyLanding
+    page="hr"
+    industry="HR & PRO Teams"
+    heroImg="https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&q=80&w=1920"
+    source="hr_landing"
+  />
+);
+
+export const FinanceLanding = () => (
+  <CustodyLanding
+    page="finance"
+    industry="Banks & Finance"
+    heroImg="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=1920"
+    source="finance_landing"
+  />
+);
