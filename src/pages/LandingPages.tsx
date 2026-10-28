@@ -4,6 +4,7 @@ import { MapPin, Zap, MessageSquare, Phone, ArrowRight, Shield, Clock, CheckCirc
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE } from '../constants';
+import { STARTING_PRICE_AED } from '../pricing';
 import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -124,7 +125,7 @@ export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, in
             <div className="flex flex-wrap items-center gap-8 border-t border-brand-border pt-8">
               <div>
                 <p className="text-[9px] uppercase tracking-widest text-brand-muted mb-1">{t('chrome.startingFrom')}</p>
-                <p className="text-xl font-display font-medium text-brand-neon">{t('chrome.priceValue')}</p>
+                <p className="text-xl font-display font-medium text-brand-neon">{t('chrome.priceValue', { price: STARTING_PRICE_AED })}</p>
               </div>
               <div className="w-px h-8 bg-brand-border hidden sm:block" />
               <div>

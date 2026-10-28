@@ -13,7 +13,7 @@
     "badgeDispatch": "Driver assigned in minutes",
     "stats": {
       "avgDispatch": { "label": "Avg. Dispatch", "value": "2–5 min" },
-      "sameDay": { "label": "Pricing", "value": "Per route" },
+      "sameDay": { "label": "Starting from", "value": "AED {{price}}" },
       "dedicated": { "label": "Dedicated", "value": "On quote" },
       "tracking": { "label": "Tracking", "value": "Live GPS" }
     }
@@ -81,7 +81,7 @@
     "sameDay": {
       "badge": "MOST POPULAR",
       "title": "SAME-DAY",
-      "price": "Quoted per route",
+      "price": "From AED {{price}}",
       "subtext": "Driver assigned in minutes",
       "features": {
         "0": "90–120 min Dubai ↔ Abu Dhabi",

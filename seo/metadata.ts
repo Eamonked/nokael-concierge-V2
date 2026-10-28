@@ -1,3 +1,5 @@
+import { STARTING_PRICE_AED } from "../src/pricing.js";
+
 export interface PageMetadata {
   title: string;
   description: string;
@@ -14,7 +16,7 @@ export interface PageMetadata {
 const CORE_FAQS: { q: string; a: string }[] = [
   {
     q: "How much does Nokael cost?",
-    a: "Every booking is quoted per route before dispatch: one vehicle and one driver per job, with no shared loads. The price depends on the route, how urgent it is and the item. Request a quote or message dispatch on WhatsApp for current rates.",
+    a: `Same-day delivery starts from AED ${STARTING_PRICE_AED}. Every booking is quoted per route before dispatch: one vehicle and one driver per job, with no shared loads. The final price depends on the route, how urgent it is and the item. Request a quote or message dispatch on WhatsApp.`,
   },
   {
     q: "How do I know my item was handed over to the right person?",

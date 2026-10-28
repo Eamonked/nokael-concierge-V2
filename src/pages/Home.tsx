@@ -4,6 +4,7 @@ import { MessageSquare, ArrowRight, Zap, Shield, MapPin, Clock, CheckCircle2, Ch
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE, DEFAULT_WA_MESSAGE } from '../constants';
+import { STARTING_PRICE_AED } from '../pricing';
 import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
 import { cn } from '../lib/utils';
 
@@ -116,7 +117,7 @@ const Hero = () => {
               </div>
               <div className="hero-glass rounded-2xl p-3 sm:p-4">
                 <p className="hero-fg-soft text-[11px] uppercase tracking-wider mb-3 font-semibold">{t('hero.stats.sameDay.label')}</p>
-                <p className="text-2xl sm:text-3xl font-display font-semibold tracking-tight text-brand-neon hero-shadow">{t('hero.stats.sameDay.value')}</p>
+                <p className="text-2xl sm:text-3xl font-display font-semibold tracking-tight text-brand-neon hero-shadow">{t('hero.stats.sameDay.value', { price: STARTING_PRICE_AED })}</p>
               </div>
               <div className="hero-glass rounded-2xl p-3 sm:p-4">
                 <p className="hero-fg-soft text-[11px] uppercase tracking-wider mb-3 font-semibold">{t('hero.stats.dedicated.label')}</p>
@@ -393,7 +394,7 @@ const ServiceCards = () => {
               <div className="pt-6 mb-8 text-center">
                 <h3 className="text-3xl font-display font-medium mb-4 text-brand-text tracking-tighter uppercase">{t(`serviceCards.${s.key}.title`)}</h3>
                 <div className="flex flex-col items-center">
-                  <span className="text-5xl font-display font-medium text-brand-neon leading-none tracking-tighter mb-2">{t(`serviceCards.${s.key}.price`)}</span>
+                  <span className="text-5xl font-display font-medium text-brand-neon leading-none tracking-tighter mb-2">{t(`serviceCards.${s.key}.price`, { price: STARTING_PRICE_AED })}</span>
                   <span className="text-xs text-brand-muted italic font-medium">{t(`serviceCards.${s.key}.subtext`)}</span>
                 </div>
               </div>

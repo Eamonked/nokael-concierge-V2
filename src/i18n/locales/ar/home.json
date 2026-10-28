@@ -13,7 +13,7 @@
     "badgeDispatch": "تعيين السائق خلال دقائق",
     "stats": {
       "avgDispatch": { "label": "متوسط وقت الإرسال", "value": "2–5 دقائق" },
-      "sameDay": { "label": "التسعير", "value": "حسب المسار" },
+      "sameDay": { "label": "يبدأ من", "value": "{{price}} درهم" },
       "dedicated": { "label": "مخصص", "value": "حسب الطلب" },
       "tracking": { "label": "التتبع", "value": "GPS مباشر" }
     }
@@ -81,7 +81,7 @@
     "sameDay": {
       "badge": "الأكثر طلبًا",
       "title": "نفس اليوم",
-      "price": "سعر حسب المسار",
+      "price": "من {{price}} درهم",
       "subtext": "يُعيَّن السائق خلال دقائق",
       "features": {
         "0": "90–120 دقيقة بين دبي وأبوظبي",
