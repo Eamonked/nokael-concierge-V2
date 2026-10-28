@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { STARTING_PRICE_AED } from '../pricing';
 import i18n from '../i18n/config';
 import { findCountry } from './countries';
 import { isPlatformHost, normalizeHost } from './hosts';
@@ -81,16 +82,19 @@ export const NOKAEL_TENANT: TenantProfile = {
     job_ref_prefix: 'NOK',
     map_center: [55.0, 25.0],
     languages: ['en', 'ar'],
-    // Nokael is quote-only: no published price tiers, so the quote form hides its estimate.
+    // Starting price shown as the quote form's estimate (same number as the site's "From AED …").
+    price_same_day: STARTING_PRICE_AED,
   },
 };
 
 /** Fill any missing setting from Nokael's, so a half-configured org still renders. */
 export const normalizeTenant = (raw: any): TenantProfile => {
+  const isNokael = raw?.id === NOKAEL_ORG_ID || raw?.slug === 'nokael';
   const settings = { ...NOKAEL_TENANT.settings, ...(raw?.settings ?? {}) } as TenantSettings;
   if (!Array.isArray(settings.regions)) settings.regions = [];
   if (!Array.isArray(settings.map_center) || settings.map_center.length !== 2) settings.map_center = NOKAEL_TENANT.settings.map_center;
-  const isNokael = raw?.id === NOKAEL_ORG_ID || raw?.slug === 'nokael';
+  // Prices are in Nokael's currency: another company only shows an estimate it set itself.
+  if (!isNokael && raw?.settings?.price_same_day == null) delete settings.price_same_day;
   return {
     id: String(raw?.id ?? NOKAEL_TENANT.id),
     name: String(raw?.name ?? NOKAEL_TENANT.name),
