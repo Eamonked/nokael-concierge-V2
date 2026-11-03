@@ -1,0 +1,45 @@
+{
+  "eyebrow": "Dedicated business courier",
+  "title": "Urgent courier from Dubai to Abu Dhabi",
+  "intro": "Documents, parcels and spare parts delivered directly by a dedicated driver.",
+  "price": "From AED {{price}}",
+  "priceNote": "Final price depends on your route, item and timing.",
+  "pickup": "Pickup typically within 30–60 minutes, subject to availability. Price and estimated arrival confirmed before you book.",
+  "cta": "Get a price and pickup time",
+  "call": "Or call {{phone}}",
+  "enquiryHint": "Send your pickup address, destination, item and delivery deadline.",
+  "message": "Hi Nokael, I need a quote for a Dubai to Abu Dhabi delivery.\nPickup address in Dubai:\nDelivery address in Abu Dhabi:\nItem and approximate size/weight:\nRequired arrival time:\nBusiness or personal:",
+  "record": {
+    "title": "See what the delivery record contains",
+    "body": "Pickup and delivery codes, timestamps and recorded locations give you a handover record to keep on file.",
+    "link": "View a sample handover record (PDF)",
+    "note": "Illustrative sample for review."
+  },
+  "booking": {
+    "title": "How to book",
+    "steps": [
+      {"title": "Send the delivery details", "body": "Tell dispatch the pickup address, destination, item and deadline by WhatsApp or phone."},
+      {"title": "Receive your quote", "body": "Check the total price, available pickup window and estimated arrival time."},
+      {"title": "Confirm the booking", "body": "Agree the quote and payment arrangements before your driver is dispatched."}
+    ]
+  },
+  "included": {
+    "title": "A direct delivery, with a record of handover",
+    "items": [
+      {"title": "Dedicated driver", "body": "Your item travels directly to the recipient, without sorting hubs or shared loads."},
+      {"title": "Live tracking", "body": "Follow the delivery using the tracking link provided for your booking."},
+      {"title": "Recorded handovers", "body": "One-time codes at pickup and delivery, followed by a Chain of Custody certificate."}
+    ]
+  },
+  "faq": {
+    "title": "Before you book",
+    "items": [
+      {"q": "How soon can it arrive?", "a": "Pickup is typically within 30–60 minutes in major Dubai business areas, subject to driver availability. Dubai–Abu Dhabi transit is usually 90–120 minutes after collection, depending on the route and traffic. Give dispatch your deadline so they can confirm whether it is achievable before you book."},
+      {"q": "What does the price cover?", "a": "AED 350 is a starting price, not a fixed quote for every delivery. The final price depends on the addresses, item, timing and any special requirements. Before accepting, confirm the total and any applicable VAT, tolls, waiting, return or extra-stop charges with dispatch."},
+      {"q": "How do I pay?", "a": "Dispatch confirms the payment method and when payment is due in your quote or booking confirmation. Agree those arrangements before dispatching the driver."},
+      {"q": "What can you carry?", "a": "Documents, suitably packaged parcels and spare parts, subject to acceptance. Share the approximate weight, dimensions, value and handling requirements when requesting a quote. Hazardous or restricted goods and items needing specialist handling require separate checks; do not assume they are accepted."},
+      {"q": "What if the recipient is unavailable?", "a": "Provide the recipient’s name, contact number and access instructions when booking. Waiting, redirection or return charges may apply if delivery cannot be completed. Ask dispatch to confirm those charges with your quote."}
+    ]
+  },
+  "final": {"title": "Have a delivery deadline?", "body": "Send the route and item details. Dispatch can check availability and quote your delivery."}
+}
