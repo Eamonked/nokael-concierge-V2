@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireApiKey, rateLimit } from "../middleware/security.js";
+import { requireOrgSession, type TeamRequest } from './team.js';
 
 // Max message length to prevent abuse
 const MAX_MESSAGE_LENGTH = 4096;
@@ -20,7 +21,8 @@ export function createNotifyRouter() {
   const router = Router();
 
   // Rate limit: 20 notifications per minute per IP
-  router.post("/notify", rateLimit(20, 60_000), requireApiKey, async (req, res) => {
+  router.post("/notify", rateLimit(20, 60_000), requireOrgSession, async (req: TeamRequest, res) => {
+    if (req.orgId !== (process.env.VITE_NOKAEL_ORG_ID || '89412cf2-dd3a-447c-906a-e59aaa64926d')) return res.status(403).json({ error: 'Notification channel unavailable for this organization' });
     const { message } = req.body;
 
     if (!message || typeof message !== "string") {

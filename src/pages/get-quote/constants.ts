@@ -24,5 +24,5 @@ export const STEP_LABEL_KEYS = ['stepper.labels.route', 'stepper.labels.item', '
 // Shared field styling: a visible resting border (brand-field-border ≈ gray-300 in
 // light mode) and a green focus ring so every input reads as a distinct box.
 export const fieldClass =
-  'w-full bg-brand-input border border-brand-field-border rounded-xl py-3.5 px-4 text-brand-text text-sm transition-colors placeholder:text-brand-muted/60 focus:outline-none focus:border-brand-neon focus:ring-2 focus:ring-brand-neon/20';
-export const labelClass = 'block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-2';
+  'quote-input w-full';
+export const labelClass = 'quote-label';

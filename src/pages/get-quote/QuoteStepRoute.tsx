@@ -36,9 +36,9 @@ function RouteLeg({ id, title, icon: Icon, accent, emirate, onEmirateChange, loc
   const regions = regionOptions(emirate, tenant);
 
   return (
-    <fieldset className="p-5 rounded-2xl border border-brand-field-border bg-brand-input/40 space-y-4">
+    <fieldset className="quote-route-leg">
       <legend className="sr-only">{title}</legend>
-      <p className={cn('flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em]', accent)}>
+      <p className={cn('flex items-center gap-2 text-sm font-semibold normal-case tracking-normal', accent)}>
         <Icon className="w-4 h-4" />
         {title}
       </p>
@@ -48,10 +48,12 @@ function RouteLeg({ id, title, icon: Icon, accent, emirate, onEmirateChange, loc
           <div className="relative">
             <select
               id={`${id}-emirate`}
+              required
               className={cn(fieldClass, 'appearance-none pe-10 cursor-pointer')}
               value={emirate}
               onChange={e => onEmirateChange(e.target.value)}
             >
+              <option value="" disabled>{t('step1.selectRegion')}</option>
               {regions.map(e => <option key={e} value={e}>{e}</option>)}
             </select>
             <ChevronDown className="absolute end-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted pointer-events-none" />
@@ -98,7 +100,7 @@ export default function QuoteStepRoute({ pickupEmirate, deliveryEmirate, formDat
         id="pickup"
         title={t('step1.pickupTitle')}
         icon={MapPin}
-        accent="text-brand-neon"
+        accent="text-brand-muted"
         emirate={pickupEmirate}
         onEmirateChange={updatePickupEmirate}
         location={formData.pickup_location ?? ''}
@@ -109,7 +111,7 @@ export default function QuoteStepRoute({ pickupEmirate, deliveryEmirate, formDat
         id="delivery"
         title={t('step1.deliveryTitle')}
         icon={Flag}
-        accent="text-brand-blue"
+        accent="text-brand-muted"
         emirate={deliveryEmirate}
         onEmirateChange={updateDeliveryEmirate}
         location={formData.delivery_location ?? ''}

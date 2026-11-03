@@ -3,9 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Nokael | Dedicated Executive Transit Dubai to Abu Dhabi</title>
+    <title>Nokael | Same-Day Courier Dubai to Abu Dhabi</title>
     <script>
       (function() {
+        window.dataLayer = window.dataLayer || [];
         var gtmLoaded = false;
         function loadGTM() {
           if (gtmLoaded) return;
@@ -108,32 +109,7 @@
     </div>
     <script type="module" src="/src/main.tsx"></script>
 
-    <!-- Marketing Scripts at Body End to Prevent Blocking (Deferred) -->
-    <script>
-      (function() {
-        var scriptsLoaded = false;
-        function loadMarketing() {
-          if (scriptsLoaded) return;
-          scriptsLoaded = true;
-          var gtagScript = document.createElement('script');
-          gtagScript.async = true;
-          gtagScript.src = 'https://www.googletagmanager.com/gtag/js?id=GT-M6BPWGQN';
-          document.body.appendChild(gtagScript);
-          
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', 'GT-M6BPWGQN');
-          gtag('config', 'AW-17877109298', { 'allow_enhanced_conversions': true });
-        }
-        window.addEventListener('load', function() {
-          setTimeout(loadMarketing, 3000); // Also load after 3s if no interaction
-        });
-        window.addEventListener('scroll', loadMarketing, {once: true, passive: true});
-        window.addEventListener('mousemove', loadMarketing, {once: true, passive: true});
-        window.addEventListener('touchstart', loadMarketing, {once: true, passive: true});
-      })();
-    </script>
+    <!-- Events are queued once through GTM; no second direct-tag loader. -->
   </body>
 </html>
 

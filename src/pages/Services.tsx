@@ -1,3 +1,4 @@
+import CourierPhoto from '../components/CourierPhoto';
 import React from 'react';
 import { motion } from 'motion/react';
 import { Shield, Zap, MapPin, Clock, CheckCircle2, ArrowRight, Package, Truck, Navigation, FileText, Settings } from 'lucide-react';
@@ -72,7 +73,7 @@ export default function Services() {
       {/* Hero */}
       <section className="py-32 border-b border-brand-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="asymmetric-grid items-end">
+          <div className="public-photo-layout">
             <div className="max-w-2xl">
               <p className="text-brand-neon font-bold uppercase tracking-[0.4em] text-[10px] mb-6">{t('hero.eyebrow')}</p>
               <h1 className="text-5xl md:text-8xl font-display font-medium tracking-tighter mb-8 leading-[0.85]">
@@ -83,6 +84,7 @@ export default function Services() {
                 {t('hero.intro')}
               </p>
             </div>
+            <CourierPhoto variant="services" priority />
           </div>
         </div>
       </section>

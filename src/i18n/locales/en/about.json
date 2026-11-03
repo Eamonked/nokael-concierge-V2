@@ -18,8 +18,8 @@
     },
     "velocity": {
       "label": "Velocity",
-      "value": "90 Mins",
-      "subtext": "Target door-to-door transit time for core Dubai ↔ Abu Dhabi corridors."
+      "value": "90–120 Mins",
+      "subtext": "Typical transit after collection on core Dubai–Abu Dhabi routes. Pickup and arrival estimates are confirmed before dispatch."
     }
   },
   "philosophy": {

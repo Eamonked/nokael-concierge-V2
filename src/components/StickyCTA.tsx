@@ -1,3 +1,4 @@
+import { useEnquiryLink } from '../lib/useEnquiryLink';
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageSquare, Phone, Zap, ArrowRight } from 'lucide-react';
@@ -8,6 +9,8 @@ import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
 
 export const StickyCTA = () => {
   const { t } = useTranslation('common');
+  const { t: salesT } = useTranslation('dubaiSales');
+  const enquiryUrl = useEnquiryLink();
   const [isVisible, setIsVisible] = React.useState(false);
   const [isHovered, setIsHovered] = React.useState(false);
   const { pathname } = useLocation();
@@ -32,6 +35,9 @@ export const StickyCTA = () => {
   }, []);
 
   if (isExcludedPage) return null;
+  if (pathname === '/' || pathname.replace(/\/+$/, '') .match(/^\/(urgent-delivery-dubai|document-delivery-uae)$/)) {
+    return isVisible ? <div className="dubai-sticky"><a className="dubai-enquiry" href={enquiryUrl} target="_blank" rel="noopener noreferrer" onClick={() => trackWhatsAppClick(pathname === '/' ? 'home_sales_sticky' : pathname.includes('document-delivery') ? 'document_sales_sticky' : 'dubai_sales_sticky')}><MessageSquare size={18} aria-hidden="true" />{salesT('cta')}</a></div> : null;
+  }
 
   return (
     <>

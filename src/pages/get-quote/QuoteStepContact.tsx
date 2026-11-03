@@ -29,7 +29,7 @@ export default function QuoteStepContact({ formData, updateForm }: QuoteStepCont
             type="button"
             onClick={() => updateForm({ customer_type: 'business' })}
             className={cn(
-              "py-3 px-4 rounded-xl border text-[10px] font-bold uppercase tracking-widest transition-all",
+              "py-3 px-4 rounded-md border text-sm font-bold normal-case tracking-normal transition-colors",
               formData.customer_type === 'business' ? "bg-brand-neon border-brand-neon text-brand-bg" : "bg-brand-input border-brand-field-border text-brand-muted hover:border-brand-neon/50"
             )}
           >
@@ -39,7 +39,7 @@ export default function QuoteStepContact({ formData, updateForm }: QuoteStepCont
             type="button"
             onClick={() => updateForm({ customer_type: 'personal' })}
             className={cn(
-              "py-3 px-4 rounded-xl border text-[10px] font-bold uppercase tracking-widest transition-all",
+              "py-3 px-4 rounded-md border text-sm font-bold normal-case tracking-normal transition-colors",
               formData.customer_type === 'personal' ? "bg-brand-neon border-brand-neon text-brand-bg" : "bg-brand-input border-brand-field-border text-brand-muted hover:border-brand-neon/50"
             )}
           >
@@ -48,7 +48,7 @@ export default function QuoteStepContact({ formData, updateForm }: QuoteStepCont
         </div>
 
         <div>
-          <label htmlFor="quote-name" className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">{t('step4.fullNameLabel')}</label>
+          <label htmlFor="quote-name" className="block text-sm normal-case tracking-normal font-bold text-brand-muted mb-3">{t('step4.fullNameLabel')}</label>
           <div className="relative">
             <User className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
             <input
@@ -66,7 +66,7 @@ export default function QuoteStepContact({ formData, updateForm }: QuoteStepCont
         {formData.customer_type === 'business' && (
           <div className="space-y-4">
             <div>
-              <label htmlFor="quote-company" className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">{t('step4.companyLabel')}</label>
+              <label htmlFor="quote-company" className="block text-sm normal-case tracking-normal font-bold text-brand-muted mb-3">{t('step4.companyLabel')}</label>
               <div className="relative">
                 <Building2 className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
                 <input
@@ -79,9 +79,10 @@ export default function QuoteStepContact({ formData, updateForm }: QuoteStepCont
                 />
               </div>
             </div>
-            <div>
-              <label htmlFor="quote-corp-code" className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-1">{t('step4.corporateCodeLabel')}</label>
-              <p className="text-[9px] text-brand-muted/70 uppercase tracking-wider mb-3">
+            <details>
+              <summary className="text-xs cursor-pointer text-brand-muted">{t('step4.existingAccount')}</summary>
+              <label htmlFor="quote-corp-code" className="block mt-3 text-sm normal-case tracking-normal font-bold text-brand-muted mb-1">{t('step4.corporateCodeLabel')}</label>
+              <p className="text-sm text-brand-muted/70 normal-case tracking-normal mb-3">
                 {t('step4.corporateCodeHint')}
               </p>
               <div className="relative">
@@ -95,12 +96,12 @@ export default function QuoteStepContact({ formData, updateForm }: QuoteStepCont
                   onChange={e => updateForm({ corporate_code: e.target.value.toUpperCase() })}
                 />
               </div>
-            </div>
+            </details>
           </div>
         )}
 
         <div>
-          <label htmlFor="quote-phone" className="block text-[10px] uppercase tracking-widest font-bold text-brand-muted mb-3">{t('step4.phoneLabel')}</label>
+          <label htmlFor="quote-phone" className="block text-sm normal-case tracking-normal font-bold text-brand-muted mb-3">{t('step4.phoneLabel')}</label>
           <div className="relative">
             <Phone className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
             <input
@@ -118,14 +119,14 @@ export default function QuoteStepContact({ formData, updateForm }: QuoteStepCont
         <div className="space-y-4">
           <label className="flex items-center gap-3 cursor-pointer group">
             <div className={cn(
-              "w-5 h-5 rounded border flex items-center justify-center transition-all",
+              "w-5 h-5 rounded border flex items-center justify-center transition-colors",
               formData.whatsapp_opt_in ? "bg-brand-neon border-brand-neon" : "bg-brand-input border-brand-field-border group-hover:border-brand-neon/50"
             )}>
               {formData.whatsapp_opt_in && <CheckCircle2 className="w-3 h-3 text-brand-bg" />}
             </div>
             <input
               type="checkbox"
-              className="hidden"
+              className="sr-only"
               checked={formData.whatsapp_opt_in}
               onChange={e => updateForm({ whatsapp_opt_in: e.target.checked })}
             />
@@ -134,14 +135,14 @@ export default function QuoteStepContact({ formData, updateForm }: QuoteStepCont
 
           <label className="flex items-center gap-3 cursor-pointer group">
             <div className={cn(
-              "w-5 h-5 rounded border flex items-center justify-center transition-all",
+              "w-5 h-5 rounded border flex items-center justify-center transition-colors",
               formData.repeat_business ? "bg-brand-neon border-brand-neon" : "bg-brand-input border-brand-field-border group-hover:border-brand-neon/50"
             )}>
               {formData.repeat_business && <CheckCircle2 className="w-3 h-3 text-brand-bg" />}
             </div>
             <input
               type="checkbox"
-              className="hidden"
+              className="sr-only"
               checked={formData.repeat_business}
               onChange={e => updateForm({ repeat_business: e.target.checked })}
             />

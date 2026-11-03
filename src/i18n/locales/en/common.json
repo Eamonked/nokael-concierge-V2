@@ -1,7 +1,7 @@
 {
   "topBar": {
-    "urgentDispatch": "Urgent Dispatch Active",
-    "corridor": "Dubai ↔ Abu Dhabi • 90-120 min delivery",
+    "urgentDispatch": "Dedicated business courier",
+    "corridor": "Dubai ↔ Abu Dhabi • 90–120 min transit after pickup",
     "whatsapp": "WhatsApp"
   },
   "nav": {
@@ -48,5 +48,21 @@
     "callDispatch": "Call Dispatch",
     "requestViaWhatsapp": "Request via WhatsApp",
     "requestDispatchViaWhatsapp": "Request Dispatch via WhatsApp"
+  },
+  "images": {
+    "courierHandover": "Illustrative photo of a Nokael courier receiving documents beside a branded black sedan",
+    "pages": {
+      "about": "Generated illustrative photo: Nokael courier and coordinator planning a delivery route in an office",
+      "services": "Generated illustrative photo: Nokael courier carefully loading a parcel into a black sedan",
+      "business": "Generated illustrative photo: Nokael courier discussing a pickup schedule with a corporate office manager",
+      "dubai": "Generated illustrative photo: Nokael courier beside a branded black sedan in a Dubai business district",
+      "abuDhabi": "Generated illustrative photo: Nokael courier arriving at an Abu Dhabi office with a sealed delivery pouch",
+      "document": "Generated illustrative photo: Nokael courier securing a document envelope inside a protective satchel",
+      "spareParts": "Generated illustrative photo: Engineer handing a protected machine component to a Nokael courier",
+      "legal": "Generated illustrative photo: Legal professional and Nokael courier exchanging a sealed document pouch",
+      "medical": "Generated illustrative photo: Clinic employee handing sealed reports and a closed transit box to a Nokael courier",
+      "hr": "Generated illustrative photo: HR administrator preparing a confidential document envelope for a Nokael courier",
+      "finance": "Generated illustrative photo: Finance professional handing a sealed document pouch to a Nokael courier"
+    }
   }
 }

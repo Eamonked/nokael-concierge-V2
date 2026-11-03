@@ -23,19 +23,20 @@ export default function QuoteStepItem({ itemType, updateForm }: QuoteStepItemPro
         <button
           key={type.id}
           type="button"
+          aria-pressed={itemType === type.id}
           onClick={() => updateForm({ item_type: type.id as any })}
           className={cn(
-            "p-6 rounded-xl border transition-all text-left",
+            "quote-choice p-5 rounded-md border transition-colors text-start",
             itemType === type.id
-              ? "bg-brand-neon/5 border-brand-neon ring-2 ring-brand-neon/15"
-              : "bg-brand-input border-brand-field-border hover:border-brand-neon/50"
+              ? "bg-brand-neon/5 border-brand-neon "
+              : "bg-brand-surface border-brand-field-border hover:border-brand-neon"
           )}
         >
           <type.icon className={cn("w-6 h-6 mb-4", itemType === type.id ? "text-brand-neon" : "text-brand-muted")} />
           <p className={cn("text-sm font-bold mb-1", itemType === type.id ? "text-brand-text" : "text-brand-muted")}>
             {t(type.labelKey)}
           </p>
-          <p className="text-[10px] text-brand-muted uppercase tracking-wider">{t(type.descKey)}</p>
+          <p className="text-sm text-brand-muted normal-case tracking-normal">{t(type.descKey)}</p>
         </button>
       ))}
     </motion.div>

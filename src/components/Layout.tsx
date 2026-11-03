@@ -1,3 +1,4 @@
+import { useEnquiryLink } from '../lib/useEnquiryLink';
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Phone, MessageSquare, Menu, X, Zap, Navigation as NavIcon } from 'lucide-react';
@@ -16,14 +17,17 @@ import { WHATSAPP_NUMBER, PHONE_NUMBER, DISPLAY_PHONE } from '../constants';
 import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
 
 const TopBar = () => {
+  const pagePath = useLocation().pathname;
+  const isDubai = pagePath === '/' || pagePath.replace(/\/+$/, '') .match(/^\/(urgent-delivery-dubai|document-delivery-uae)$/);
   const { t } = useTranslation('common');
+  const enquiryUrl = useEnquiryLink();
   return (
     <div className="bg-brand-neon text-brand-bg py-2.5 px-4 relative z-[60]">
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-xs font-bold">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-brand-bg" />
-            {t('topBar.urgentDispatch')}
+            {isDubai ? t('dubaiSales:eyebrow') : t('topBar.urgentDispatch')}
           </span>
           <span className="hidden md:inline opacity-60">|</span>
           <span className="hidden md:inline">{t('topBar.corridor')}</span>
@@ -33,7 +37,7 @@ const TopBar = () => {
             <Phone className="w-3.5 h-3.5 fill-brand-bg" />
             <span>{DISPLAY_PHONE}</span>
           </a>
-          <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer" onClick={() => trackWhatsAppClick('top_bar')} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <a href={enquiryUrl} target="_blank" rel="noopener noreferrer" onClick={() => trackWhatsAppClick('top_bar')} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <MessageSquare className="w-3.5 h-3.5 fill-brand-bg" />
             <span>{t('topBar.whatsapp')}</span>
           </a>
@@ -45,12 +49,13 @@ const TopBar = () => {
 
 export const Navigation = () => {
   const { t } = useTranslation('common');
+  const enquiryUrl = useEnquiryLink();
   const [isOpen, setIsOpen] = React.useState(false);
   const location = useLocation();
 
   return (
     <nav className={cn(
-      "bg-brand-bg/80 backdrop-blur-md border-b border-brand-border transition-all duration-300"
+      "site-header bg-brand-bg/80 backdrop-blur-md border-b border-brand-border transition-all duration-300"
     )}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
@@ -165,7 +170,7 @@ export const Navigation = () => {
               </Link>
               <div className="pt-6 grid grid-cols-1 gap-4">
                 <a
-                  href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                  href={enquiryUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => trackWhatsAppClick('mobile_nav')}
@@ -193,6 +198,7 @@ export const Navigation = () => {
 
 export const Footer = () => {
   const { t } = useTranslation('common');
+  const enquiryUrl = useEnquiryLink();
   return (
     // pb-28 clears the fixed StickyCTA pill / mobile bar
     <footer className="bg-brand-bg border-t border-brand-border pt-24 pb-28">
@@ -261,7 +267,7 @@ export const Footer = () => {
               <li><Link to="/apply-driver" className="hover:text-brand-neon transition-colors">{t('footer.driverApplication')}</Link></li>
               <li>
                 <a 
-                  href={`https://wa.me/${WHATSAPP_NUMBER}`} 
+                  href={enquiryUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => trackWhatsAppClick('footer')}

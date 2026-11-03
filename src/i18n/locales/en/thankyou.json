@@ -1,6 +1,11 @@
 {
   "requestLogged": "Request Logged.",
-  "confirmation": "Your dispatch request has been entered into the system. A dispatcher is waiting to receive your details on WhatsApp.",
+  "confirmation": "Your enquiry has been saved. Dispatch will contact you on WhatsApp to confirm availability, price and timing.",
   "connectWithDispatcher": "Connect with Dispatcher",
-  "footerNote": "Open WhatsApp to complete the booking."
+  "footerNote": "Open WhatsApp to complete the booking.",
+  "phoneConfirmation": "Your enquiry has been saved. Dispatch will call you to confirm availability, price and timing.",
+  "noConfirmation": "No confirmed enquiry on this page",
+  "noConfirmationBody": "Submit a quote request or contact dispatch for help.",
+  "callDispatch": "Call dispatch",
+  "requestQuote": "Request a quote"
 }
