@@ -5,13 +5,16 @@ import { submitQuoteRequest, type QuoteRequest } from '../../lib/supabase';
 import { captureUTMs, getStoredUTMs } from '../../lib/analytics';
 import { useTenant } from '../../context/TenantContext';
 import { tenantBasePath, tenantDisplayName, tenantPriceTiers } from '../../lib/tenant';
+import { routeProblem, validFutureDate, validPhone } from '../../../shared/quoteValidation';
+import { trackSavedQuote } from '../../lib/analytics';
 
 export function useQuoteForm(formTopRef: React.RefObject<HTMLDivElement>) {
   const { t } = useTranslation('getQuote');
   const navigate = useNavigate();
   const tenant = useTenant();
-  // Region pickers start on the company's first region; free-text regions start empty.
-  const firstRegion = tenant.settings.regions[0] ?? '';
+  // Require an explicit region choice; never silently submit the default route.
+  const firstRegion = '';
+  const submissionId = React.useRef(crypto.randomUUID());
   const [step, setStep] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -38,8 +41,10 @@ export function useQuoteForm(formTopRef: React.RefObject<HTMLDivElement>) {
 
   // Scroll the form back into view whenever the step changes, so a mobile visitor
   // who scrolled while filling a long step isn't left staring at the wrong content.
+  const previousStep = React.useRef(step);
   React.useEffect(() => {
-    formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (previousStep.current !== step) formTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    previousStep.current = step;
   }, [step]);
 
   const updateForm = (data: Partial<QuoteRequest>) => {
@@ -48,12 +53,12 @@ export function useQuoteForm(formTopRef: React.RefObject<HTMLDivElement>) {
 
   const updatePickupEmirate = (val: string) => {
     setPickupEmirate(val);
-    setFormData(prev => ({ ...prev, emirate: `${val} → ${deliveryEmirate}` }));
+    setFormData(prev => ({ ...prev, pickup_location: '', pickup_lat: null, pickup_lng: null, emirate: `${val} → ${deliveryEmirate}` }));
   };
 
   const updateDeliveryEmirate = (val: string) => {
     setDeliveryEmirate(val);
-    setFormData(prev => ({ ...prev, emirate: `${pickupEmirate} → ${val}` }));
+    setFormData(prev => ({ ...prev, delivery_location: '', delivery_lat: null, delivery_lng: null, emirate: `${pickupEmirate} → ${val}` }));
   };
 
   const nextStep = () => setStep(s => Math.min(s + 1, 4));
@@ -70,6 +75,13 @@ export function useQuoteForm(formTopRef: React.RefObject<HTMLDivElement>) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    if (!pickupEmirate || !deliveryEmirate || !formData.pickup_location?.trim() || !formData.delivery_location?.trim() || routeProblem(formData.pickup_location, pickupEmirate) || routeProblem(formData.delivery_location, deliveryEmirate)) {
+      setError(t('errors.routeMismatch')); return;
+    }
+    if (step >= 3 && ((formData.urgency === 'scheduled' && !validFutureDate(formData.pickup_at)) || (formData.deadline && (!validFutureDate(formData.deadline) || (formData.urgency === 'scheduled' && formData.pickup_at && Date.parse(formData.deadline) <= Date.parse(formData.pickup_at)))))) {
+      setError(t('errors.scheduleInvalid')); return;
+    }
     if (step < 4) {
       nextStep();
       return;
@@ -83,6 +95,8 @@ export function useQuoteForm(formTopRef: React.RefObject<HTMLDivElement>) {
       const utms = getStoredUTMs();
       const enrichedData: QuoteRequest = {
         ...(formData as QuoteRequest),
+        id: submissionId.current,
+        pickup_at: formData.urgency === 'scheduled' ? formData.pickup_at : undefined,
         // UTM fields — these map to columns added via the SQL migration
         utm_source: utms.utm_source,
         utm_medium: utms.utm_medium,
@@ -92,30 +106,30 @@ export function useQuoteForm(formTopRef: React.RefObject<HTMLDivElement>) {
         gclid: utms.gclid,
       };
 
-      await submitQuoteRequest(enrichedData);
+      if (!validPhone(formData.phone || '')) { setError(t('errors.phoneInvalid')); return; }
+      const saved = await submitQuoteRequest(enrichedData);
+      trackSavedQuote(saved.id!);
 
       // Build the pre-filled WhatsApp message.
       // This message goes to the company's own dispatch number, not the customer —
       // decision (A) "keep fixed" applies (see Phase 7 of the customer-facing
       // i18n plan), so this stays a plain template literal, not wired to t().
-      const message = encodeURIComponent(
-        `Hi ${tenantDisplayName(tenant)}, I need a quote for a ${formData.item_type} delivery from ${formData.pickup_location}, ${pickupEmirate} to ${formData.delivery_location}, ${deliveryEmirate}. Urgency: ${formData.urgency}. My name is ${formData.name}.`
-      );
+      const message = `Hi ${tenantDisplayName(tenant)}, please follow up on saved quote ${saved.tracking_id}.`;
 
       // Navigate to /thank-you — this is where the Google Ads conversion pixel fires.
       // The WhatsApp redirect happens from that page after a short delay.
-      navigate(`${tenantBasePath(tenant)}/thank-you?wa=${message}`, {
+      navigate(`${tenantBasePath(tenant)}/thank-you`, {
+        replace: true,
         state: {
-          userData: {
-            phone_number: formData.phone,
-            first_name: formData.name
-          }
+          leadId: saved.id,
+          whatsappOptIn: formData.whatsapp_opt_in,
+          waMessage: message,
         }
       });
 
     } catch (err: any) {
       console.error('Error submitting quote:', err);
-      setError(err.message || t('errors.submitFailed'));
+      setError(err.message?.startsWith('This enquiry was already submitted') ? t('errors.alreadySubmitted') : t('errors.submitFailed'));
     } finally {
       setLoading(false);
     }
