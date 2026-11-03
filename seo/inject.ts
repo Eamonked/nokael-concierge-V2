@@ -161,10 +161,10 @@ export function buildSeoContent(metadata: PageMetadata): string {
       <nav style="margin-top:50px;padding:20px;background:#eee;border-radius:8px;">
         <p style="font-weight:bold;margin-top:0;">Explore Our Services:</p>
         <ul style="display:flex;flex-wrap:wrap;gap:15px;list-style:none;padding:0;">
-          <li><a href="/" style="color:#000;font-weight:bold;">Dedicated Executive Transit</a></li>
+          <li><a href="/" style="color:#000;font-weight:bold;">Same-Day Courier Dubai &amp; Abu Dhabi</a></li>
           <li><a href="/services" style="color:#000;font-weight:bold;">All Services</a></li>
-          <li><a href="/urgent-delivery-dubai" style="color:#000;font-weight:bold;">Same-Day Executive Transit Dubai</a></li>
-          <li><a href="/urgent-delivery-abu-dhabi" style="color:#000;font-weight:bold;">Same-Day Executive Transit Abu Dhabi</a></li>
+          <li><a href="/urgent-delivery-dubai" style="color:#000;font-weight:bold;">Urgent Courier Dubai</a></li>
+          <li><a href="/urgent-delivery-abu-dhabi" style="color:#000;font-weight:bold;">Urgent Courier Abu Dhabi</a></li>
           <li><a href="/get-quote" style="color:#000;font-weight:bold;">Request Immediate Pickup</a></li>
         </ul>
       </nav>

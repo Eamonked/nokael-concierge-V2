@@ -94,7 +94,8 @@ export function createQuotesRouter(deps: { client?: ReturnType<typeof getService
       if (orgError || !org?.id) return res.status(400).json({ error: 'Booking company unavailable.' });
       if (Array.isArray(org.settings?.regions) && org.settings.regions.length && regions.some((region: string) => !org.settings.regions.includes(region))) return res.status(400).json({ error: 'Choose a supported region.' });
       payload.organization_id = org.id;
-      payload.tracking_id = `NK-${body.id.replace(/-/g, '').toUpperCase()}`;
+      // Short enough to read out on a call; derived from the id so a retry gets the same reference.
+      payload.tracking_id = `NK-${body.id.replace(/-/g, '').slice(0, 6).toUpperCase()}`;
       const { error } = await client.from('quote_requests').insert(payload);
       if (error) {
         // A retry after a lost response must not create another lead or notification.

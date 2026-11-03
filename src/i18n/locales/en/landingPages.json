@@ -9,7 +9,7 @@
     "industryTemplate": "Industry: {{industry}}",
     "liveActive": "Live Active",
     "tagline": "Dedicated driver. No sorting hubs. Direct delivery.",
-    "ctaEyebrow": "Instant Dispatch",
+    "ctaEyebrow": "Get a price",
     "ctaLabel": "WhatsApp Dispatch",
     "callCenterTemplate": "Call Center: {{phone}}",
     "startingFrom": "Starting from",
@@ -76,8 +76,8 @@
 
   "needItNow": {
     "heading": "Need it Now?",
-    "body": "Our dispatchers are standing by to assign a dedicated driver to your request. No waiting for the next truck.",
-    "cta": "Instant Dispatch"
+    "body": "Send the route, item and deadline. Dispatch confirms the price and pickup time before a dedicated driver is assigned.",
+    "cta": "Get a price and pickup time"
   },
 
   "otherServices": {

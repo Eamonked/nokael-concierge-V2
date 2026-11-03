@@ -60,7 +60,6 @@ export const LandingTemplate = ({ photo, title, subtitle, city, industry, cityLa
               <div className="inline-flex items-center gap-3 px-4 py-2 rounded-lg bg-brand-input border border-brand-input-border text-brand-neon text-[10px] uppercase tracking-[0.3em] font-bold">
                 <div className="w-1.5 h-1.5 rounded-full bg-brand-neon animate-pulse" />
                 <span>{city ? t('chrome.dispatchSectorTemplate', { city: cityLabel }) : t('chrome.industryTemplate', { industry: industryLabel })}</span>
-                <span className="ms-2">| {t('chrome.liveActive')}</span>
               </div>
 
             </div>

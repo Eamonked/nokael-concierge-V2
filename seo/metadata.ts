@@ -113,11 +113,11 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
   "/document-delivery-uae": {
     title: "Urgent B2B Legal & Corporate Document Delivery UAE | Nokael",
     description:
-      "Secure urgent document transit for UAE legal tenders and corporate contracts. Hand-to-hand B2B Dedicated Executive Transit with a dedicated driver and direct chain of custody.",
+      "Secure urgent document transit for UAE legal tenders and corporate contracts. Hand-to-hand B2B delivery with a dedicated driver and direct chain of custody.",
     h1: "Urgent Legal & Corporate Document Dispatch.",
     content: `Secure, hand-to-hand transport for sensitive legal documents, contracts, and government tenders across all emirates. A dedicated driver, one-time codes at pickup and delivery, a live tracking link, and a Chain of Custody certificate with time and GPS for every handover.
       In the B2B logistics world, some documents are too critical for standard courier networks. Nokael provides a premium dispatch service that prioritizes security and direct accountability.
-      Our drivers handle your sensitive materials with the utmost care, providing hand-to-hand Dedicated Executive Transit from the sender directly to the recipient. We understand the critical nature of legal deadlines and government tender submissions.`,
+      Our drivers handle your sensitive materials with the utmost care, providing hand-to-hand delivery from the sender directly to the recipient. We understand the critical nature of legal deadlines and government tender submissions.`,
     sla: "Hand-to-hand security",
     zones: ["All UAE Courts", "Free Zones", "Government Offices", "Embassies"],
     faqs: [
@@ -293,7 +293,7 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
   },
 
   "/get-quote": {
-    title: "Request Dedicated Executive Transit Quote | Nokael UAE Dispatch",
+    title: "Get a Courier Quote | Dubai & Abu Dhabi | Nokael",
     description: "Get a quote for an urgent same-day document or parcel delivery between Dubai, Abu Dhabi and all emirates. Every route is quoted before dispatch.",
     h1: "Request an Immediate Quote.",
     content: "Our dispatch system provides instant routing and driver assignment for urgent logistics across the UAE. Fill out the route and item details for a dedicated dispatch.",
@@ -407,7 +407,7 @@ export const SEO_METADATA: Record<string, PageMetadata> = {
 
   "/404": {
     title: "Page Not Found | Nokael",
-    description: "The page you are looking for does not exist. Return to Nokael's homepage for urgent UAE Dedicated Executive Transit services.",
+    description: "The page you are looking for does not exist. Return to Nokael's homepage for urgent same-day courier services across the UAE.",
     h1: "Page Not Found",
     content: "This page does not exist. Please use the navigation below to find what you need.",
     breadcrumb: [{ name: "Home", url: "/" }],
@@ -418,7 +418,7 @@ export const DEFAULT_METADATA: PageMetadata = {
   title: "Nokael | Same-Day Courier Dubai to Abu Dhabi",
   description:
     "Urgent same-day business courier between Dubai and Abu Dhabi. Direct driver assignment, no sorting hubs, and fast corporate delivery.",
-  h1: "Dedicated Executive Transit Dubai to Abu Dhabi",
+  h1: "Same-Day Courier Dubai to Abu Dhabi",
   content:
     "Nokael provides fast and reliable urgent B2B delivery services across the UAE. We specialize in time-critical corporate logistics needs between major cities like Dubai and Abu Dhabi.",
   faqs: [],
