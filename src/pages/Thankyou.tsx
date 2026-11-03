@@ -1,101 +1,25 @@
-import React from 'react';
-import { motion } from 'motion/react';
-import { CheckCircle2, Loader2, MessageSquare } from 'lucide-react';
-import { useSearchParams, useLocation } from 'react-router-dom';
+import { CheckCircle2, MessageSquare, Phone } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { trackFormSubmission, trackWhatsAppClick } from '../lib/analytics';
+import { trackWhatsAppClick } from '../lib/analytics';
 import { useTenant } from '../context/TenantContext';
-import { waHref } from '../lib/tenant';
+import { waHref, telHref, tenantBasePath } from '../lib/tenant';
 
-/**
- * ThankYou.tsx
- *
- * This page exists for one critical reason: Google Ads conversion tracking
- * requires a stable URL to fire a conversion pixel on. The previous approach
- * (inline state change in GetQuote) had no URL, so Google Ads couldn't
- * detect the conversion at all.
- *
- * Flow:
- *  1. GetQuote submits to Supabase → navigates to /thank-you?wa=<encoded message>
- *  2. This page mounts → fires trackFormSubmission() once via useEffect
- *  3. After 2.5s → redirects to WhatsApp with the pre-filled message
- *
- * Google Ads setup:
- *  Option A (recommended): In Google Ads → Conversions, create a
- *  "Page load" conversion action pointing to nokael.com/thank-you
- *  This works without any code changes.
- *
- *  Option B: Use the gtag event fired by trackFormSubmission() with
- *  an "Event" conversion action (requires VITE_GADS_CONVERSION_ID etc.)
- *
- *  Both options can run simultaneously for redundancy.
- */
+// Conversion tracking occurs after saving, never when this page loads.
 export default function ThankYou() {
   const { t } = useTranslation('thankyou');
   const tenant = useTenant();
-  const [searchParams] = useSearchParams();
-  const location = useLocation();
-  const [countdown, setCountdown] = React.useState(3);
-  const hasFired = React.useRef(false);
-
-  const waMessage = searchParams.get('wa') || '';
-  // '' when the company has no WhatsApp number: no auto-redirect, no button.
-  const waUrl = waHref(waMessage || undefined, tenant) ?? '';
-
-  // Fire conversion pixel exactly once on mount
-  React.useEffect(() => {
-    if (!hasFired.current) {
-      hasFired.current = true;
-      // Access the user data passed from the form via navigation state
-      const userData = location.state?.userData;
-      
-      trackFormSubmission(userData);
-
-      // Auto-redirect to WhatsApp after a delay
-      if (!waUrl) return;
-      const timer = setTimeout(() => {
-        window.location.href = waUrl;
-      }, 2500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [location.state, waUrl]);
-
-  return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="max-w-md w-full dispatch-card text-center py-16"
-      >
-        <div className="w-20 h-20 bg-brand-neon/10 rounded-full flex items-center justify-center mx-auto mb-10">
-          <CheckCircle2 className="w-10 h-10 text-brand-neon" />
-        </div>
-
-        <h2 className="text-3xl font-display font-medium tracking-tighter mb-4">
-          {t('requestLogged')}
-        </h2>
-
-        <p className="text-brand-muted mb-10 leading-relaxed text-sm">
-          {t('confirmation')}
-        </p>
-
-        {/* Action Button */}
-        {waUrl && <a
-          href={waUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => trackWhatsAppClick('thank_you_page')}
-          className="btn-primary w-full py-5 text-sm group"
-        >
-          <MessageSquare className="w-4 h-4 fill-brand-bg group-hover:scale-110 transition-transform" />
-          <span>{t('connectWithDispatcher')}</span>
-        </a>}
-
-        <p className="mt-8 text-[9px] text-brand-muted uppercase tracking-[0.3em] font-bold leading-relaxed">
-          {t('footerNote')}
-        </p>
-      </motion.div>
+  const { state } = useLocation();
+  const confirmed = typeof state?.leadId === 'string';
+  const waUrl = confirmed && state.whatsappOptIn ? waHref(state.waMessage, tenant) : undefined;
+  return <div className="min-h-[80vh] flex items-center justify-center px-4">
+    <div className="max-w-md w-full dispatch-card text-center py-16">
+      {confirmed && <CheckCircle2 className="w-16 h-16 text-brand-neon mx-auto mb-8" />}
+      <h1 className="text-3xl font-display mb-4">{t(confirmed ? 'requestLogged' : 'noConfirmation')}</h1>
+      <p className="text-brand-muted mb-8 text-sm">{t(confirmed ? (state.whatsappOptIn ? 'confirmation' : 'phoneConfirmation') : 'noConfirmationBody')}</p>
+      {waUrl && <a href={waUrl} target="_blank" rel="noopener noreferrer" onClick={() => trackWhatsAppClick('thank_you_page')} className="btn-primary w-full py-5"><MessageSquare className="w-4 h-4" />{t('connectWithDispatcher')}</a>}
+      <a href={telHref(tenant)} className="btn-secondary w-full mt-4 py-4"><Phone className="w-4 h-4" />{t('callDispatch')}</a>
+      {!confirmed && <Link className="block mt-6 underline" to={tenantBasePath(tenant) + '/get-quote'}>{t('requestQuote')}</Link>}
     </div>
-  );
+  </div>;
 }

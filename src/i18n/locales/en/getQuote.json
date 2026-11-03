@@ -1,6 +1,6 @@
 {
-  "title": "Request a Quote",
-  "subtitle": "Send the route, item type, and deadline. We’ll confirm the fastest available option.",
+  "title": "Request a delivery",
+  "subtitle": "Tell us what needs to go where. We’ll confirm the price and collection time before you book.",
   "stepper": {
     "stepLabel": "Step {{step}} / {{total}} — {{label}}",
     "estFrom": "Est. from {{currency}} {{price}}",
@@ -8,20 +8,24 @@
     "labels": {
       "route": "Route",
       "item": "Item",
-      "urgency": "Urgency",
-      "contact": "Contact"
+      "urgency": "Timing",
+      "contact": "Your details"
     }
   },
   "step1": {
     "pickupTitle": "Pickup",
     "deliveryTitle": "Delivery",
     "emirateLabel": "{{regionLabel}}",
-    "specificLocationLabel": "Specific Location",
+    "specificLocationLabel": "Address or building",
     "pickupPlaceholder": "e.g. JLT Cluster A, Tower 1",
     "deliveryPlaceholder": "e.g. Al Reem Island, Gate Tower",
     "useMyLocation": "Use my current location",
     "locating": "Locating…",
-    "locationUnavailable": "Location unavailable — type the address instead"
+    "locationUnavailable": "Your device could not determine its location. Check Windows Location settings, or type the address.",
+    "locationDenied": "Location access is blocked. Allow it in your browser and Windows Location settings, or type the address.",
+    "locationTimeout": "Finding your location took too long. Try again, or type the address.",
+    "locationBlocked": "Location is unavailable in this browser view. Open the page in your regular browser, or type the address.",
+    "selectRegion": "Choose a region"
   },
   "step2": {
     "itemTypes": {
@@ -46,21 +50,24 @@
   "step3": {
     "urgencyLevels": {
       "immediate": {
-        "label": "Immediate Dispatch",
-        "desc": "Driver assigned in 2-5 mins"
+        "label": "As soon as possible",
+        "desc": "Earliest available pickup; ETA confirmed before dispatch"
       },
       "today": {
         "label": "Same Day",
-        "desc": "Delivery by end of day"
+        "desc": "Delivery window confirmed with dispatch"
       },
       "scheduled": {
         "label": "Scheduled",
         "desc": "Pre-book for specific time"
       }
     },
-    "estimateNote": "Estimated from {{currency}} {{price}} for this selection"
+    "estimateNote": "Estimated from {{currency}} {{price}} for this selection",
+    "pickupAt": "Pickup date and time ({{zone}})",
+    "deadline": "Delivery deadline — optional ({{zone}})"
   },
   "step4": {
+    "existingAccount": "Already have a business account?",
     "businessLabel": "Business",
     "personalLabel": "Personal",
     "fullNameLabel": "Full Name",
@@ -86,14 +93,18 @@
   "buttons": {
     "back": "Back",
     "continue": "Continue",
-    "getMyQuote": "Get My Quote"
+    "getMyQuote": "Send enquiry"
   },
   "footer": {
     "pricingNote": "From {{currency}} {{sameDay}} • Final price confirmed before dispatch • Response in ~5 mins"
   },
   "errors": {
+    "alreadySubmitted": "This enquiry was already saved. Contact dispatch to change it.",
     "dispatchErrorTitle": "Dispatch Error",
-    "submitFailed": "There was an error submitting your request. Please check your Supabase configuration."
+    "submitFailed": "Your enquiry could not be saved. Please try again or call dispatch.",
+    "routeMismatch": "Choose both regions and check that each address matches its selected region.",
+    "scheduleInvalid": "Choose a future pickup time and a delivery deadline after pickup.",
+    "phoneInvalid": "Enter a valid contact number, including your country code."
   },
   "expiredLink": {
     "title": "That delivery link has expired",
@@ -101,5 +112,39 @@
     "call": "Call dispatch",
     "whatsapp": "WhatsApp dispatch",
     "whatsappText": "Hi Nokael, I need the Chain of Custody certificate for a completed delivery."
+  },
+  "summary": {
+    "eyebrow": "Courier enquiries",
+    "heading": "Your delivery",
+    "noPickup": "Pickup address not added yet",
+    "noDelivery": "Delivery address not added yet",
+    "startingPrice": "Deliveries from",
+    "priceNote": "This is a starting price. Your route, item and timing determine the final quote.",
+    "nextHeading": "What happens next",
+    "next1": "We check your route and available drivers.",
+    "next2": "You receive a price and estimated collection time.",
+    "next3": "You confirm before a driver is dispatched.",
+    "helpHeading": "Need to speak to someone?",
+    "helpBody": "For a time-sensitive delivery, contact dispatch directly.",
+    "whatsapp": "Message us on WhatsApp",
+    "progress": "Delivery enquiry steps"
+  },
+  "steps": {
+    "1": {
+      "title": "Where are we collecting and delivering?",
+      "body": "Choose an emirate and enter a building, area or street address for each stop."
+    },
+    "2": {
+      "title": "What are you sending?",
+      "body": "Choose the option that best describes your item."
+    },
+    "3": {
+      "title": "When do you need the delivery?",
+      "body": "Tell us your preferred timing. Availability is confirmed with your quote."
+    },
+    "4": {
+      "title": "How can we reach you?",
+      "body": "We’ll use these details to discuss your delivery and send your quote."
+    }
   }
 }

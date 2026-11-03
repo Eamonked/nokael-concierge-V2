@@ -88,7 +88,7 @@ function LanguageDirectionManager() {
   return null;
 }
 
-function ErrorFallback({ error }: { error: Error }) {
+function ErrorFallback({ error }: { error: unknown }) {
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-6 text-center">
       <div className="max-w-md w-full space-y-6">
@@ -111,7 +111,7 @@ function ErrorFallback({ error }: { error: Error }) {
         </div>
         {process.env.NODE_ENV === 'development' && (
           <pre className="text-[10px] text-red-500 bg-red-500/5 p-4 rounded-xl text-left overflow-auto max-h-32 border border-red-500/10">
-            {error.message}
+            {error instanceof Error ? error.message : 'An unexpected error occurred.'}
           </pre>
         )}
       </div>

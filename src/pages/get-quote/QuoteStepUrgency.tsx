@@ -3,15 +3,21 @@ import { useTranslation } from 'react-i18next';
 import { CheckCircle2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { urgencyLevels } from './constants';
+import { useTenant } from '../../context/TenantContext';
+import { isoToZonedInput, zonedInputToIso } from '../../lib/tenant';
+import { fieldClass, labelClass } from './constants';
 
 interface QuoteStepUrgencyProps {
   urgency?: string;
+  pickupAt?: string;
+  deadline?: string;
   updateForm: (data: any) => void;
   estimatedPrice: number | null;
 }
 
-export default function QuoteStepUrgency({ urgency, updateForm, estimatedPrice }: QuoteStepUrgencyProps) {
+export default function QuoteStepUrgency({ urgency, pickupAt, deadline, updateForm, estimatedPrice }: QuoteStepUrgencyProps) {
   const { t } = useTranslation('getQuote');
+  const tenant = useTenant();
 
   return (
     <motion.div
@@ -25,12 +31,13 @@ export default function QuoteStepUrgency({ urgency, updateForm, estimatedPrice }
         <button
           key={level.id}
           type="button"
+          aria-pressed={urgency === level.id}
           onClick={() => updateForm({ urgency: level.id as any })}
           className={cn(
-            "w-full p-6 rounded-xl border transition-all text-left flex items-center justify-between group",
+            "quote-choice w-full p-5 rounded-md border transition-colors text-start flex items-center justify-between group",
             urgency === level.id
-              ? "bg-brand-neon/5 border-brand-neon ring-2 ring-brand-neon/15"
-              : "bg-brand-input border-brand-field-border hover:border-brand-neon/50"
+              ? "bg-brand-neon/5 border-brand-neon "
+              : "bg-brand-surface border-brand-field-border hover:border-brand-neon"
           )}
         >
           <div className="flex items-center gap-5">
@@ -39,14 +46,22 @@ export default function QuoteStepUrgency({ urgency, updateForm, estimatedPrice }
               <h4 className={cn("font-bold text-sm mb-1", urgency === level.id ? "text-brand-text" : "text-brand-muted")}>
                 {t(level.labelKey)}
               </h4>
-              <p className="text-[10px] text-brand-muted uppercase tracking-wider">{t(level.descKey)}</p>
+              <p className="text-sm text-brand-muted normal-case tracking-normal">{t(level.descKey)}</p>
             </div>
           </div>
           {urgency === level.id && <CheckCircle2 className="w-4 h-4 text-brand-neon" />}
         </button>
       ))}
+      {urgency === 'scheduled' && <div>
+        <label htmlFor="quote-pickup-at" className={labelClass}>{t('step3.pickupAt', { zone: tenant.settings.timezone })}</label>
+        <input id="quote-pickup-at" type="datetime-local" required className={fieldClass} value={isoToZonedInput(pickupAt, tenant)} onChange={e => updateForm({ pickup_at: zonedInputToIso(e.target.value, tenant) || undefined })} />
+      </div>}
+      <div>
+        <label htmlFor="quote-deadline" className={labelClass}>{t('step3.deadline', { zone: tenant.settings.timezone })}</label>
+        <input id="quote-deadline" type="datetime-local" className={fieldClass} value={isoToZonedInput(deadline, tenant)} onChange={e => updateForm({ deadline: zonedInputToIso(e.target.value, tenant) || undefined })} />
+      </div>
       {estimatedPrice != null && (
-        <p className="text-[10px] text-brand-muted uppercase tracking-widest text-center pt-2">
+        <p className="text-sm text-brand-muted normal-case tracking-normal text-center pt-2">
           {t('step3.estimateNote', { price: estimatedPrice })}
         </p>
       )}

@@ -1,31 +1,53 @@
 {
   "hero": {
-    "badge": "Drivers on corridor now",
+    "badge": "Check pickup availability",
     "titleLine1": "Urgent Logistics",
     "titleLine2": "Dubai → Abu Dhabi",
-    "titleLine3": "in 90–120 Minutes",
+    "titleLine3": "90–120 min transit after pickup",
     "subtitleLine1": "One driver. Your item. Straight there.",
-    "subtitleLine2": "No sorting hubs, no shared loads, no waiting.",
+    "subtitleLine2": "No sorting hubs or shared loads. Pickup ETA confirmed before dispatch.",
     "ctaEyebrow": "Urgent Pickup",
     "ctaLabel": "Dispatch via WhatsApp",
     "callLabel": "Call Now: {{phone}}",
     "badgeCustody": "Chain of Custody on every job",
     "badgeDispatch": "Driver assigned in minutes",
     "stats": {
-      "avgDispatch": { "label": "Avg. Dispatch", "value": "2–5 min" },
-      "sameDay": { "label": "Starting from", "value": "AED {{price}}" },
-      "dedicated": { "label": "Dedicated", "value": "On quote" },
-      "tracking": { "label": "Tracking", "value": "Live GPS" }
+      "avgDispatch": {
+        "label": "Avg. Dispatch",
+        "value": "2–5 min"
+      },
+      "sameDay": {
+        "label": "Starting from",
+        "value": "AED {{price}}"
+      },
+      "dedicated": {
+        "label": "Dedicated",
+        "value": "On quote"
+      },
+      "tracking": {
+        "label": "Tracking",
+        "value": "Live GPS"
+      }
     }
   },
-
   "trustBar": {
-    "corridorTime": { "value": "90 min", "label": "Dubai → Abu Dhabi" },
-    "dispatch": { "value": "30–60 min", "label": "Typical pickup time" },
-    "dedicated": { "value": "100%", "label": "Dedicated driver, no hubs" },
-    "availability": { "value": "24/7", "label": "Dispatch available" }
+    "corridorTime": {
+      "value": "90–120 min",
+      "label": "Transit after pickup"
+    },
+    "dispatch": {
+      "value": "30–60 min",
+      "label": "Typical pickup time"
+    },
+    "dedicated": {
+      "value": "100%",
+      "label": "Dedicated driver, no hubs"
+    },
+    "availability": {
+      "value": "24/7",
+      "label": "Dispatch available"
+    }
   },
-
   "differentiators": {
     "eyebrow": "How it works",
     "heading": "Why it gets there faster",
@@ -33,27 +55,52 @@
     "videoMute": "Turn sound off",
     "videoLabel": "Nokael delivery walkthrough: live tracking through to the Chain of Custody record",
     "items": {
-      "0": { "title": "No warehouses", "desc": "Your item never sits waiting. The driver picks it up and goes — nothing in between." },
-      "1": { "title": "One driver, one job", "desc": "They are not running 40 other drops. From the moment we confirm, your item is all they have." },
-      "2": { "title": "We move when you call", "desc": "Not in a batch. Not at the next scheduled run. The driver is assigned inside five minutes." },
-      "3": { "title": "Straight line, every time", "desc": "Dubai to Abu Dhabi is one road. We use it. No detours, no consolidation points." }
+      "0": {
+        "title": "No warehouses",
+        "desc": "Your item never sits waiting. The driver picks it up and goes — nothing in between."
+      },
+      "1": {
+        "title": "One driver, one job",
+        "desc": "They are not running 40 other drops. From the moment we confirm, your item is all they have."
+      },
+      "2": {
+        "title": "We move when you call",
+        "desc": "Not in a batch. Not at the next scheduled run. The driver is assigned inside five minutes."
+      },
+      "3": {
+        "title": "Straight line, every time",
+        "desc": "Dubai to Abu Dhabi is one road. We use it. No detours, no consolidation points."
+      }
     }
   },
-
   "supportingSection": {
     "eyebrow": "What we move",
     "headingLine1": "If it can't be late,",
     "headingLine2": "we carry it.",
     "intro": "Contracts, parts, samples, passports. Anything that has a hard deadline and cannot go through a sorting hub.",
     "items": {
-      "0": { "title": "Legal documents", "desc": "Contracts, court filings, title deeds, NOC letters. Hand-delivered, chain of custody intact." },
-      "1": { "title": "Business parcels", "desc": "Product samples, tender packs, branded materials that need to look right on arrival." },
-      "2": { "title": "Spare parts", "desc": "The component that has a machine sitting idle. We get it there while the job still makes sense." },
-      "3": { "title": "Medical items", "desc": "Non-hazardous samples, lab reports, time-sensitive medical paperwork." },
-      "4": { "title": "Financial documents", "desc": "Cheques, bank letters, insurance and finance paperwork with hard submission deadlines." }
+      "0": {
+        "title": "Legal documents",
+        "desc": "Contracts, court filings, title deeds, NOC letters. Hand-delivered, chain of custody intact."
+      },
+      "1": {
+        "title": "Business parcels",
+        "desc": "Product samples, tender packs, branded materials that need to look right on arrival."
+      },
+      "2": {
+        "title": "Spare parts",
+        "desc": "The component that has a machine sitting idle. We get it there while the job still makes sense."
+      },
+      "3": {
+        "title": "Medical items",
+        "desc": "Non-hazardous samples, lab reports, time-sensitive medical paperwork."
+      },
+      "4": {
+        "title": "Financial documents",
+        "desc": "Cheques, bank letters, insurance and finance paperwork with hard submission deadlines."
+      }
     }
   },
-
   "custodyProof": {
     "eyebrow": "Proof, not promises",
     "heading": "You can prove it arrived.",
@@ -74,7 +121,6 @@
     },
     "cta": "See how it works for legal documents"
   },
-
   "serviceCards": {
     "eyebrow": "Pricing",
     "heading": "Simple. No surprises.",
@@ -84,7 +130,7 @@
       "price": "From AED {{price}}",
       "subtext": "Driver assigned in minutes",
       "features": {
-        "0": "90–120 min Dubai ↔ Abu Dhabi",
+        "0": "Typical transit after pickup: 90–120 min; ETA confirmed",
         "1": "One driver, your item only — no shared loads",
         "2": "One-time code at pickup and at delivery",
         "3": "Live tracking link + Chain of Custody certificate",
@@ -102,46 +148,64 @@
         "0": "Choose exact pickup time — we hold it",
         "1": "Driver assigned the night before",
         "2": "Priority over all same-day bookings",
-        "3": "90–120 min Dubai ↔ Abu Dhabi",
+        "3": "Typical transit after pickup: 90–120 min; ETA confirmed",
         "4": "Live tracking and a Chain of Custody certificate",
         "5": "Best for: tenders, court filings, flights"
       },
       "cta": "Book Dedicated"
     }
   },
-
   "businessAccounts": {
     "badge": "For Businesses",
     "heading": "Sending more than five runs a month?",
     "description": "Corporate accounts get fixed rates, monthly invoicing, and a dedicated dispatcher who knows your routes.",
     "cta": "Corporate Accounts"
   },
-
   "corridorStatus": {
     "eyebrow": "Coverage",
-    "heading": "Where our drivers are",
-    "liveBadge": "Real-time availability",
-    "statusActive": "Active",
+    "heading": "Areas we serve",
+    "liveBadge": "Service coverage",
+    "statusActive": "Covered",
     "corridors": {
-      "0": { "context": "Law firms, banks, financial filings" },
-      "1": { "context": "Offices, retail, same-day commercial" },
-      "2": { "context": "Industrial sites, spare parts, port runs" },
-      "3": { "context": "Regulatory docs, corporate filings" },
-      "4": { "context": "Factories, workshops, equipment parts" },
-      "5": { "context": "Residential and business addresses" }
+      "0": {
+        "context": "Law firms, banks, financial filings"
+      },
+      "1": {
+        "context": "Offices, retail, same-day commercial"
+      },
+      "2": {
+        "context": "Industrial sites, spare parts, port runs"
+      },
+      "3": {
+        "context": "Regulatory docs, corporate filings"
+      },
+      "4": {
+        "context": "Factories, workshops, equipment parts"
+      },
+      "5": {
+        "context": "Residential and business addresses"
+      }
     }
   },
-
   "trustGrounded": {
     "headingLine1": "The call you make",
     "headingLine2": "when nothing else will do.",
     "sections": {
-      "0": { "title": "Personal emergencies", "body": "Passport in Dubai, flight from Abu Dhabi in three hours. We have handled this exact situation. Call us." },
-      "1": { "title": "Tenders and filings", "body": "Physical submission deadlines do not move. We have delivered contracts to government offices in Abu Dhabi before the 2 PM cutoff for clients who called at 10." },
-      "2": { "title": "Machinery and parts", "body": "A machine sitting idle costs more per hour than our delivery. We move the part from supplier to site so the job gets finished today." }
-    }
+      "0": {
+        "title": "Personal emergencies",
+        "body": "Passport in Dubai, flight from Abu Dhabi in three hours. We have handled this exact situation. Call us."
+      },
+      "1": {
+        "title": "Tenders and filings",
+        "body": "Physical submission deadlines do not move. We have delivered contracts to government offices in Abu Dhabi before the 2 PM cutoff for clients who called at 10."
+      },
+      "2": {
+        "title": "Machinery and parts",
+        "body": "A machine sitting idle costs more per hour than our delivery. We move the part from supplier to site so the job gets finished today."
+      }
+    },
+    "heading": "Urgent delivery examples"
   },
-
   "finalAction": {
     "headingLine1": "Send it now.",
     "headingLine2": "We'll handle the rest.",
@@ -150,5 +214,181 @@
     "badgeCustody": "Chain of Custody certificate",
     "badgeCodes": "One-time code at every handover",
     "badgeDirectAssignment": "Direct driver assignment"
+  },
+  "sales": {
+    "eyebrow": "Dedicated business courier",
+    "title": "Urgent courier between Dubai and Abu Dhabi",
+    "intro": "Send documents, parcels and spare parts directly, with one dedicated driver for your delivery.",
+    "price": "From AED {{price}}",
+    "priceNote": "Dubai–Abu Dhabi deliveries start here. Your total is confirmed before booking.",
+    "pickup": "Pickup typically within 30–60 minutes, subject to availability. Price and estimated arrival confirmed before you book.",
+    "cta": "Get a price and pickup time",
+    "call": "Or call {{phone}}",
+    "enquiryHint": "Send your pickup address, destination, item and delivery deadline.",
+    "message": "Hi Nokael, I need a delivery quote.\nPickup address:\nDelivery address:\nItem and approximate size/weight:\nRequired arrival time:\nBusiness or personal:",
+    "record": {
+      "title": "See what the delivery record contains",
+      "body": "Pickup and delivery codes, timestamps and recorded locations give you a handover record to keep on file.",
+      "link": "View a sample handover record (PDF)",
+      "note": "Illustrative sample for review."
+    },
+    "booking": {
+      "title": "How to book",
+      "steps": [
+        {
+          "title": "Send the delivery details",
+          "body": "Tell dispatch the pickup address, destination, item and deadline by WhatsApp or phone."
+        },
+        {
+          "title": "Receive your quote",
+          "body": "Check the total price, available pickup window and estimated arrival time."
+        },
+        {
+          "title": "Confirm the booking",
+          "body": "Agree the quote and payment arrangements before your driver is dispatched."
+        }
+      ]
+    },
+    "included": {
+      "title": "A direct delivery, with a record of handover",
+      "items": [
+        {
+          "title": "Dedicated driver",
+          "body": "Your item travels directly to the recipient, without sorting hubs or shared loads."
+        },
+        {
+          "title": "Live tracking",
+          "body": "Follow the delivery using the tracking link provided for your booking."
+        },
+        {
+          "title": "Recorded handovers",
+          "body": "One-time codes at pickup and delivery, followed by a Chain of Custody certificate."
+        }
+      ]
+    },
+    "faq": {
+      "title": "Before you book",
+      "items": [
+        {
+          "q": "How soon can it arrive?",
+          "a": "Pickup is typically within 30–60 minutes in major business areas, subject to availability. Transit between Dubai and Abu Dhabi is usually 90–120 minutes after collection, depending on the route and traffic. Share your deadline so dispatch can confirm whether it is achievable before booking."
+        },
+        {
+          "q": "What does the price cover?",
+          "a": "AED 350 is a starting price, not a fixed quote for every delivery. The final price depends on the addresses, item, timing and any special requirements. Before accepting, confirm the total and any applicable VAT, tolls, waiting, return or extra-stop charges with dispatch."
+        },
+        {
+          "q": "How do I pay?",
+          "a": "Dispatch confirms the payment method and when payment is due in your quote or booking confirmation. Agree those arrangements before dispatching the driver."
+        },
+        {
+          "q": "What can you carry?",
+          "a": "Documents, suitably packaged parcels and spare parts, subject to acceptance. Share the approximate weight, dimensions, value and handling requirements when requesting a quote. Hazardous or restricted goods and items needing specialist handling require separate checks; do not assume they are accepted."
+        },
+        {
+          "q": "What if the recipient is unavailable?",
+          "a": "Provide the recipient’s name, contact number and access instructions when booking. Waiting, redirection or return charges may apply if delivery cannot be completed. Ask dispatch to confirm those charges with your quote."
+        }
+      ]
+    },
+    "final": {
+      "title": "Have a delivery deadline?",
+      "body": "Send the route and item details. Dispatch can check availability and quote your delivery."
+    },
+    "routesTitle": "Choose your delivery route",
+    "dubaiRoute": "Dubai to Abu Dhabi",
+    "abuDhabiRoute": "Abu Dhabi to Dubai",
+    "businessTitle": "Regular business deliveries?",
+    "businessBody": "Tell us your usual routes and delivery frequency to discuss a business account.",
+    "businessLink": "Discuss a business account",
+    "photoAlt": "Illustration of a Nokael courier beside a branded black sedan"
+  },
+  "documentSales": {
+    "eyebrow": "Dedicated business courier",
+    "title": "Urgent document delivery between Dubai and Abu Dhabi",
+    "intro": "Contracts, tender packs and business paperwork delivered directly to your recipient by a dedicated driver.",
+    "price": "From AED {{price}}",
+    "priceNote": "Dubai–Abu Dhabi deliveries start here. Your total is confirmed before booking.",
+    "pickup": "Pickup typically within 30–60 minutes, subject to availability. Price and estimated arrival confirmed before you book.",
+    "cta": "Get a price and pickup time",
+    "call": "Or call {{phone}}",
+    "enquiryHint": "Send the addresses, document type and deadline. Include any office access or submission requirements.",
+    "message": "Hi Nokael, I need a document delivery quote.\nPickup address:\nDelivery address:\nDocument type and package size:\nRequired arrival time or submission deadline:\nRecipient availability and access requirements:",
+    "record": {
+      "title": "See what the delivery record contains",
+      "body": "Pickup and delivery codes, timestamps and recorded locations give you a handover record to keep on file.",
+      "link": "View a sample handover record (PDF)",
+      "note": "Illustrative sample for review."
+    },
+    "booking": {
+      "title": "How to book",
+      "steps": [
+        {
+          "title": "Send the delivery details",
+          "body": "Tell dispatch the pickup address, destination, item and deadline by WhatsApp or phone."
+        },
+        {
+          "title": "Receive your quote",
+          "body": "Check the total price, available pickup window and estimated arrival time."
+        },
+        {
+          "title": "Confirm the booking",
+          "body": "Agree the quote and payment arrangements before your driver is dispatched."
+        }
+      ]
+    },
+    "included": {
+      "title": "A direct delivery, with a record of handover",
+      "items": [
+        {
+          "title": "Dedicated driver",
+          "body": "Your item travels directly to the recipient, without sorting hubs or shared loads."
+        },
+        {
+          "title": "Live tracking",
+          "body": "Follow the delivery using the tracking link provided for your booking."
+        },
+        {
+          "title": "Recorded handovers",
+          "body": "One-time codes at pickup and delivery, followed by a Chain of Custody certificate."
+        }
+      ]
+    },
+    "faq": {
+      "title": "Before you book",
+      "items": [
+        {
+          "q": "How soon can it arrive?",
+          "a": "Pickup is typically within 30–60 minutes in major business areas, subject to availability. Transit between Dubai and Abu Dhabi is usually 90–120 minutes after collection, depending on the route and traffic. Share your deadline so dispatch can confirm whether it is achievable before booking."
+        },
+        {
+          "q": "What does the price cover?",
+          "a": "AED 350 is a starting price, not a fixed quote for every delivery. The final price depends on the addresses, item, timing and any special requirements. Before accepting, confirm the total and any applicable VAT, tolls, waiting, return or extra-stop charges with dispatch."
+        },
+        {
+          "q": "How do I pay?",
+          "a": "Dispatch confirms the payment method and when payment is due in your quote or booking confirmation. Agree those arrangements before dispatching the driver."
+        },
+        {
+          "q": "Which documents can you deliver?",
+          "a": "Contracts, tender packs, signed originals and business paperwork, subject to acceptance. Use a sealed, protective envelope and share its size and any handling instructions. For a filing or tender, confirm the receiving office, opening hours, authorised recipient and submission requirements before booking."
+        },
+        {
+          "q": "What if the recipient is unavailable?",
+          "a": "Provide the recipient’s name, contact number and access instructions when booking. Waiting, redirection or return charges may apply if delivery cannot be completed. Ask dispatch to confirm those charges with your quote."
+        }
+      ]
+    },
+    "final": {
+      "title": "Have a delivery deadline?",
+      "body": "Send the route and item details. Dispatch can check availability and quote your delivery."
+    },
+    "routesTitle": "Choose your delivery route",
+    "dubaiRoute": "Dubai to Abu Dhabi",
+    "abuDhabiRoute": "Abu Dhabi to Dubai",
+    "businessTitle": "Regular business deliveries?",
+    "businessBody": "Tell us your usual routes and delivery frequency to discuss a business account.",
+    "businessLink": "Discuss a business account",
+    "photoAlt": "Illustration of a Nokael courier beside a branded black sedan"
   }
 }

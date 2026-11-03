@@ -1,60 +1,32 @@
 import { useTranslation } from 'react-i18next';
-import { Zap, Navigation, MessageSquare } from 'lucide-react';
 import { useTenant } from '../../context/TenantContext';
-import { waHref } from '../../lib/tenant';
-import { trackWhatsAppClick } from '../../lib/analytics';
-import { type QuoteRequest } from '../../lib/supabase';
+import { waHref, telHref, tenantPriceTiers, formatMoney } from '../../lib/tenant';
+import { trackWhatsAppClick, trackPhoneClick } from '../../lib/analytics';
+import type { QuoteRequest } from '../../lib/supabase';
 
-interface QuoteSidebarProps {
-  formData: Partial<QuoteRequest>;
-}
-
-export default function QuoteSidebar({ formData }: QuoteSidebarProps) {
+export default function QuoteSidebar({ formData }: { formData: Partial<QuoteRequest> }) {
   const { t } = useTranslation('getQuote');
   const tenant = useTenant();
-
-  return (
-    <div className="hidden lg:block space-y-6">
-      <div className="dispatch-card">
-        <h4 className="text-xs font-bold uppercase tracking-widest mb-6 text-brand-muted">{t('sidebar.systemContext')}</h4>
-        <div className="space-y-6">
-          <div className="flex gap-4">
-            <div className="w-8 h-8 rounded-lg bg-brand-neon/10 flex items-center justify-center text-brand-neon">
-              <Zap className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-xs font-bold mb-1">{t('sidebar.directAssignmentTitle')}</p>
-              <p className="text-[10px] text-brand-muted leading-relaxed">{t('sidebar.directAssignmentDesc')}</p>
-            </div>
-          </div>
-          <div className="flex gap-4">
-            <div className="w-8 h-8 rounded-lg bg-brand-blue/10 flex items-center justify-center text-brand-blue">
-              <Navigation className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-xs font-bold mb-1">{t('sidebar.liveGpsTitle')}</p>
-              <p className="text-[10px] text-brand-muted leading-relaxed">{t('sidebar.liveGpsDesc')}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="p-6 rounded-2xl bg-brand-input border border-brand-input-border">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-brand-muted mb-4">{t('sidebar.urgentSupport')}</p>
-        <a
-          href={waHref(undefined, tenant)}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => trackWhatsAppClick('quote_sidebar', {
-            phone_number: formData.phone,
-            first_name: formData.name
-          })}
-          className="flex items-center gap-3 text-brand-neon hover:underline text-sm font-bold"
-        >
-          <MessageSquare className="w-4 h-4" />
-          <span>{t('sidebar.chatWithDispatch')}</span>
-        </a>
-      </div>
-    </div>
-  );
+  const tiers = tenantPriceTiers(tenant);
+  return <aside className="quote-aside">
+    <section className="quote-summary">
+      <h2>{t('summary.heading')}</h2>
+      <dl>
+        <div><dt>{t('step1.pickupTitle')}</dt><dd>{formData.pickup_location || t('summary.noPickup')}</dd></div>
+        <div><dt>{t('step1.deliveryTitle')}</dt><dd>{formData.delivery_location || t('summary.noDelivery')}</dd></div>
+      </dl>
+      {tiers && <div className="quote-price"><span>{t('summary.startingPrice')}</span><strong>{formatMoney(tiers.sameDay, { tenant })}</strong></div>}
+      <p>{t('summary.priceNote')}</p>
+    </section>
+    <section className="quote-next">
+      <h2>{t('summary.nextHeading')}</h2>
+      <ol><li>{t('summary.next1')}</li><li>{t('summary.next2')}</li><li>{t('summary.next3')}</li></ol>
+    </section>
+    <section className="quote-help">
+      <h2>{t('summary.helpHeading')}</h2>
+      <p>{t('summary.helpBody')}</p>
+      <a href={telHref(tenant)} onClick={() => trackPhoneClick('quote_help')}>{tenant.branding.support_phone}</a>
+      <a href={waHref(undefined, tenant)} target="_blank" rel="noopener noreferrer" onClick={() => trackWhatsAppClick('quote_help')}>{t('summary.whatsapp')}</a>
+    </section>
+  </aside>;
 }

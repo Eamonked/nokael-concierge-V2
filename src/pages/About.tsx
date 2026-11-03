@@ -1,3 +1,4 @@
+import CourierPhoto from '../components/CourierPhoto';
 import React from 'react';
 import { motion } from 'motion/react';
 import { Shield, Zap, Navigation, Truck, Package, Clock, CheckCircle2, Building2, UserCheck, MessageSquare } from 'lucide-react';
@@ -32,7 +33,7 @@ export default function About() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="asymmetric-grid items-end"
+            className="public-photo-layout"
           >
             <div className="max-w-3xl">
               <p className="text-brand-neon font-bold uppercase tracking-[0.4em] text-[10px] mb-6">{t('hero.eyebrow')}</p>
@@ -45,11 +46,11 @@ export default function About() {
                 {t('hero.intro')}
               </p>
             </div>
+            <CourierPhoto variant="about" priority />
           </motion.div>
         </div>
         
-        {/* Background Accent */}
-        <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[800px] h-[800px] bg-brand-neon/5 blur-[150px] rounded-full pointer-events-none" />
+
       </section>
 
       {/* Stats */}

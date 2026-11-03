@@ -1,3 +1,4 @@
+import CourierPhoto, { type CourierPhotoVariant } from '../components/CourierPhoto';
 import React from 'react';
 import { motion } from 'motion/react';
 import { MapPin, Zap, MessageSquare, Phone, ArrowRight, Shield, Clock, CheckCircle2, Navigation, Truck, User, ChevronRight } from 'lucide-react';
@@ -9,25 +10,27 @@ import { trackWhatsAppClick, trackPhoneClick } from '../lib/analytics';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import CustodySampleForm from '../components/CustodySampleForm';
+import DubaiSalesPage from './DubaiSalesPage';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 interface LandingProps {
+  photo: CourierPhotoVariant;
   title: string;
   subtitle: string;
   city?: string;
   industry?: string;
   cityLabel?: string;
   industryLabel?: string;
-  heroImg: string;
+
   content: string[];
   /** Optional block shown right after the trust bar (e.g. a lead form). */
   extra?: React.ReactNode;
 }
 
-export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, industryLabel, heroImg, content, extra }: LandingProps) => {
+export const LandingTemplate = ({ photo, title, subtitle, city, industry, cityLabel, industryLabel, content, extra }: LandingProps) => {
   const { t } = useTranslation('landingPages');
   // The "from" side of the Corridor Performance list mirrors the page's own
   // city badge; industry pages (no `city` prop) fall back to the same default
@@ -37,31 +40,8 @@ export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, in
   return (
     <div className="bg-brand-bg">
       {/* Hero */}
-      <section className="relative min-h-[80vh] flex items-center overflow-hidden border-b border-brand-border">
-        <div className="absolute inset-0 z-0">
-          <picture>
-            <source 
-              media="(max-width: 640px)" 
-              srcSet={`${heroImg}&fm=webp&w=640`} 
-            />
-            <source 
-              media="(max-width: 1024px)" 
-              srcSet={`${heroImg}&fm=webp&w=1024`} 
-            />
-            <img 
-              src={`${heroImg}&fm=webp&w=1920`} 
-              alt={title} 
-              width="1920"
-              height="1080"
-              fetchPriority="high"
-              className="w-full h-full object-cover opacity-30 grayscale"
-              referrerPolicy="no-referrer"
-            />
-          </picture>
-          <div className="absolute inset-0 bg-gradient-to-t from-brand-bg via-brand-bg/90 to-transparent" />
-        </div>
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 py-32">
+      <section className="service-hero relative min-h-[80vh] flex items-center overflow-hidden border-b border-brand-border">
+        <div className="service-hero-content public-photo-layout max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -80,41 +60,41 @@ export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, in
               <div className="inline-flex items-center gap-3 px-4 py-2 rounded-lg bg-brand-input border border-brand-input-border text-brand-neon text-[10px] uppercase tracking-[0.3em] font-bold">
                 <div className="w-1.5 h-1.5 rounded-full bg-brand-neon animate-pulse" />
                 <span>{city ? t('chrome.dispatchSectorTemplate', { city: cityLabel }) : t('chrome.industryTemplate', { industry: industryLabel })}</span>
-                <span className="opacity-40 ms-2">| {t('chrome.liveActive')}</span>
+                <span className="ms-2">| {t('chrome.liveActive')}</span>
               </div>
-              
+
             </div>
-            
+
             <h1 className="text-5xl md:text-9xl font-display font-medium tracking-tighter mb-10 leading-[0.8] text-brand-text">
               {title}
             </h1>
-            
+
             <p className="text-xl md:text-2xl text-brand-muted font-medium mb-12 max-w-2xl leading-relaxed">
               {subtitle} <br />
               <span className="text-brand-text italic mt-2 block">{t('chrome.tagline')}</span>
             </p>
-            
+
             <div className="flex flex-col sm:flex-row items-center gap-4 mb-12">
               <a
                 href={`https://wa.me/${WHATSAPP_NUMBER}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => trackWhatsAppClick(`landing_hero_${city || industry || 'general_uae'}`)}
-                className="btn-primary w-full sm:w-auto px-10 py-6 group scale-105 origin-left rtl:origin-right"
+                className="btn-primary w-full sm:w-auto px-10 py-6 group"
               >
                 <div className="flex items-center gap-3 text-start">
                    <MessageSquare className="w-6 h-6" />
                    <div>
-                     <span className="block text-[10px] font-black uppercase tracking-widest opacity-60">{t('chrome.ctaEyebrow')}</span>
+                     <span className="block text-xs font-bold uppercase tracking-widest">{t('chrome.ctaEyebrow')}</span>
                      <span className="text-lg">{t('chrome.ctaLabel')}</span>
                    </div>
                 </div>
                 <ArrowRight className="w-5 h-5 ms-4 rtl:-scale-x-100 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
               </a>
-              
+
               <a
                 href={`tel:${PHONE_NUMBER}`}
-                onClick={trackPhoneClick}
+                onClick={() => trackPhoneClick('service_landing')}
                 className="btn-secondary w-full sm:w-auto px-10 py-6"
               >
                 <Phone className="w-5 h-5" />
@@ -142,6 +122,7 @@ export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, in
               </div>
             </div>
           </motion.div>
+          <CourierPhoto variant={photo} priority />
         </div>
       </section>
 
@@ -209,7 +190,7 @@ export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, in
                   </div>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {[
                   { key: '0', icon: Zap },
@@ -233,7 +214,7 @@ export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, in
                 </p>
               </div>
             </div>
-            
+
             <div className="space-y-8 lg:mt-24">
               <div className="dispatch-card">
                 <h3 className="text-xs font-bold uppercase tracking-[0.2em] mb-10 text-brand-muted">{t('corridorPerformance.heading')}</h3>
@@ -258,7 +239,7 @@ export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, in
                   {t('corridorPerformance.liveNote')}
                 </p>
               </div>
-              
+
               <div className="p-10 bg-brand-neon rounded-3xl text-brand-bg">
                 <h3 className="text-3xl font-display font-medium tracking-tighter mb-6 leading-tight">{t('needItNow.heading')}</h3>
                 <p className="font-medium mb-10 leading-relaxed text-sm opacity-90">
@@ -308,57 +289,33 @@ export const LandingTemplate = ({ title, subtitle, city, industry, cityLabel, in
   );
 };
 
-export const DubaiLanding = () => {
-  const { t } = useTranslation('landingPages');
-  return (
-    <LandingTemplate
-      title={t('dubai.title')}
-      subtitle={t('dubai.subtitle')}
-      city="Dubai"
-      cityLabel={t('dubai.cityLabel')}
-      heroImg="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=1920"
-      content={[t('dubai.content.0'), t('dubai.content.1'), t('dubai.content.2')]}
-    />
-  );
-};
+export const DubaiLanding = DubaiSalesPage;
 
 export const AbuDhabiLanding = () => {
   const { t } = useTranslation('landingPages');
   return (
     <LandingTemplate
       title={t('abuDhabi.title')}
+      photo="abuDhabi"
       subtitle={t('abuDhabi.subtitle')}
       city="Abu Dhabi"
       cityLabel={t('abuDhabi.cityLabel')}
-      heroImg="https://images.unsplash.com/photo-1580674285054-bed31e145f59?auto=format&fit=crop&q=80&w=1920"
       content={[t('abuDhabi.content.0'), t('abuDhabi.content.1'), t('abuDhabi.content.2')]}
     />
   );
 };
 
-export const DocumentLanding = () => {
-  const { t } = useTranslation('landingPages');
-  return (
-    <LandingTemplate
-      title={t('document.title')}
-      subtitle={t('document.subtitle')}
-      industry="Legal & Corporate"
-      industryLabel={t('document.industryLabel')}
-      heroImg="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&q=80&w=1920"
-      content={[t('document.content.0'), t('document.content.1'), t('document.content.2')]}
-    />
-  );
-};
+export const DocumentLanding = () => <DubaiSalesPage document />;
 
 export const SparePartsLanding = () => {
   const { t } = useTranslation('landingPages');
   return (
     <LandingTemplate
       title={t('spareParts.title')}
+      photo="spareParts"
       subtitle={t('spareParts.subtitle')}
       industry="Industrial & Automotive"
       industryLabel={t('spareParts.industryLabel')}
-      heroImg="https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=1920"
       content={[t('spareParts.content.0'), t('spareParts.content.1'), t('spareParts.content.2')]}
     />
   );
@@ -368,15 +325,15 @@ export const SparePartsLanding = () => {
 // a proof list and the sample-certificate lead form. Copy lives under
 // landingPages.<page> (title, subtitle, industryLabel, content.0-2,
 // proofHeading, proofPoints.0-3); `source` tags the lead in business_inquiries.
-const CustodyLanding = ({ page, industry, heroImg, source }: { page: string; industry: string; heroImg: string; source: string }) => {
+const CustodyLanding = ({ page, industry, source }: { page: 'legal' | 'medical' | 'hr' | 'finance'; industry: string; source: string }) => {
   const { t } = useTranslation('landingPages');
   return (
     <LandingTemplate
       title={t(`${page}.title`)}
+      photo={page}
       subtitle={t(`${page}.subtitle`)}
       industry={industry}
       industryLabel={t(`${page}.industryLabel`)}
-      heroImg={heroImg}
       content={[t(`${page}.content.0`), t(`${page}.content.1`), t(`${page}.content.2`)]}
       extra={
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
@@ -402,7 +359,6 @@ export const LegalLanding = () => (
   <CustodyLanding
     page="legal"
     industry="Law Firms"
-    heroImg="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&q=80&w=1920"
     source="legal_landing"
   />
 );
@@ -411,7 +367,6 @@ export const MedicalLanding = () => (
   <CustodyLanding
     page="medical"
     industry="Clinics & Labs"
-    heroImg="https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&q=80&w=1920"
     source="medical_landing"
   />
 );
@@ -420,7 +375,6 @@ export const HrLanding = () => (
   <CustodyLanding
     page="hr"
     industry="HR & PRO Teams"
-    heroImg="https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&q=80&w=1920"
     source="hr_landing"
   />
 );
@@ -429,7 +383,6 @@ export const FinanceLanding = () => (
   <CustodyLanding
     page="finance"
     industry="Banks & Finance"
-    heroImg="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=1920"
     source="finance_landing"
   />
 );

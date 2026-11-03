@@ -10,12 +10,14 @@ import { isDefaultTenant } from './tenant';
 export const sendTelegramNotification = async (message: string) => {
   if (!isDefaultTenant()) return;
   try {
-    const apiKey = import.meta.env.VITE_NOKAEL_API_KEY;
+    const { supabase } = await import('./supabase');
+    const session = supabase ? (await supabase.auth.getSession()).data.session : null;
+    if (!session) return;
     const response = await fetch('/api/notify', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(apiKey ? { 'x-nokael-key': apiKey } : {}),
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({ message }),
     });
@@ -26,6 +28,18 @@ export const sendTelegramNotification = async (message: string) => {
   } catch (error) {
     console.error('Error calling notify API:', error);
   }
+};
+
+/** Public intakes can only alert dispatch about a recently saved record. */
+export const notifySavedIntake = async (kind: 'business' | 'driver', id: string) => {
+  const { getActiveTenant } = await import('./tenant');
+  try {
+    const response = await fetch('/api/public/lead-alert', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind, id, tenant_slug: getActiveTenant().slug }),
+    });
+    if (!response.ok) console.error('[intake] Saved record; notification failed');
+  } catch { console.error('[intake] Saved record; notification unavailable'); }
 };
 
 /**

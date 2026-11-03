@@ -30,7 +30,8 @@ setInterval(cleanStore, 5 * 60 * 1000);
  */
 export function rateLimit(maxRequests: number, windowMs: number) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ?? req.ip ?? "unknown";
+    // Express honours forwarded IPs only when deployment explicitly trusts its proxy.
+    const ip = `${maxRequests}:${windowMs}:${req.ip ?? 'unknown'}`;
     const now = Date.now();
 
     let entry = store.get(ip);
@@ -102,7 +103,7 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()"
+    "camera=(), microphone=(), geolocation=(self)"
   );
   next();
 }

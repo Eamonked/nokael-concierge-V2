@@ -17,6 +17,7 @@ import { createTeamRouter } from "./routes/team.js";
 import { createClientsRouter } from "./routes/clients.js";
 import { createOnboardingRouter } from "./routes/onboarding.js";
 import { createMapsRouter } from "./routes/maps.js";
+import { createQuotesRouter } from "./routes/quotes.js";
 
 const _filename = typeof __filename !== "undefined" ? __filename : fileURLToPath(import.meta.url);
 const _dirname = typeof __dirname !== "undefined" ? __dirname : path.dirname(_filename);
@@ -27,6 +28,8 @@ const PORT = Number(process.env.PORT) || 3000;
 
 async function startServer() {
   const app = express();
+  const proxyHops = Number(process.env.TRUST_PROXY_HOPS || 0);
+  if (Number.isInteger(proxyHops) && proxyHops > 0) app.set('trust proxy', proxyHops);
 
   // ---------------------------------------------------------------------------
   // Global middleware
@@ -61,13 +64,15 @@ async function startServer() {
   // Google Maps short-link expansion for Pick on map — same per-user session
   // auth as /api/team.
   app.use("/api/maps", createMapsRouter());
+  app.use('/api/public', createQuotesRouter());
+  // Raw operational messages require an authenticated organization member.
+  app.use('/api', createNotifyRouter());
 
   // Apply rate limiting and API key auth to all other /api routes
   app.use("/api", rateLimit(60, 60 * 1000)); // 60 requests per minute
   app.use("/api", requireApiKey);
   
   app.use("/api", createUploadRouter());
-  app.use("/api", createNotifyRouter());
 
   // ---------------------------------------------------------------------------
   // Companies' own domains (book.theircompany.com via Cloudflare for SaaS)

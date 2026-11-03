@@ -5,8 +5,9 @@ import {
   formatBusinessNotification,
   formatDriverNotification,
   formatStatusUpdateNotification,
+  notifySavedIntake,
 } from './notifications';
-import { getActiveOrgId } from './tenant';
+import { getActiveOrgId, getActiveTenant } from './tenant';
 
 // ==========================================
 // Supabase Client
@@ -172,6 +173,8 @@ export interface QuoteRequest {
   rebook_of_job_id?: string | null;
   preferred_date?: string | null;
   notes?: string | null;
+  pickup_at?: string;
+  deadline?: string;
   // UTM Attribution
   utm_source?: string;
   utm_medium?: string;
@@ -183,31 +186,13 @@ export interface QuoteRequest {
 }
 
 export const submitQuoteRequest = async (data: QuoteRequest): Promise<QuoteRequest> => {
-  const tracking_id = `NK-${Math.floor(1000 + Math.random() * 9000)}`;
-  // organization_id MUST be set here — the anon insert policy allows the
-  // row through regardless, but without it the row is permanently stuck:
-  // org_members_manage_quote_requests (used by every operator UPDATE from
-  // the dashboard — status changes, convert-to-job, delete) checks
-  // is_org_member(organization_id), and is_org_member(NULL) is always false.
-  const payload: QuoteRequest = { ...data, tracking_id, organization_id: getActiveOrgId() };
-
-  if (supabase) {
-    const { error } = await supabase.from('quote_requests').insert([payload]);
-    if (error) {
-      // Log but don't throw — user can still be redirected to WhatsApp
-      console.error('[Nokael] Quote insert error:', error);
-    }
-  } else {
-    console.warn('[Nokael] Supabase not configured — skipping DB insert.');
-  }
-
-  try {
-    await sendTelegramNotification(formatQuoteNotification(payload));
-  } catch (err) {
-    console.error('[Nokael] Notification error:', err);
-  }
-
-  return payload;
+  const response = await fetch('/api/public/quotes', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...data, tenant_slug: getActiveTenant().slug }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.id) throw new Error(response.status === 409 ? 'This enquiry was already submitted. Contact dispatch to change it.' : 'Your enquiry could not be saved. Please try again or call dispatch.');
+  return { ...data, id: result.id, tracking_id: result.tracking_id };
 };
 
 export const getQuoteRequests = async (): Promise<QuoteRequest[]> => {
@@ -350,15 +335,15 @@ export const submitBusinessInquiry = async (data: BusinessInquiry): Promise<Busi
   // organization_id MUST be set — same reasoning as submitQuoteRequest above:
   // without it, org_members_manage_business_inquiries UPDATE calls from the
   // dashboard (status changes, follow-up notes) will 403 forever.
-  const payload: BusinessInquiry = { ...data, corporate_code, status: 'pending', organization_id: getActiveOrgId() };
+  const payload: BusinessInquiry = { ...data, id: crypto.randomUUID(), corporate_code, status: 'pending', organization_id: getActiveOrgId() };
 
   if (supabase) {
     const { error } = await supabase.from('business_inquiries').insert([payload]);
     if (error) throw error;
-  }
+  } else throw new Error('Enquiry service unavailable');
 
   try {
-    await sendTelegramNotification(formatBusinessNotification(payload));
+    await notifySavedIntake('business', payload.id!);
   } catch (err) {
     console.error('[Nokael] Business notification error:', err);
   }
@@ -1550,7 +1535,7 @@ export const submitDriverApplication = async (data: Driver): Promise<Driver> => 
   }
 
   try {
-    await sendTelegramNotification(formatDriverNotification(data));
+    await notifySavedIntake('driver', id);
   } catch (err) {
     console.error('[Nokael] Driver notification error:', err);
   }

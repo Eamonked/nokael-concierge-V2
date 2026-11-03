@@ -4,6 +4,7 @@ import { Crosshair, Loader2, type LucideIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { fieldClass } from './constants';
 import { emirateBias, validCoord, type LatLng } from '../../lib/geo';
+import { requestDeviceLocation } from '../../lib/deviceLocation';
 
 // Address autocomplete backed by the Mapbox Search Box API (same VITE_MAPBOX_TOKEN
 // as lib/route.ts), which knows malls, towers and hotels as well as streets.
@@ -73,6 +74,7 @@ export default function LocationInput({ id, value, onChange, emirate, placeholde
   const picked = React.useRef<{ label: string; coords: LatLng | null } | null>(null);
   const listId = `${id}-suggestions`;
   const language = i18n.language?.startsWith('ar') ? 'ar' : 'en';
+  React.useEffect(() => { setGeoError(null); }, [value, emirate]);
 
   React.useEffect(() => {
     if (!token) return;
@@ -110,13 +112,18 @@ export default function LocationInput({ id, value, onChange, emirate, placeholde
   };
 
   const useCurrentLocation = () => {
+    const policy = (document as Document & { permissionsPolicy?: { allowsFeature: (name: string) => boolean }; featurePolicy?: { allowsFeature: (name: string) => boolean } }).permissionsPolicy
+      || (document as Document & { featurePolicy?: { allowsFeature: (name: string) => boolean } }).featurePolicy;
+    if (!window.isSecureContext || (policy && !policy.allowsFeature('geolocation'))) {
+      setGeoError(t('step1.locationBlocked')); return;
+    }
     if (!navigator.geolocation) {
       setGeoError(t('step1.locationUnavailable'));
       return;
     }
     setGeoError(null);
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(
+    requestDeviceLocation(navigator.geolocation,
       async ({ coords }) => {
         const fallback = `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`;
         let label = fallback;
@@ -135,11 +142,10 @@ export default function LocationInput({ id, value, onChange, emirate, placeholde
         onChange(label, pin);
         setLocating(false);
       },
-      () => {
-        setGeoError(t('step1.locationUnavailable'));
+      reason => {
+        setGeoError(t(reason === 'denied' ? 'step1.locationDenied' : reason === 'timeout' ? 'step1.locationTimeout' : 'step1.locationUnavailable'));
         setLocating(false);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
@@ -218,17 +224,17 @@ export default function LocationInput({ id, value, onChange, emirate, placeholde
           </ul>
         )}
       </div>
-      <div className="mt-2 flex items-center justify-between gap-3">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
         <button
           type="button"
           onClick={useCurrentLocation}
           disabled={locating}
-          className="inline-flex items-center gap-1.5 text-[11px] font-bold text-brand-neon hover:underline disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-neon hover:underline disabled:opacity-60"
         >
           {locating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Crosshair className="w-3.5 h-3.5" />}
           {locating ? t('step1.locating') : t('step1.useMyLocation')}
         </button>
-        {geoError && <p className="text-[11px] text-red-500">{geoError}</p>}
+        {geoError && <p role="status" className="text-[11px] text-brand-muted max-w-full">{geoError}</p>}
       </div>
     </div>
   );

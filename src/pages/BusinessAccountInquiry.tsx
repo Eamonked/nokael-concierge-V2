@@ -1,9 +1,10 @@
+import CourierPhoto from '../components/CourierPhoto';
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTenant } from '../context/TenantContext';
-import { businessAccountWaMessage, waHref } from '../lib/tenant';
+import { businessAccountWaMessage, waHref, isDefaultTenant } from '../lib/tenant';
 import { cn } from '../lib/utils';
 import { useBusinessInquiryForm } from './business-inquiry/useBusinessInquiryForm';
 import InquirySuccess from './business-inquiry/InquirySuccess';
@@ -29,7 +30,7 @@ export default function BusinessAccountInquiry() {
     <div className="bg-brand-bg min-h-screen py-32">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="asymmetric-grid items-start">
-          <InquirySidebar formData={formData} waUrl={waUrl} />
+          <div className="business-photo-column"><InquirySidebar formData={formData} waUrl={waUrl} />{isDefaultTenant(tenant) && <CourierPhoto variant="business" />}</div>
 
           <motion.div
             initial={{ opacity: 0, x: 20 }}

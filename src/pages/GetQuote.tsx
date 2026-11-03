@@ -12,7 +12,6 @@ import QuoteStepContact from './get-quote/QuoteStepContact';
 import QuoteSidebar from './get-quote/QuoteSidebar';
 import { useTenant } from '../context/TenantContext';
 import { waHref, telHref, tenantPriceTiers } from '../lib/tenant';
-import { trackWhatsAppClick } from '../lib/analytics';
 
 export default function GetQuote() {
   const { t } = useTranslation('getQuote');
@@ -39,8 +38,9 @@ export default function GetQuote() {
   } = useQuoteForm(formTopRef);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24 md:pt-20">
-      <div className="asymmetric-grid items-start">
+    <div className="quote-page">
+      <header className="quote-heading"><p>{t("summary.eyebrow")}</p><h1>{t("title")}</h1><p>{t("subtitle")}</p></header>
+      <div className="quote-layout">
         <div ref={formTopRef} className="scroll-mt-32">
           {fromExpiredLink && (
             <div role="status" className="mb-8 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5">
@@ -64,17 +64,9 @@ export default function GetQuote() {
             </div>
           )}
 
-          <div className="mb-10">
-            <h1 className="text-4xl md:text-6xl font-display font-medium tracking-tighter mb-6">{t('title')}</h1>
-            <p className="text-brand-muted text-sm max-w-md leading-relaxed">
-              {t('subtitle')}
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="relative rounded-2xl border border-brand-field-border bg-brand-surface shadow-sm px-5 py-8 sm:px-10 sm:py-12">
+          <form onSubmit={handleSubmit} className="quote-form">
             {error && (
-              <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-xs leading-relaxed">
-                <p className="font-bold mb-1 uppercase tracking-widest">{t('errors.dispatchErrorTitle')}</p>
+              <div role="alert" className="quote-error">
                 {error}
               </div>
             )}
@@ -89,6 +81,7 @@ export default function GetQuote() {
               onStepClick={goToStep}
             />
 
+            <div className="quote-step-heading"><h2>{t("steps." + step + ".title")}</h2><p>{t("steps." + step + ".body")}</p></div>
             <AnimatePresence mode="wait">
               {step === 1 && (
                 <QuoteStepRoute
@@ -106,6 +99,8 @@ export default function GetQuote() {
               {step === 3 && (
                 <QuoteStepUrgency
                   urgency={formData.urgency}
+                  pickupAt={formData.pickup_at}
+                  deadline={formData.deadline}
                   updateForm={updateForm}
                   estimatedPrice={estimatedPrice}
                 />
@@ -115,12 +110,12 @@ export default function GetQuote() {
               )}
             </AnimatePresence>
 
-            <div className="mt-12 flex items-center gap-4">
+            <div className="quote-actions">
               {step > 1 && (
                 <button
                   type="button"
                   onClick={prevStep}
-                  className="btn-secondary flex-1 py-4"
+                  className="quote-back"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   <span>{t('buttons.back')}</span>
@@ -129,7 +124,7 @@ export default function GetQuote() {
               <button
                 type="submit"
                 disabled={loading}
-                className="btn-primary flex-[2] py-4"
+                className="quote-submit"
               >
                 {loading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -142,7 +137,7 @@ export default function GetQuote() {
               </button>
             </div>
             {step === 4 && tiers && (
-              <p className="mt-6 text-[9px] text-brand-muted uppercase tracking-[0.2em] text-center font-bold">
+              <p className="quote-form-note">
                 {t('footer.pricingNote', {
                   sameDay: tiers.sameDay,
                   dedicated: tiers.dedicated,
@@ -151,18 +146,6 @@ export default function GetQuote() {
             )}
           </form>
 
-          {/* The sticky WhatsApp CTA is hidden on this page and the sidebar is desktop-only,
-              so small screens get a quiet inline fallback instead. */}
-          <a
-            href={waHref(undefined, tenant)}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => trackWhatsAppClick('quote_inline_mobile')}
-            className="lg:hidden mt-6 flex items-center justify-center gap-2 text-xs font-bold text-brand-muted hover:text-brand-neon"
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>{t('sidebar.urgentSupport')} · {t('sidebar.chatWithDispatch')}</span>
-          </a>
         </div>
 
         <QuoteSidebar formData={formData} />
