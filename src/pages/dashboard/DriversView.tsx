@@ -214,7 +214,7 @@ export function DriversView({
               </select>
             </label>
           </div>
-          <div className="bulk-actions">
+          <div className={`bulk-actions ${selectedDrivers.length ? 'visible' : ''}`}>
             <b>{selectedDrivers.length} selected</b>
             <button disabled={selectedDrivers.length === 0} onClick={() => copyNumbers(selectedDrivers)}>
               Copy WhatsApp numbers

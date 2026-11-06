@@ -18,6 +18,8 @@ import {
   RefreshCw,
   BarChart3,
   MessageSquareReply,
+  MoreHorizontal,
+  X,
 } from 'lucide-react';
 import {
   type QuoteRequest,
@@ -87,15 +89,12 @@ export default function Dashboard() {
     const qs = params.toString();
     window.history.replaceState(window.history.state, '', `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`);
   }, [activeTab]);
-  // Phone tab strip: keep the open tab in view.
-  const mobileTabsRef = React.useRef<HTMLElement>(null);
-  React.useEffect(() => {
-    const strip = mobileTabsRef.current;
-    const el = strip?.querySelector<HTMLElement>('[aria-current="page"]');
-    if (!strip || !el || !strip.clientWidth) return;
-    // Scroll the strip itself (scrollIntoView would also move the shell).
-    strip.scrollLeft = el.offsetLeft - (strip.clientWidth - el.offsetWidth) / 2;
-  }, [activeTab]);
+  // Phone bottom bar: the four tabs dispatch uses on the move, the rest under More.
+  const [moreOpen, setMoreOpen] = React.useState(false);
+  const goTab = (tab: Tab) => {
+    setActiveTab(tab);
+    setMoreOpen(false);
+  };
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
 
@@ -563,22 +562,6 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Phone tab strip (below 1024px the sidebar is hidden via index.css) */}
-        <nav className="mobile-tabs" ref={mobileTabsRef} aria-label={t('nav.menu', { defaultValue: 'Menu' })}>
-          {NAV_ITEMS.map(item => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={activeTab === item.id ? 'active' : ''}
-              aria-current={activeTab === item.id ? 'page' : undefined}
-            >
-              <item.icon className="w-4 h-4" aria-hidden="true" />
-              <span>{item.label}</span>
-              {!!item.badge && <em>{item.badge}</em>}
-            </button>
-          ))}
-        </nav>
-
         {/* Content */}
         <div className={cn('page-body', activeTab === 'pipeline' && 'jw-page', activeTab === 'drivers' && 'enterprise-page')}>
 
@@ -689,6 +672,74 @@ export default function Dashboard() {
           )}
 
         </div>
+
+        {/* Phone / small-screen bottom bar (below 1024px the sidebar is hidden via index.css) */}
+        {(() => {
+          const primary: Tab[] = ['pipeline', 'map', 'alerts', 'quotes'];
+          const main = NAV_ITEMS.filter(item => primary.includes(item.id));
+          const more = NAV_ITEMS.filter(item => !primary.includes(item.id));
+          const moreActive = more.some(item => item.id === activeTab);
+          const moreBadge = more.reduce((sum, item) => sum + (item.badge || 0), 0);
+          return (
+            <>
+              <nav className="mobile-nav" aria-label={t('nav.menu', { defaultValue: 'Menu' })}>
+                {main.map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => goTab(item.id)}
+                    className={activeTab === item.id && !moreOpen ? 'active' : ''}
+                    aria-current={activeTab === item.id ? 'page' : undefined}
+                  >
+                    <span className="mobile-nav-icon">
+                      <item.icon className="w-5 h-5" aria-hidden="true" />
+                      {!!item.badge && <em>{item.badge > 99 ? '99+' : item.badge}</em>}
+                    </span>
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+                <button
+                  onClick={() => setMoreOpen(open => !open)}
+                  className={moreActive || moreOpen ? 'active' : ''}
+                  aria-expanded={moreOpen}
+                  aria-current={moreActive ? 'page' : undefined}
+                >
+                  <span className="mobile-nav-icon">
+                    <MoreHorizontal className="w-5 h-5" aria-hidden="true" />
+                    {!!moreBadge && <em>{moreBadge > 99 ? '99+' : moreBadge}</em>}
+                  </span>
+                  <span>{moreActive ? NAV_ITEMS.find(item => item.id === activeTab)?.label : t('nav.more', { defaultValue: 'More' })}</span>
+                </button>
+              </nav>
+              {moreOpen && (
+                <div className="mobile-more" role="dialog" aria-label={t('nav.more', { defaultValue: 'More' })} onClick={() => setMoreOpen(false)}>
+                  <div className="mobile-more-sheet" onClick={e => e.stopPropagation()}>
+                    <div className="mobile-more-head">
+                      <b>{t('nav.more', { defaultValue: 'More' })}</b>
+                      <button onClick={() => setMoreOpen(false)} aria-label={t('common.close', { defaultValue: 'Close' })}>
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    {more.map(item => (
+                      <button
+                        key={item.id}
+                        onClick={() => goTab(item.id)}
+                        className={activeTab === item.id ? 'active' : ''}
+                      >
+                        <item.icon className="w-5 h-5" aria-hidden="true" />
+                        <span>{item.label}</span>
+                        {!!item.badge && <em>{item.badge}</em>}
+                      </button>
+                    ))}
+                    <button className="mobile-more-logout" onClick={handleLogout}>
+                      <LogOut className="w-5 h-5" aria-hidden="true" />
+                      <span>{t('nav.logout')}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
       </main>
 
       {/* Driver near pickup / drop-off, on any tab */}

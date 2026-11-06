@@ -194,12 +194,11 @@ function JobDetailPanel({
 
   return (
     <section className="jw-card jw-detail">
-      <button className="jw-back" onClick={onBack}>
-        <ChevronLeft className="w-4 h-4" aria-hidden="true" />
-        <span>Jobs</span>
-      </button>
       <header className="jw-detail-head">
-        <div>
+        <button className="jw-back" onClick={onBack} aria-label="Back to jobs">
+          <ChevronLeft className="w-5 h-5" aria-hidden="true" />
+        </button>
+        <div className="jw-detail-title">
           <span className="jw-label">Job ID</span>
           <div className="jw-idline">
             <h2>{job.job_ref || job.id?.slice(0, 8)}</h2>

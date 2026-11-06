@@ -12136,12 +12136,13 @@ main.stats-hidden .driver-app-strip {
 
 /* ══ PHONE & SMALL SCREENS (<1024px) ═══════════════════════════════════════
    The dashboard was pinned to a 1120px desktop width. Below 1024px (phones, tablets in portrait, narrow windows): no
-   sidebar (the .mobile-tabs strip replaces it), a compact top bar, one
+   sidebar (a bottom tab bar, .mobile-nav, replaces it), a compact top bar, one
    column everywhere, the Jobs tab shows the list or one job (.phone-detail,
    JobsView), and wide tables scroll inside their own card instead of the
    page. Nothing here applies at 1024px and up. */
 
-.mobile-tabs,
+.mobile-nav,
+.mobile-more,
 .jw-back,
 .jw-route-full,
 .profile-logout {
@@ -12222,60 +12223,164 @@ main.stats-hidden .driver-app-strip {
     cursor: pointer;
   }
 
-  .mobile-tabs {
-    position: relative;
+  /* Bottom tab bar: Jobs, Map, Alerts, Quotes, More. */
+  .mobile-nav {
     flex: 0 0 auto;
-    display: flex;
-    gap: 6px;
-    padding: 4px 12px 10px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .mobile-tabs::-webkit-scrollbar {
-    display: none;
-  }
-
-  .mobile-tabs button {
-    flex: 0 0 auto;
-    min-height: 38px;
-    padding: 0 12px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    padding: 4px 4px max(6px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
     background: var(--surface);
+    z-index: 60;
+  }
+
+  .mobile-nav button {
+    min-width: 0;
+    min-height: 52px;
+    padding: 4px 2px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
     color: var(--muted);
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 6px;
-    font-size: 13px;
+    justify-content: center;
+    gap: 3px;
+    font-size: 11px;
     font-weight: 600;
-    white-space: nowrap;
     cursor: pointer;
   }
 
-  .mobile-tabs button.active {
-    border-color: var(--accent);
+  .mobile-nav button > span:last-child {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-nav button.active {
+    color: var(--text);
+  }
+
+  .mobile-nav-icon {
+    position: relative;
+    width: 44px;
+    height: 28px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+  }
+
+  .mobile-nav button.active .mobile-nav-icon {
     background: var(--accent);
     color: #151516;
   }
 
-  .mobile-tabs em {
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
+  .mobile-nav-icon em {
+    position: absolute;
+    top: -3px;
+    inset-inline-end: 2px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
     border-radius: 9px;
+    background: #ef4444;
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-style: normal;
+    font-size: 10px;
+    font-weight: 700;
+    box-shadow: 0 0 0 2px var(--surface);
+  }
+
+  /* More: a bottom sheet with the other tabs and logout. */
+  .mobile-more {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    background: rgba(7, 7, 8, .45);
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .mobile-more-sheet {
+    width: 100%;
+    max-height: 80dvh;
+    overflow: auto;
+    padding: 8px 12px max(16px, env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, .2);
+    animation: mobile-sheet-in .2s ease-out;
+  }
+
+  @keyframes mobile-sheet-in {
+    from { transform: translateY(24px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
+
+  .mobile-more-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 4px 8px;
+    font-size: 16px;
+  }
+
+  .mobile-more-head button {
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--surface-2);
+    color: var(--text);
+    display: grid;
+    place-items: center;
+  }
+
+  .mobile-more-sheet > button {
+    width: 100%;
+    min-height: 52px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: start;
+    cursor: pointer;
+  }
+
+  .mobile-more-sheet > button.active {
+    background: var(--surface-2);
+  }
+
+  .mobile-more-sheet > button em {
+    margin-inline-start: auto;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 11px;
     background: var(--surface-3);
     color: var(--text);
     display: grid;
     place-items: center;
     font-style: normal;
-    font-size: 11px;
+    font-size: 12px;
   }
 
-  .mobile-tabs button.active em {
-    background: #171719;
-    color: #f5f5f2;
+  .mobile-more-sheet > .mobile-more-logout {
+    margin-top: 6px;
+    border-top: 1px solid var(--line);
+    border-radius: 0;
+    color: var(--muted);
   }
 
   .app .page-body {
@@ -12384,42 +12489,80 @@ main.stats-hidden .driver-app-strip {
     overflow: visible;
   }
 
-  .jw-back {
-    align-self: flex-start;
-    min-height: 40px;
-    padding: 0 14px 0 8px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: transparent;
-    color: var(--text);
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 14px;
-    font-weight: 600;
+  /* Job header stays at the top while the job scrolls: back, ref, status
+     and the next step are always in reach. */
+  .app .page-body.jw-page {
+    padding-top: 8px;
   }
 
+  /* Sticky top is measured inside the page body's padding: cancel it so
+     nothing shows above the header. */
   .jw-detail-head {
-    flex-direction: column;
-    gap: 12px;
+    position: sticky;
+    top: -8px;
+    z-index: 20;
+    margin: -14px -14px 0;
+    padding: 10px 14px 12px;
+    border-radius: 16px 16px 0 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+  }
+
+  .jw-back {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text);
+    display: grid;
+    place-items: center;
+  }
+
+  .jw-detail-title {
+    min-width: 0;
+  }
+
+  .jw-detail-title .jw-label {
+    display: none;
+  }
+
+  .jw-detail-title .jw-idline {
+    margin-top: 0;
+    gap: 6px;
   }
 
   .jw-idline h2 {
-    font-size: 24px;
+    font-size: 21px;
   }
 
   .jw-head-actions {
+    grid-column: 1 / -1;
     width: 100%;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    gap: 8px;
   }
 
-  .jw-head-actions .jw-ghost,
-  .jw-head-actions .jw-primary {
-    flex: 1 1 auto;
+  .jw-head-actions .jw-ghost {
+    flex: 0 0 auto;
     height: auto;
     min-height: 44px;
-    padding: 8px 16px;
+    padding: 8px 14px;
+  }
+
+  .jw-head-actions .jw-primary {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: auto;
+    min-height: 44px;
+    padding: 8px 14px;
     white-space: normal;
+    line-height: 1.2;
   }
 
   .jw-menu {
@@ -12528,6 +12671,16 @@ main.stats-hidden .driver-app-strip {
     max-width: none;
   }
 
+  /* Bulk actions only take room once something is selected. */
+  .bulk-actions:not(.visible) {
+    display: none;
+  }
+
+  .bulk-actions {
+    justify-self: stretch;
+    flex-wrap: wrap;
+  }
+
   .facet-filters {
     justify-self: stretch;
   }
@@ -12550,15 +12703,88 @@ main.stats-hidden .driver-app-strip {
     min-height: 64px;
   }
 
-  /* Wide tables keep their columns and scroll sideways inside the card. */
-  .table-card,
-  .enterprise-table {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  /* Tables become cards: one card per row, the header row hidden. */
+  .enterprise-table,
+  .operations-card,
+  .table-card {
+    overflow: visible;
   }
 
-  .quote-requests-grid {
-    min-width: 720px;
+  .enterprise-head,
+  .table-card > .table-head {
+    display: none;
+  }
+
+  .enterprise-table .enterprise-row,
+  .enterprise-table .enterprise-row.team-grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    min-height: 0;
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+
+  /* Line 1: [checkbox] name … action. The other cells wrap below it. */
+  .enterprise-row > input { order: 0; width: 18px; height: 18px; }
+  .enterprise-row > .enterprise-profile { order: 1; flex: 1 1 calc(100% - 100px); min-width: 0; }
+  .enterprise-row > :last-child { order: 2; margin-inline-start: auto; }
+  .enterprise-row > :not(input):not(.enterprise-profile):not(:last-child) { order: 3; }
+  .enterprise-row > .context-cell { flex: 1 1 100%; color: var(--ent-muted); font-size: 12px; }
+  .enterprise-row .enterprise-profile b { font-size: 14px; }
+  .enterprise-row .enterprise-profile small { font-size: 12px; }
+  .enterprise-row .overflow-button { width: 40px; height: 40px; }
+  .enterprise-row .enterprise-profile small a {
+    width: 34px;
+    height: 34px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--ent-surface-2);
+  }
+
+  /* Quotes: ref + status, customer, route, dates, actions. */
+  .table-card > .table-row.quote-requests-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "ref status"
+      "who who"
+      "route route"
+      "made expires"
+      "actions actions";
+    gap: 8px 10px;
+    min-width: 0;
+    padding: 14px;
+    font-size: 13px;
+  }
+
+  .table-row.quote-requests-grid > :nth-child(1) { grid-area: ref; }
+  .table-row.quote-requests-grid > :nth-child(2) { grid-area: who; }
+  .table-row.quote-requests-grid > :nth-child(3) { grid-area: route; }
+  .table-row.quote-requests-grid > :nth-child(4) { grid-area: status; }
+  .table-row.quote-requests-grid > :nth-child(5) { grid-area: made; }
+  .table-row.quote-requests-grid > :nth-child(6) { grid-area: expires; text-align: end; }
+  .table-row.quote-requests-grid > :nth-child(5)::before { content: "Requested "; color: var(--ent-faint); }
+  .table-row.quote-requests-grid > :nth-child(6)::before { content: "Expires "; color: var(--ent-faint); }
+  .table-row.quote-requests-grid > :nth-child(7) {
+    grid-area: actions;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .table-row.quote-requests-grid .row-actions > * {
+    min-height: 40px;
+  }
+
+  .table-row.quote-requests-grid .row-actions > a {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--ent-surface-2);
+    display: grid;
+    place-items: center;
   }
 
   .driver-app-table {
