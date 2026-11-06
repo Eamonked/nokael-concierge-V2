@@ -1221,6 +1221,9 @@ export const STOP_ERROR_TEXT: Record<string, string> = {
   job_closed: 'This job is closed.',
   out_of_order: 'Stops are done in order. Only the next stop can be updated.',
   not_multi_stop: 'This is not a multi-stop job.',
+  already_multi_stop: 'This job already has stops.',
+  cannot_convert_now: 'Only a job that is not yet delivered can get extra stops.',
+  invalid_stops: 'The stop list must start with the job\'s pickup.',
 };
 
 export const saveJobStops = async (jobId: string, stops: JobStopInput[]): Promise<void> => {
@@ -1228,6 +1231,19 @@ export const saveJobStops = async (jobId: string, stops: JobStopInput[]): Promis
   const { data, error } = await supabase.rpc('save_job_stops', { p_job_id: jobId, p_stops: stops });
   if (error) throw error;
   if (!data?.ok) throw new Error(STOP_ERROR_TEXT[data?.error] ?? `Could not save the stops (${data?.error ?? 'unknown error'}).`);
+};
+
+/**
+ * Turn a one-way job into a multi-stop or round-trip job, keeping its number,
+ * links and codes. In `stops`, the job's own pickup has id 'from_pickup' (first)
+ * and its delivery 'from_delivery'; progress already made carries over.
+ */
+export const convertJobToStops = async (jobId: string, kind: 'multi_stop' | 'round_trip', stops: JobStopInput[]): Promise<void> => {
+  if (!supabase) throw new Error('Supabase not configured');
+  const { data, error } = await supabase.rpc('convert_job_to_stops', { p_job_id: jobId, p_kind: kind, p_stops: stops });
+  if (error) throw error;
+  if (data?.error === 'needs_driver_app_1_1') throw new Error('needs_driver_app_1_1');
+  if (!data?.ok) throw new Error(STOP_ERROR_TEXT[data?.error] ?? `Could not add the stops (${data?.error ?? 'unknown error'}).`);
 };
 
 /** Dispatcher manual arrival / handover of a multi-stop job's next stop. */

@@ -2,7 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { X, Loader2, MapPin, Plus, ChevronDown, ExternalLink, ArrowUpDown, Navigation } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { supabase, createJob, updateJob, uploadJobAttachments, jobAttachmentUrl, generateOtp, saveJobStops, getMultiStopReadyDrivers, isNeedsDriverAppError, type Driver, type Job, type JobKind, type ItemType, type UrgencyType, type ServiceTier, type BusinessInquiry } from '../../../lib/supabase';
+import { supabase, createJob, updateJob, uploadJobAttachments, jobAttachmentUrl, generateOtp, saveJobStops, convertJobToStops, getMultiStopReadyDrivers, isNeedsDriverAppError, type Driver, type Job, type JobKind, type ItemType, type UrgencyType, type ServiceTier, type BusinessInquiry } from '../../../lib/supabase';
 import { StopListEditor, emptyStop, stopFromJobStop, roundTripPreset, tieRoundTrip, stopsToInput, stopListProblem, type StopDraft } from '../components/StopListEditor';
 import { sendTelegramNotification, formatJobAssignmentNotification } from '../../../lib/notifications';
 import { geocodeAddress, validCoord, distanceMeters, formatDistance, type LatLng } from '../../../lib/geo';
@@ -137,6 +137,13 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
       : []);
   const [stopPicking, setStopPicking] = React.useState<number | null>(null);
   const isStopJob = jobKind !== 'one_way';
+  // A one-way job being edited can become multi-stop / round trip until it is
+  // delivered: same job number, links and codes (convert_job_to_stops).
+  const editWasOneWay = isEdit && (editJob?.job_kind ?? 'one_way') === 'one_way';
+  const canConvert = editWasOneWay && !!editJob
+    && (editJob.status === 'pending' || (editJob.status === 'driver_pickup' && !!editJob.driver_pickup_at))
+    && !editJob.driver_delivery_at && !editJob.client_delivery_at;
+  const converting = editWasOneWay && isStopJob;
   // Drivers on Nokael Driver 1.1+ (the only app that runs a stop list).
   const [readyDrivers, setReadyDrivers] = React.useState<Set<string> | null>(null);
   React.useEffect(() => {
@@ -288,8 +295,14 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
 
   /** The one-way form's two stops as stop cards (and back), so switching kind keeps what was typed. */
   const formAsStops = (): [StopDraft, StopDraft] => {
-    const a = emptyStop('pickup', formData.pickup_emirate);
-    const b = emptyStop('drop', formData.delivery_emirate);
+    const a: StopDraft = editWasOneWay
+      // Converting: these are the job's own pickup and delivery (their links and
+      // codes carry over); a pickup already collected stays locked.
+      ? { ...emptyStop('pickup', formData.pickup_emirate), id: 'from_pickup', handed: !!editJob?.driver_pickup_at }
+      : emptyStop('pickup', formData.pickup_emirate);
+    const b: StopDraft = editWasOneWay
+      ? { ...emptyStop('drop', formData.delivery_emirate), id: 'from_delivery' }
+      : emptyStop('drop', formData.delivery_emirate);
     return [
       { ...a, contact_name: formData.sender_name, contact_phone: formData.sender_phone, address: formData.pickup_location,
         pin: pins.pickup ?? knownPin('pickup'), building: extra.pickup_building, company: extra.pickup_company, notes: extra.pickup_notes,
@@ -563,6 +576,15 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     };
 
     try {
+      if (editJob?.id && converting) {
+        const editedPayout = parseMoney(formData.driver_payout_aed);
+        await convertJobToStops(editJob.id, jobKind as 'multi_stop' | 'round_trip', input);
+        await updateJob(editJob.id, { ...common, ...(editedPayout !== undefined && { driver_payout_aed: editedPayout }) });
+        await attachFiles(editJob);
+        await onSuccess();
+        onClose();
+        return;
+      }
       if (editJob?.id) {
         const editedPayout = parseMoney(formData.driver_payout_aed);
         await updateJob(editJob.id, { ...common, ...(editedPayout !== undefined && { driver_payout_aed: editedPayout }) });
@@ -617,6 +639,10 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
       onSuccess();
       onClose();
     } catch (err) {
+      if (isNeedsDriverAppError(err) && converting) {
+        alert(t('stops.convertNeedsApp', { defaultValue: 'The driver on this job needs Nokael Driver 1.1 or newer before it can have extra stops. Ask them to update the app (it prompts on launch), then save again.' }));
+        return;
+      }
       if (isNeedsDriverAppError(err)) {
         alert(t('stops.needsApp', { defaultValue: 'This driver needs Nokael Driver 1.1 or newer for multi-stop jobs. Pick another driver or leave it unassigned.' }));
         return;
@@ -870,6 +896,12 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
                 />
               </Field>
             </div>
+            {converting && (
+              <p className="confirmation-mode-label stop-code-note">
+                {t('stops.convertNote', { defaultValue: 'Same job number and links. The pickup and drop-off become stops and keep their codes; every stop gets one code, given to the driver.' })}
+                {editJob?.driver_pickup_at ? ' ' + t('stops.convertCollected', { defaultValue: 'The pickup is already handed over, so it stays as stop 1.' }) : ''}
+              </p>
+            )}
             {!isEdit && isStopJob && (
               <p className="confirmation-mode-label stop-code-note">
                 {t('stops.codeNote', { defaultValue: 'Handover codes: one code per stop. The person at each stop gives the driver their code.' })}
@@ -897,7 +929,7 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
             </>)}
           </section>
 
-          {(!isEdit || isStopJob) && (
+          {(!isEdit || isStopJob || canConvert) && (
             <div className="job-kind-switch" role="radiogroup" aria-label={t('stops.kindSwitch', { defaultValue: 'Job type' })}>
               {([
                 ['one_way', t('stops.oneWay', { defaultValue: 'One-way' }), t('stops.oneWayHint', { defaultValue: 'One pickup, one drop-off' })],
@@ -905,8 +937,9 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
                 ['round_trip', t('stops.roundTrip', { defaultValue: 'Round trip' }), t('stops.roundTripHint', { defaultValue: 'Deliver, then bring something back' })],
               ] as [JobKind, string, string][]).map(([k, title, hint]) => (
                 <button key={k} type="button" role="radio" aria-checked={jobKind === k}
-                  // An existing stop job can switch between multi-stop and round trip, never back to one-way.
-                  disabled={isEdit && k === 'one_way'}
+                  // An existing stop job can switch between multi-stop and round trip, never back to one-way
+                  // (a one-way job being converted can still switch back before saving).
+                  disabled={isEdit && k === 'one_way' && !editWasOneWay}
                   className={`confirmation-mode-card${jobKind === k ? ' selected' : ''}`} onClick={() => changeKind(k)}>
                   <i className="confirmation-mode-dot" aria-hidden="true" />
                   <b>{title}</b>
