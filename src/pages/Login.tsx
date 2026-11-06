@@ -3,10 +3,13 @@ import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, ArrowLeft } from 'lucide-
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase, getSafeSession, clearStaleAuthSession } from '../lib/supabase';
 import { AuthLayout, AuthNotice } from '../components/AuthLayout';
+import { initDispatchPwa } from '../lib/pwa';
 
 type Mode = 'signin' | 'forgot';
 
 export default function Login() {
+  // Staff can add Nokael Dispatch to their phone from the sign-in page too.
+  React.useEffect(() => { initDispatchPwa(); }, []);
   const [mode, setMode] = React.useState<Mode>('signin');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');

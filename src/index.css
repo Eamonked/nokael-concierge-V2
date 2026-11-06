@@ -12142,11 +12142,148 @@ main.stats-hidden .driver-app-strip {
    page. Nothing here applies at 1024px and up. */
 
 .mobile-nav,
-.mobile-more,
 .jw-back,
 .jw-route-full,
 .profile-logout {
   display: none;
+}
+
+/* Bottom sheets (More, Add to Home Screen). Only opened from the phone
+   bar, except the install help, which the profile menu opens at any width. */
+/* More: a bottom sheet with the other tabs and logout. */
+.mobile-more {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(7, 7, 8, .45);
+  display: flex;
+  align-items: flex-end;
+}
+
+.mobile-more-sheet {
+  width: 100%;
+  max-height: 80dvh;
+  overflow: auto;
+  padding: 8px 12px max(16px, env(safe-area-inset-bottom));
+  border-radius: 20px 20px 0 0;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, .2);
+  animation: mobile-sheet-in .2s ease-out;
+}
+
+@keyframes mobile-sheet-in {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+.mobile-more-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 4px 8px;
+  font-size: 16px;
+}
+
+.mobile-more-head button {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+}
+
+.mobile-more-sheet > button {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+}
+
+.mobile-more-sheet > button.active {
+  background: var(--surface-2);
+}
+
+.mobile-more-sheet > button em {
+  margin-inline-start: auto;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: var(--surface-3);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-size: 12px;
+}
+
+.mobile-more-sheet > .mobile-more-logout {
+  margin-top: 6px;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  color: var(--muted);
+}
+
+
+.mobile-more-sheet > .mobile-more-install {
+  color: var(--text);
+}
+
+/* iPhone / iPad: how to add the app to the Home Screen. */
+.ios-install-steps {
+  margin: 0;
+  padding: 4px 4px 8px;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+  font-size: 15px;
+}
+
+.ios-install-steps li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  line-height: 1.45;
+}
+
+.ios-install-steps li > b {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #151516;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Wide screens: the sheet becomes a centred dialog. */
+@media (min-width: 1024px) {
+  .mobile-more {
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-more-sheet {
+    width: min(420px, calc(100% - 32px));
+    border-radius: 20px;
+  }
 }
 
 @media (max-width: 1023px) {
@@ -12293,94 +12430,6 @@ main.stats-hidden .driver-app-strip {
     font-size: 10px;
     font-weight: 700;
     box-shadow: 0 0 0 2px var(--surface);
-  }
-
-  /* More: a bottom sheet with the other tabs and logout. */
-  .mobile-more {
-    position: fixed;
-    inset: 0;
-    z-index: 90;
-    background: rgba(7, 7, 8, .45);
-    display: flex;
-    align-items: flex-end;
-  }
-
-  .mobile-more-sheet {
-    width: 100%;
-    max-height: 80dvh;
-    overflow: auto;
-    padding: 8px 12px max(16px, env(safe-area-inset-bottom));
-    border-radius: 20px 20px 0 0;
-    background: var(--surface);
-    color: var(--text);
-    box-shadow: 0 -12px 40px rgba(0, 0, 0, .2);
-    animation: mobile-sheet-in .2s ease-out;
-  }
-
-  @keyframes mobile-sheet-in {
-    from { transform: translateY(24px); opacity: 0; }
-    to { transform: none; opacity: 1; }
-  }
-
-  .mobile-more-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 4px 8px;
-    font-size: 16px;
-  }
-
-  .mobile-more-head button {
-    width: 40px;
-    height: 40px;
-    border: 0;
-    border-radius: 50%;
-    background: var(--surface-2);
-    color: var(--text);
-    display: grid;
-    place-items: center;
-  }
-
-  .mobile-more-sheet > button {
-    width: 100%;
-    min-height: 52px;
-    padding: 0 12px;
-    border: 0;
-    border-radius: 12px;
-    background: transparent;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    font-size: 15px;
-    font-weight: 600;
-    text-align: start;
-    cursor: pointer;
-  }
-
-  .mobile-more-sheet > button.active {
-    background: var(--surface-2);
-  }
-
-  .mobile-more-sheet > button em {
-    margin-inline-start: auto;
-    min-width: 22px;
-    height: 22px;
-    padding: 0 6px;
-    border-radius: 11px;
-    background: var(--surface-3);
-    color: var(--text);
-    display: grid;
-    place-items: center;
-    font-style: normal;
-    font-size: 12px;
-  }
-
-  .mobile-more-sheet > .mobile-more-logout {
-    margin-top: 6px;
-    border-top: 1px solid var(--line);
-    border-radius: 0;
-    color: var(--muted);
   }
 
   .app .page-body {

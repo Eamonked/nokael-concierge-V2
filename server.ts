@@ -175,9 +175,12 @@ async function startServer() {
       index: false,
       maxAge: '1y',
       immutable: true,
-      // The push service worker keeps its name across releases, so it must never be cached long.
+      // The service worker, app manifest and offline page keep their names across releases,
+      // so they must never be cached long.
       setHeaders: (res, filePath) => {
-        if (filePath.endsWith('push-sw.js')) res.setHeader('Cache-Control', 'no-cache');
+        if (filePath.endsWith('push-sw.js') || filePath.endsWith('.webmanifest') || filePath.endsWith('offline.html')) {
+          res.setHeader('Cache-Control', 'no-cache');
+        }
       },
     }));
 

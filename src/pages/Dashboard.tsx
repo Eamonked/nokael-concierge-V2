@@ -20,6 +20,8 @@ import {
   MessageSquareReply,
   MoreHorizontal,
   X,
+  Download,
+  Share,
 } from 'lucide-react';
 import {
   type QuoteRequest,
@@ -37,6 +39,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../i18n/config';
 import { cn } from '../lib/utils';
 import { useTheme } from '../context/ThemeContext';
+import { initDispatchPwa, setThemeColor, useInstallState } from '../lib/pwa';
 import { enableStaffPush, getPushState, syncStaffPush, type PushState } from '../lib/push';
 
 import { StatCard } from './dashboard/components/StatCard';
@@ -98,6 +101,11 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
 
+  // Installable app (PWA): manifest, home-screen tags, service worker.
+  React.useEffect(() => { initDispatchPwa(); }, []);
+  const install = useInstallState();
+  const [iosInstallHelp, setIosInstallHelp] = React.useState(false);
+
   const {
     orgId,
     currentRole,
@@ -117,6 +125,17 @@ export default function Dashboard() {
     lastSyncedAt,
     syncAll,
   } = useDashboardData();
+
+  // Status bar / browser bar follows the dashboard theme.
+  React.useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      const app = document.querySelector('.app');
+      const bg = app ? getComputedStyle(app).backgroundColor : '';
+      if (bg && bg !== 'rgba(0, 0, 0, 0)') setThemeColor(bg);
+    });
+    return () => cancelAnimationFrame(id);
+    // `loading`: the shell (.app) only exists once the first load is done.
+  }, [theme, loading]);
 
   // ── Shell state (sidebar collapse, profile menu) ────────────
   const [collapsed, setCollapsed] = React.useState(() => {
@@ -552,6 +571,18 @@ export default function Dashboard() {
                       <button className={theme === 'light' ? 'active' : ''} onClick={() => setTheme('light')}>Light</button>
                     </div>
                   </div>
+                  {(install.canPrompt || install.iosManual) && (
+                    <button
+                      className="profile-menu-link profile-install"
+                      onClick={() => {
+                        setProfileOpen(false);
+                        if (install.canPrompt) install.install(); else setIosInstallHelp(true);
+                      }}
+                    >
+                      <span>{t('pwa.install', { defaultValue: 'Install Nokael Dispatch app' })}</span>
+                      <Download className="w-3.5 h-3.5" aria-hidden="true" />
+                    </button>
+                  )}
                   <button className="profile-logout" onClick={handleLogout}>
                     <LogOut className="w-4 h-4" aria-hidden="true" />
                     <span>{t('nav.logout')}</span>
@@ -730,10 +761,46 @@ export default function Dashboard() {
                         {!!item.badge && <em>{item.badge}</em>}
                       </button>
                     ))}
+                    {(install.canPrompt || install.iosManual) && (
+                      <button
+                        className="mobile-more-install"
+                        onClick={() => {
+                          setMoreOpen(false);
+                          if (install.canPrompt) install.install(); else setIosInstallHelp(true);
+                        }}
+                      >
+                        <Download className="w-5 h-5" aria-hidden="true" />
+                        <span>{t('pwa.installShort', { defaultValue: 'Install app' })}</span>
+                      </button>
+                    )}
                     <button className="mobile-more-logout" onClick={handleLogout}>
                       <LogOut className="w-5 h-5" aria-hidden="true" />
                       <span>{t('nav.logout')}</span>
                     </button>
+                  </div>
+                </div>
+              )}
+              {iosInstallHelp && (
+                <div className="mobile-more ios-install" role="dialog" aria-label={t('pwa.iosTitle', { defaultValue: 'Add to Home Screen' })} onClick={() => setIosInstallHelp(false)}>
+                  <div className="mobile-more-sheet" onClick={e => e.stopPropagation()}>
+                    <div className="mobile-more-head">
+                      <b>{t('pwa.iosTitle', { defaultValue: 'Add to Home Screen' })}</b>
+                      <button onClick={() => setIosInstallHelp(false)} aria-label={t('common.close', { defaultValue: 'Close' })}>
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <ol className="ios-install-steps">
+                      <li>
+                        <b>1</b>
+                        <span>
+                          {t('pwa.iosStep1', { defaultValue: 'Tap the Share button' })}{' '}
+                          <Share className="w-4 h-4 inline align-[-2px]" aria-hidden="true" />{' '}
+                          {t('pwa.iosStep1b', { defaultValue: 'in Safari.' })}
+                        </span>
+                      </li>
+                      <li><b>2</b><span>{t('pwa.iosStep2', { defaultValue: 'Choose “Add to Home Screen”.' })}</span></li>
+                      <li><b>3</b><span>{t('pwa.iosStep3', { defaultValue: 'Open Dispatch from your Home Screen. Notifications on iPhone work only from there.' })}</span></li>
+                    </ol>
                   </div>
                 </div>
               )}
