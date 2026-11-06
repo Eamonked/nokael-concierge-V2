@@ -28,7 +28,7 @@ export const driverStage = (job: StageFields): DriverStage => {
   // same thing stop by stop; driver_jobs' legacy 'stage' is only for old apps).
   const stops = stopList(job);
   if (stops.length) {
-    const cur = stops.find(s => !s.handed_at);
+    const cur = stops.find(s => !s.handed_at && !s.skipped_at);
     if (!cur) return 'dropped_off';
     if (cur.arrived_at) return cur.kind === 'pickup' ? 'at_pickup' : 'at_dropoff';
     return stops.some(s => s.handed_at) ? 'picked_up' : 'heading_to_pickup';
@@ -99,9 +99,11 @@ export const stageSteps = (job: StageFields): StageStep[] => {
       { key: 'heading', label: 'Driver assigned', at: null, reached: !!job.driver_id },
       ...stops.map(s => ({
         key: `stop-${s.seq}`,
-        label: `Stop ${s.seq} · ${s.kind === 'pickup' ? 'Collected' : 'Delivered'}${s.handed_at ? '' : s.arrived_at ? ' (driver there)' : ''}`,
-        at: s.handed_at ?? s.arrived_at ?? null,
-        reached: !!s.handed_at,
+        label: s.skipped_at && !s.handed_at
+          ? `Stop ${s.seq} · Not visited (job ended by dispatch)`
+          : `Stop ${s.seq} · ${s.kind === 'pickup' ? 'Collected' : 'Delivered'}${s.handed_at ? '' : s.arrived_at ? ' (driver there)' : ''}`,
+        at: s.handed_at ?? s.skipped_at ?? s.arrived_at ?? null,
+        reached: !!s.handed_at || !!s.skipped_at,
       })),
     ];
     const last = stopRows.map(r => r.reached).lastIndexOf(true);
@@ -132,7 +134,7 @@ export const nextAction = (job: StageFields): NextAction | null => {
   const stops = stopList(job);
   if (stops.length) {
     if (['completed', 'cancelled', 'returned', 'unassigned'].includes(stage)) return null;
-    const cur = stops.find(s => !s.handed_at);
+    const cur = stops.find(s => !s.handed_at && !s.skipped_at);
     if (!cur) return null;
     return cur.arrived_at ? 'stop_handover' : 'stop_arrive';
   }
@@ -158,7 +160,7 @@ export const NEXT_ACTION_LABEL: Record<NextAction, string> = {
 
 /** NEXT_ACTION_LABEL, with the stop number for multi-stop jobs. */
 export const nextActionLabel = (job: StageFields, action: NextAction): string => {
-  const cur = stopList(job).find(s => !s.handed_at);
+  const cur = stopList(job).find(s => !s.handed_at && !s.skipped_at);
   if (cur && action === 'stop_arrive') return `Mark arrived at stop ${cur.seq}`;
   if (cur && action === 'stop_handover') return `Mark stop ${cur.seq} ${cur.kind === 'pickup' ? 'collected' : 'delivered'}`;
   return NEXT_ACTION_LABEL[action];

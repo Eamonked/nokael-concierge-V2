@@ -10118,6 +10118,11 @@ main.stats-hidden .driver-app-strip {
 .jo-stops li.is-next { background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .jo-stops li.is-next .jo-step-mark { border-color: var(--accent); color: inherit; }
 .jo-stops .jo-step-main small { margin-bottom: 2px; }
+.jo-stops li.skipped { opacity: 0.6; }
+.jo-stops li.skipped .jo-step-mark { border-style: dashed; }
+.jo-end-early { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border, rgba(127,127,127,.3)); }
+.jo-end-early small, .jo-end-early-note { color: var(--muted); font-size: 12px; }
+.jo-end-early-note { display: block; margin-top: 8px; }
 .jo-inline-icon { width: 11px; height: 11px; display: inline; vertical-align: -1px; }
 .jo-stop-code { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin-inline-end: auto; }
 .jo-stop-code b { font-size: 14px; letter-spacing: .08em; color: inherit; }

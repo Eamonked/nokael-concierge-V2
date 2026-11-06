@@ -87,7 +87,7 @@ export function JobRouteMap({ job, onExpand }: { job: JobWithDriver; onExpand: (
   const allStopsPinned = multi && stopPins.length === (job.stops?.length ?? 0) && stopPins.length >= 2;
   const stopsKey = stopPins.map(x => x.p.join(',')).join(';');
   // Stops still to do, from the next one on (dashed hint while the driver is on the way).
-  const remaining = stopPins.filter(x => !x.s.handed_at).map(x => x.p);
+  const remaining = stopPins.filter(x => !x.s.handed_at && !x.s.skipped_at).map(x => x.p);
 
   // Pickup → drop-off (or stop 1 → … → last stop) road route when no driver is on the way.
   const [staticCoords, setStaticCoords] = React.useState<LatLng[]>([]);

@@ -472,6 +472,9 @@ export interface JobStop {
   handed_lat?: number | null;
   handed_lng?: number | null;
   method?: 'otp' | 'ops_override' | null;
+  /** Set when dispatch ended the job before this stop (not visited). */
+  skipped_at?: string | null;
+  skip_reason?: string | null;
   last_seen_at?: string | null;
   visits?: number;
 }
@@ -479,9 +482,12 @@ export interface JobStop {
 export const isMultiStop = (job: Pick<Job, 'job_kind'> | null | undefined): boolean =>
   !!job?.job_kind && job.job_kind !== 'one_way';
 
-/** The stop the driver is on now (first not handed over), or null when all are done. */
+/** A stop that needs nothing more: handed over, or not visited because dispatch ended the job. */
+export const stopDone = (s: Pick<JobStop, 'handed_at' | 'skipped_at'>): boolean => !!s.handed_at || !!s.skipped_at;
+
+/** The stop the driver is on now (first not done), or null when all are done. */
 export const currentStop = (job: Pick<Job, 'stops'>): JobStop | null =>
-  (job.stops ?? []).find(s => !s.handed_at) ?? null;
+  (job.stops ?? []).find(s => !stopDone(s)) ?? null;
 
 export interface Job {
   id?: string;
@@ -1224,6 +1230,9 @@ export const STOP_ERROR_TEXT: Record<string, string> = {
   already_multi_stop: 'This job already has stops.',
   cannot_convert_now: 'Only a job that is not yet delivered can get extra stops.',
   invalid_stops: 'The stop list must start with the job\'s pickup.',
+  nothing_collected: 'Nothing has been collected yet. Cancel the job instead.',
+  reason_required: 'Give a reason for ending the job early.',
+  nothing_left: 'Every stop is already done.',
 };
 
 export const saveJobStops = async (jobId: string, stops: JobStopInput[]): Promise<void> => {
@@ -1252,6 +1261,18 @@ export const overrideJobStop = async (jobId: string, stopId: string, action: 'ar
   const { data, error } = await supabase.rpc('ops_stop_override', { p_job_id: jobId, p_stop_id: stopId, p_action: action });
   if (error) throw error;
   if (!data?.ok) throw new Error(STOP_ERROR_TEXT[data?.error] ?? `Could not update the stop (${data?.error ?? 'unknown error'}).`);
+};
+
+/**
+ * Dispatch only: end a multi-stop job at the last stop handed over (the client
+ * called off the rest). Remaining stops become "not visited" and the job
+ * completes at the last handover.
+ */
+export const endJobEarly = async (jobId: string, reason: string): Promise<void> => {
+  if (!supabase) throw new Error('Supabase not configured');
+  const { data, error } = await supabase.rpc('ops_end_job_early', { p_job_id: jobId, p_reason: reason });
+  if (error) throw error;
+  if (!data?.ok) throw new Error(STOP_ERROR_TEXT[data?.error] ?? `Could not end the job (${data?.error ?? 'unknown error'}).`);
 };
 
 /** Driver ids that can take multi-stop jobs (signed in on Nokael Driver 1.1+). */

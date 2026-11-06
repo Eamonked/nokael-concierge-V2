@@ -110,7 +110,7 @@ export function GeofenceAlerts({ jobs, onOpenJob }: { jobs: JobWithDriver[]; onO
       // Multi-stop: name the stop now — arriving / at a stop is the current one, collected / delivered the one just handed over.
       const job = jobs.find(j => j.id === jobId);
       const stops = [...(job?.stops ?? [])].sort((a, b) => a.seq - b.seq);
-      const cur = stops.find(s => !s.handed_at);
+      const cur = stops.find(s => !s.handed_at && !s.skipped_at);
       const done = [...stops].reverse().find(s => s.handed_at);
       const st = ['at_pickup', 'at_dropoff'].includes(stage) ? cur : done ?? cur;
       push({ id: `stage-${jobId}-${stage}-${st?.seq ?? ''}`, job_id: jobId, type: 'stage', stage, where: st ? `stop ${st.seq}: ${st.address}` : undefined });

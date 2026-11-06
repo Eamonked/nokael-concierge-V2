@@ -1,8 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Check, CheckSquare, Copy, ExternalLink, Eye, Loader2, MapPin, MessageSquare } from 'lucide-react';
-import { overrideJobStop, updateJob, currentStop, type JobStop, type JobWithDriver } from '../../../lib/supabase';
+import { Check, CheckSquare, Copy, ExternalLink, Eye, Flag, Loader2, MapPin, MessageSquare, Minus } from 'lucide-react';
+import { overrideJobStop, endJobEarly, updateJob, currentStop, type JobStop, type JobWithDriver } from '../../../lib/supabase';
 import { formatWindow } from '../../../lib/tenant';
 import type { LinkView } from '../../../lib/dispatch';
 import { noteLocalStageChange } from '../../../lib/jobStage';
@@ -23,8 +23,8 @@ type Run = (key: string, action: () => Promise<unknown>, success: string, errorK
 
 export const stopKindLabel = (s: Pick<JobStop, 'kind'>) => (s.kind === 'pickup' ? 'Pickup' : 'Drop-off');
 
-const stopStatus = (s: JobStop): 'handed' | 'arrived' | 'pending' =>
-  s.handed_at ? 'handed' : s.arrived_at ? 'arrived' : 'pending';
+const stopStatus = (s: JobStop): 'handed' | 'skipped' | 'arrived' | 'pending' =>
+  s.handed_at ? 'handed' : s.skipped_at ? 'skipped' : s.arrived_at ? 'arrived' : 'pending';
 
 export function StopOperations({
   job, run, busy, onUpdate, views,
@@ -40,6 +40,25 @@ export function StopOperations({
   const next = currentStop(job);
   const closed = ['completed', 'cancelled', 'returned'].includes(job.status);
   const isRound = job.job_kind === 'round_trip';
+  // "End job here": the client calls off the rest once something is collected.
+  const lastHanded = [...stops].reverse().find(s => s.handed_at) ?? null;
+  const remaining = stops.filter(s => !s.handed_at && !s.skipped_at);
+  const canEndEarly = !closed && job.status === 'driver_pickup' && !!lastHanded && remaining.length > 0;
+  const endedEarly = stops.some(s => s.skipped_at);
+  const endEarly = () => {
+    if (!lastHanded) return;
+    const range = remaining.length === 1 ? `stop ${remaining[0].seq}` : `stops ${remaining[0].seq}–${remaining[remaining.length - 1].seq}`;
+    const holding = lastHanded.kind === 'pickup'
+      ? `\n\nThe last handover was a pickup, so the driver may still have the item from stop ${lastHanded.seq}.` : '';
+    const reason = window.prompt(t('stops.endEarlyPrompt', {
+      defaultValue: 'End the job at stop {{n}}? {{range}} will show as not visited, and the job completes at stop {{n}}’s handover ({{at}}).{{holding}}\n\nReason (kept on the job, not shown to clients):',
+      n: lastHanded.seq, range: range.charAt(0).toUpperCase() + range.slice(1), at: when(lastHanded.handed_at), holding,
+    }), t('stops.endEarlyDefault', { defaultValue: 'Client asked to end the job here' }));
+    if (reason === null) return;
+    if (!reason.trim()) { alert(t('stops.endEarlyNeedReason', { defaultValue: 'Give a reason for ending the job early.' })); return; }
+    void run('end-early', () => { noteLocalStageChange(job.id!); return endJobEarly(job.id!, reason.trim()); },
+      t('stops.toastEnded', { defaultValue: 'Job ended at stop {{n}}', n: lastHanded.seq }), 'jobDetailModal.errors.cocStep');
+  };
   const [copied, setCopied] = React.useState<string | null>(null);
   const copy = (key: string, text: string) => {
     navigator.clipboard?.writeText(text).catch(() => {});
@@ -128,10 +147,10 @@ export function StopOperations({
           {stops.map(s => {
             const status = stopStatus(s);
             const isNext = next?.id === s.id && !closed;
-            const locked = (s.otp_attempts ?? 0) >= MAX_OTP_ATTEMPTS && !s.handed_at;
+            const locked = (s.otp_attempts ?? 0) >= MAX_OTP_ATTEMPTS && !s.handed_at && !s.skipped_at;
             return (
-              <li key={s.id} className={`${status === 'handed' ? 'done' : ''}${isNext ? ' is-next' : ''}`}>
-                <span className="jo-step-mark">{status === 'handed' ? <Check /> : s.seq}</span>
+              <li key={s.id} className={`${status === 'handed' ? 'done' : status === 'skipped' ? 'skipped' : ''}${isNext ? ' is-next' : ''}`}>
+                <span className="jo-step-mark">{status === 'handed' ? <Check /> : status === 'skipped' ? <Minus /> : s.seq}</span>
                 <div className="jo-step-main">
                   <b>{s.seq}. {stopKindLabel(s)}{s.contact_name ? ` · ${s.contact_name}` : ''}</b>
                   <small><MapPin className="jo-inline-icon" /> {[s.emirate, s.address].filter(Boolean).join(' · ')}</small>
@@ -142,6 +161,8 @@ export function StopOperations({
                   <small>
                     {status === 'handed'
                       ? `${t('stops.handedAt', { defaultValue: 'Handed over' })} ${when(s.handed_at)}${s.method === 'ops_override' ? ` · ${t('stops.byDispatch', { defaultValue: 'marked by dispatch' })}` : ` · ${t('stops.byCode', { defaultValue: 'code verified' })}`}${s.handed_lat != null ? ` · GPS ${s.handed_lat.toFixed(5)}, ${s.handed_lng?.toFixed(5)}` : ''}`
+                      : status === 'skipped'
+                        ? `${t('stops.skipped', { defaultValue: 'Not visited · job ended by dispatch' })} ${when(s.skipped_at)}${s.skip_reason ? ` · ${s.skip_reason}` : ''}`
                       : status === 'arrived'
                         ? `${t('stops.arrivedAt', { defaultValue: 'Driver arrived' })} ${when(s.arrived_at)}`
                         : isNext ? t('stops.next', { defaultValue: 'Next stop' }) : t('stops.waiting', { defaultValue: 'Waiting' })}
@@ -175,6 +196,17 @@ export function StopOperations({
             );
           })}
         </ol>
+        {canEndEarly && (
+          <div className="jo-end-early">
+            <small>{t('stops.endEarlyHint', { defaultValue: 'Client stopping here? End the job at stop {{n}}. The rest show as not visited.', n: lastHanded!.seq })}</small>
+            <button type="button" className="jo-btn warn" disabled={!!busy} onClick={endEarly}>
+              <Spin on={busy === 'end-early'} icon={<Flag />} />{t('stops.endEarly', { defaultValue: 'End job at stop {{n}}', n: lastHanded!.seq })}
+            </button>
+          </div>
+        )}
+        {endedEarly && closed && (
+          <small className="jo-end-early-note">{t('stops.endedEarly', { defaultValue: 'Ended early by dispatch at stop {{n}}.', n: lastHanded?.seq ?? '—' })}</small>
+        )}
       </section>
 
       {/* ── Send to each person ───────────────────────────────────────────── */}

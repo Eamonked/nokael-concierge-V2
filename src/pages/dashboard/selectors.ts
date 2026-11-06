@@ -355,7 +355,7 @@ export function getAlerts(jobs: JobWithDriver[], now: number = Date.now()): Aler
     // (or its start, when open-ended). Stops are done in order, so only the
     // current one can be late; one alert per job, naming that stop.
     if (multiStop && job.driver_id && !['completed', 'cancelled', 'returned'].includes(job.status)) {
-      const cur = [...(job.stops ?? [])].sort((a, b) => a.seq - b.seq).find(s => !s.handed_at);
+      const cur = [...(job.stops ?? [])].sort((a, b) => a.seq - b.seq).find(s => !s.handed_at && !s.skipped_at);
       const deadline = cur && (cur.window_end || cur.window_start);
       if (cur && deadline && new Date(deadline).getTime() < now) {
         alerts.push({ id: `${job.id}-stopLate-${cur.seq}`, jobId: job.id, jobRef: `${jobRef} · stop ${cur.seq}`, type: 'stopLate', severity: 'critical', detectedAt: deadline });
