@@ -74,7 +74,28 @@ import { getActiveTenant, tenantDisplayName } from '../lib/tenant';
 
 export default function Dashboard() {
   const { t } = useTranslation('dashboard');
-  const [activeTab, setActiveTab] = React.useState<'pipeline' | 'map' | 'quotes' | 'followups' | 'drivers' | 'business' | 'team' | 'alerts' | 'settings'>('pipeline');
+  type Tab = 'pipeline' | 'map' | 'quotes' | 'followups' | 'drivers' | 'business' | 'team' | 'alerts' | 'settings';
+  const TABS: Tab[] = ['pipeline', 'map', 'quotes', 'followups', 'drivers', 'business', 'team', 'alerts', 'settings'];
+  // The open tab lives in ?tab= so a reload (common on phones) keeps it.
+  const [activeTab, setActiveTab] = React.useState<Tab>(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get('tab') as Tab | null;
+    return fromUrl && TABS.includes(fromUrl) ? fromUrl : 'pipeline';
+  });
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (activeTab === 'pipeline') params.delete('tab'); else params.set('tab', activeTab);
+    const qs = params.toString();
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`);
+  }, [activeTab]);
+  // Phone tab strip: keep the open tab in view.
+  const mobileTabsRef = React.useRef<HTMLElement>(null);
+  React.useEffect(() => {
+    const strip = mobileTabsRef.current;
+    const el = strip?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!strip || !el || !strip.clientWidth) return;
+    // Scroll the strip itself (scrollIntoView would also move the shell).
+    strip.scrollLeft = el.offsetLeft - (strip.clientWidth - el.offsetWidth) / 2;
+  }, [activeTab]);
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
 
@@ -317,7 +338,7 @@ export default function Dashboard() {
   }
 
   // ── Nav / tab meta ───────────────────────────────────────────────────────────
-  const NAV_ITEMS: { id: typeof activeTab; label: string; icon: any; badge?: number }[] = [
+  const NAV_ITEMS: { id: Tab; label: string; icon: any; badge?: number }[] = [
     { id: 'pipeline', label: t('nav.jobs'),     icon: LayoutDashboard },
     { id: 'map',      label: t('nav.map'),      icon: MapPin },
     { id: 'quotes',   label: t('nav.quotes'),   icon: FileText, badge: stats.pending },
@@ -372,7 +393,7 @@ export default function Dashboard() {
     <PermissionsProvider role={currentRole}>
     <div className={cn('app enterprise-mode', theme === 'light' && 'light')} dir={isArabic ? 'rtl' : 'ltr'}>
 
-      {/* ── Sidebar (desktop / md+; hidden below 768px via index.css) ─────────── */}
+      {/* ── Sidebar (hidden below 1024px via index.css; the tab strip replaces it) */}
       <aside className={cn('sidebar', collapsed && 'collapsed')}>
         <div className="brand">
           <span className="brand-mark">
@@ -427,7 +448,7 @@ export default function Dashboard() {
       {/* ── Main column ─────────────────────────────────────────────────────── */}
       <main className={statsHidden ? 'stats-hidden' : undefined}>
 
-        {/* Top bar (desktop / md+; hidden below 768px via index.css) */}
+        {/* Top bar (compact below 1024px via index.css) */}
         <header className="topbar">
           <div>
             <h1>{TAB_META[activeTab].title}</h1>
@@ -532,62 +553,28 @@ export default function Dashboard() {
                       <button className={theme === 'light' ? 'active' : ''} onClick={() => setTheme('light')}>Light</button>
                     </div>
                   </div>
+                  <button className="profile-logout" onClick={handleLogout}>
+                    <LogOut className="w-4 h-4" aria-hidden="true" />
+                    <span>{t('nav.logout')}</span>
+                  </button>
                 </div>
               )}
             </div>
           </div>
         </header>
 
-        {/* Mobile-only compact header (below 768px — .topbar is hidden there) */}
-        <div className="md:hidden sticky top-0 z-40 bg-brand-bg/90 backdrop-blur-xl border-b border-brand-border px-5 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-lg overflow-hidden border border-brand-border shrink-0">
-              <img src="/logo.svg" alt="Nokael Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-lg font-display font-medium tracking-tight truncate">{TAB_META[activeTab].title}</h2>
-              <p className="text-xs text-brand-muted truncate">{TAB_META[activeTab].subtitle}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={toggleStats}
-              aria-pressed={!statsHidden}
-              aria-label={statsToggleLabel}
-              className={cn('p-2 transition-colors', statsHidden ? 'text-brand-muted hover:text-brand-text' : 'text-brand-text')}
-            >
-              <BarChart3 className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => syncAll()}
-              disabled={refreshing}
-              aria-label={t('profile.sync', { defaultValue: 'Sync now' })}
-              className="p-2 text-brand-muted hover:text-brand-text transition-colors"
-            >
-              <RefreshCw className={cn('w-5 h-5', refreshing && 'animate-spin')} />
-            </button>
-            <button
-              onClick={handleLogout}
-              className="p-2 text-brand-muted hover:text-brand-text transition-colors"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile tab switcher */}
-        <nav className="md:hidden flex items-center gap-2 px-5 py-3 overflow-x-auto no-scrollbar border-b border-brand-border">
+        {/* Phone tab strip (below 1024px the sidebar is hidden via index.css) */}
+        <nav className="mobile-tabs" ref={mobileTabsRef} aria-label={t('nav.menu', { defaultValue: 'Menu' })}>
           {NAV_ITEMS.map(item => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors",
-                activeTab === item.id ? "bg-brand-neon/10 text-brand-neon" : "text-brand-muted"
-              )}
+              className={activeTab === item.id ? 'active' : ''}
+              aria-current={activeTab === item.id ? 'page' : undefined}
             >
-              <item.icon className="w-3.5 h-3.5" />
-              {item.label}
+              <item.icon className="w-4 h-4" aria-hidden="true" />
+              <span>{item.label}</span>
+              {!!item.badge && <em>{item.badge}</em>}
             </button>
           ))}
         </nav>

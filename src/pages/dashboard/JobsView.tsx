@@ -8,7 +8,7 @@ import {
 import { useCanWrite, READ_ONLY_MESSAGE } from './permissions';
 import { generateJobPOC } from '../../lib/pdf-export';
 import { formatDate } from './utils';
-import { Zap, Clock, CheckCircle2, Users, Truck } from 'lucide-react';
+import { Zap, Clock, CheckCircle2, Users, Truck, ChevronLeft } from 'lucide-react';
 
 const shortDate = (value: string) =>
   new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short' }).format(new Date(value));
@@ -129,6 +129,10 @@ function JobList({
             </span>
             <span className="jw-when">{pickupAt(job) ? formatDate(pickupAt(job)!) : '—'}</span>
             <strong className="jw-tier">{job.urgency}</strong>
+            {/* Phones have no hover tooltip: the full route as text (hidden on desktop). */}
+            <small className="jw-route-full">
+              {isMultiStop(job) ? (job.stops ?? []).map(s => s.address).join(' → ') : `${job.pickup_location} → ${job.delivery_location}`}
+            </small>
           </button>
         ))}
         {!jobs.length && <div className="jw-empty">No jobs match these filters</div>}
@@ -138,9 +142,11 @@ function JobList({
 }
 
 function JobDetailPanel({
-  job, drivers, onOpenMap, onAdvance, onAssign, onEdit, onDuplicate, onUpdate, canCancel,
+  job, drivers, onOpenMap, onAdvance, onAssign, onEdit, onDuplicate, onUpdate, canCancel, onBack,
 }: {
   job: JobWithDriver;
+  /** Phones show the list or the detail, not both: back to the list (button hidden on desktop). */
+  onBack: () => void;
   drivers: Driver[];
   onOpenMap: () => void;
   onAdvance: () => void;
@@ -188,6 +194,10 @@ function JobDetailPanel({
 
   return (
     <section className="jw-card jw-detail">
+      <button className="jw-back" onClick={onBack}>
+        <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+        <span>Jobs</span>
+      </button>
       <header className="jw-detail-head">
         <div>
           <span className="jw-label">Job ID</span>
@@ -405,6 +415,29 @@ export function JobsView({
 
   const selected = jobs.find((j) => j.id === selectedId) ?? visible[0] ?? null;
 
+  // Phones and small screens (<1024px, see index.css) show the list or one job, not both. Opening a
+  // job from here, the map, alerts or a toast switches to the job.
+  const [phoneDetail, setPhoneDetail] = React.useState(false);
+  const shellRef = React.useRef<HTMLDivElement>(null);
+  const lastSelectedId = React.useRef(selectedId);
+  React.useEffect(() => {
+    if (selectedId && selectedId !== lastSelectedId.current) setPhoneDetail(true);
+    lastSelectedId.current = selectedId;
+  }, [selectedId]);
+  React.useEffect(() => {
+    // Scroll only the page body: scrollIntoView would also shift the
+    // overflow-hidden shell and push the top bar off screen.
+    const shell = shellRef.current;
+    const body = shell?.closest<HTMLElement>('.page-body');
+    if (!shell || !body || !window.matchMedia('(max-width: 1023px)').matches) return;
+    const top = shell.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop;
+    if (body.scrollTop > top) body.scrollTop = top;
+  }, [phoneDetail]);
+  const openJob = (id: string) => {
+    onSelectJob(id);
+    setPhoneDetail(true);
+  };
+
   const activeJobs = jobs.filter((j) => ['pending', 'client_pickup', 'driver_pickup', 'driver_delivery'].includes(j.status));
   const pendingJobs = jobs.filter((j) => j.status === 'pending');
   const completedJobs = jobs.filter((j) => j.status === 'completed');
@@ -502,8 +535,8 @@ export function JobsView({
       </div>
 
       {/* Jobs Workspace */}
-      <div className="jw-shell">
-        <div className="jw">
+      <div className="jw-shell" ref={shellRef}>
+        <div className={`jw${phoneDetail ? ' phone-detail' : ''}`}>
           <div className="jw-left">
             <JobList
               jobs={visible}
@@ -513,7 +546,7 @@ export function JobsView({
               search={search}
               setSearch={setSearch}
               dateRange={dateRange}
-              onSelect={onSelectJob}
+              onSelect={openJob}
               onNew={onNewJob}
             />
           </div>
@@ -529,6 +562,7 @@ export function JobsView({
               onDuplicate={() => onDuplicateJob(selected)}
               onUpdate={onUpdate}
               canCancel={() => !denyIfViewer()}
+              onBack={() => setPhoneDetail(false)}
             />
           ) : (
             <section className="jw-card jw-detail jw-detail-empty">

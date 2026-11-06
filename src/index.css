@@ -12133,3 +12133,493 @@ main.stats-hidden .driver-app-strip {
 .home-sales-routes nav { display: flex; flex-wrap: wrap; gap: 16px 32px; margin-bottom: 30px; }
 .home-sales-routes a { display: inline-flex; gap: 8px; align-items: center; color: var(--color-brand-neon); text-decoration: underline; text-underline-offset: 4px; min-height: 44px; }
 .home-sales-routes p { color: var(--color-brand-muted); margin-bottom: 8px; }
+
+/* ══ PHONE & SMALL SCREENS (<1024px) ═══════════════════════════════════════
+   The dashboard was pinned to a 1120px desktop width. Below 1024px (phones, tablets in portrait, narrow windows): no
+   sidebar (the .mobile-tabs strip replaces it), a compact top bar, one
+   column everywhere, the Jobs tab shows the list or one job (.phone-detail,
+   JobsView), and wide tables scroll inside their own card instead of the
+   page. Nothing here applies at 1024px and up. */
+
+.mobile-tabs,
+.jw-back,
+.jw-route-full,
+.profile-logout {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  /* ── Shell ─────────────────────────────────────────────────────────── */
+  :where(:root:has(.app)) body {
+    min-width: 0;
+  }
+
+  .app {
+    width: 100%;
+    height: 100dvh;
+  }
+
+  .app .sidebar {
+    display: none;
+  }
+
+  .app .topbar {
+    min-height: 0;
+    padding: 10px 12px 6px;
+    gap: 8px;
+    padding-top: max(10px, env(safe-area-inset-top));
+  }
+
+  .app .topbar > div:first-child {
+    min-width: 0;
+  }
+
+  .app .topbar h1 {
+    font-size: 22px;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .app .topbar p {
+    display: none;
+  }
+
+  .app .top-actions {
+    gap: 4px;
+    flex: 0 0 auto;
+  }
+
+  /* Profile button: avatar only. */
+  .app .profile-trigger > span:not(.avatar),
+  .app .profile-trigger > svg {
+    display: none;
+  }
+
+  .app .profile-menu {
+    position: fixed;
+    top: 56px;
+    inset-inline: 8px;
+    width: auto;
+    max-height: calc(100dvh - 72px);
+    overflow: auto;
+  }
+
+  .profile-logout {
+    width: 100%;
+    min-height: 40px;
+    margin-top: 6px;
+    padding: 0 8px;
+    border: 0;
+    border-top: 1px solid var(--ent-line);
+    background: transparent;
+    color: var(--ent-text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .mobile-tabs {
+    position: relative;
+    flex: 0 0 auto;
+    display: flex;
+    gap: 6px;
+    padding: 4px 12px 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-tabs button {
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .mobile-tabs button.active {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #151516;
+  }
+
+  .mobile-tabs em {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--surface-3);
+    color: var(--text);
+    display: grid;
+    place-items: center;
+    font-style: normal;
+    font-size: 11px;
+  }
+
+  .mobile-tabs button.active em {
+    background: #171719;
+    color: #f5f5f2;
+  }
+
+  .app .page-body {
+    padding: 4px 12px calc(16px + env(safe-area-inset-bottom));
+    gap: 12px;
+  }
+
+  /* The page body scrolls; its sections must not squash to fit it. */
+  .app .page-body > * {
+    flex-shrink: 0;
+  }
+
+  /* Stat strips: 2 across, compact. */
+  .app .stats,
+  .app .context-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .app .stat-card {
+    padding: 10px 12px;
+    min-height: 0;
+  }
+
+  .app .stat-card strong {
+    font-size: 22px;
+  }
+
+  /* Inputs at 16px so iOS doesn't zoom in on focus. */
+  .app input,
+  .app select,
+  .app textarea {
+    font-size: 16px;
+  }
+
+  /* ── Jobs: list, or one job ─────────────────────────────────────────── */
+  .jw-shell {
+    flex: none;
+  }
+
+  .jw {
+    min-height: 0;
+    display: block;
+  }
+
+  .jw:not(.phone-detail) .jw-detail,
+  .jw.phone-detail .jw-left {
+    display: none;
+  }
+
+  .jw-card {
+    border-radius: 16px;
+  }
+
+  .jw-list {
+    padding-top: 16px;
+    overflow: visible;
+  }
+
+  .jw-list-head,
+  .jw-search-row {
+    padding-inline: 14px;
+  }
+
+  .jw-filters {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+
+  .jw-table-head {
+    display: none;
+  }
+
+  .jw-rows {
+    overflow: visible;
+  }
+
+  .jw-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 3px;
+    padding: 10px 14px;
+    min-height: 64px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .jw-row .jw-id { grid-column: 1; grid-row: 1; }
+  .jw-row .jw-tier { grid-column: 2; grid-row: 1; }
+  .jw-row .jw-route { grid-column: 1 / -1; grid-row: 2; font-weight: 600; }
+  .jw-row .jw-route-full {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: block;
+    color: var(--muted);
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .jw-row .jw-when { grid-column: 1 / -1; grid-row: 4; color: var(--muted); font-size: 12px; }
+
+  .jw-detail {
+    padding: 14px;
+    gap: 14px;
+    overflow: visible;
+  }
+
+  .jw-back {
+    align-self: flex-start;
+    min-height: 40px;
+    padding: 0 14px 0 8px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .jw-detail-head {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .jw-idline h2 {
+    font-size: 24px;
+  }
+
+  .jw-head-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .jw-head-actions .jw-ghost,
+  .jw-head-actions .jw-primary {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 44px;
+    padding: 8px 16px;
+    white-space: normal;
+  }
+
+  .jw-menu {
+    max-width: calc(100vw - 24px);
+  }
+
+  .jw-route-body,
+  .jo-facts,
+  .jo-parties,
+  .jo-wa {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .jw-map {
+    height: 220px;
+    min-height: 220px;
+  }
+
+  .jw-corridor {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .jo-stops li {
+    flex-wrap: wrap;
+  }
+
+  .jo-stops li button,
+  .jo-end-early,
+  .jo-dialog button {
+    min-height: 40px;
+  }
+
+  /* ── Live map: list over map, detail as a bottom sheet ──────────────── */
+  .dispatch-map {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    min-height: 0;
+  }
+
+  .dm-list {
+    height: 240px;
+  }
+
+  .dm-map {
+    height: max(380px, calc(100dvh - 180px));
+  }
+
+  .dm-panel {
+    top: auto;
+    inset-inline: 8px;
+    bottom: 8px;
+    width: auto;
+    max-height: 70%;
+  }
+
+  .dm-legend {
+    display: none;
+  }
+
+  /* ── Toolbars (Quotes, Alerts, Follow-ups): chips scroll, search full width */
+  .page-actions {
+    height: auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .page-actions .chips {
+    flex: 0 0 auto;
+    padding-bottom: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .page-actions .chips button {
+    flex: 0 0 auto;
+  }
+
+  .quote-request-search {
+    flex-wrap: wrap;
+  }
+
+  .quote-request-search .search {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .quote-request-search .primary {
+    margin-inline-start: auto;
+  }
+
+  /* ── Alerts ─────────────────────────────────────────────────────────── */
+  .alerts-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* ── Drivers / Team / Business / Quotes ─────────────────────────────── */
+  .operations-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .enterprise-search,
+  .search {
+    min-width: 0;
+    max-width: none;
+  }
+
+  .facet-filters {
+    justify-self: stretch;
+  }
+
+  .facet-filters label {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .facet-filters select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .metric-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metric-filters button {
+    min-height: 64px;
+  }
+
+  /* Wide tables keep their columns and scroll sideways inside the card. */
+  .table-card,
+  .enterprise-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .quote-requests-grid {
+    min-width: 720px;
+  }
+
+  .driver-app-table {
+    overflow-x: auto;
+  }
+
+  .driver-app-table > div {
+    min-width: 620px;
+  }
+
+  /* ── Settings ───────────────────────────────────────────────────────── */
+  .settings-tabs {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .settings-tabs > button {
+    flex: 0 0 auto;
+  }
+
+  .settings-form-grid,
+  .coc-settings-grid,
+  .settings-content .coc-settings-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .coc-settings-grid > div:first-child {
+    border-inline-end: 0;
+    border-bottom: 1px solid var(--ent-line);
+  }
+
+  .pricing-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* ── Drawers and modals: full width ─────────────────────────────────── */
+  .account-drawer,
+  .job-form-drawer,
+  .job-create-drawer,
+  .driver-profile-drawer,
+  .add-agent-drawer {
+    width: 100vw;
+  }
+
+  .modal-backdrop {
+    padding: 8px;
+  }
+
+  .modal-panel {
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+    border-radius: 18px;
+  }
+
+  /* ── Onboarding ─────────────────────────────────────────────────────── */
+  .onb-invite {
+    grid-template-columns: minmax(0, 1fr) 24px;
+  }
+
+  .onb-invite > :nth-child(2) {
+    grid-column: 1;
+  }
+}
