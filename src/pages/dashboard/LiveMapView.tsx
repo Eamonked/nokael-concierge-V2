@@ -8,7 +8,8 @@ import { useTranslation } from 'react-i18next';
 import {
   Crosshair, WifiOff, Truck, Users, PackageOpen, X, Phone, MapPin, Flag, Loader2, ExternalLink, AlertTriangle,
 } from 'lucide-react';
-import { supabase, assignDriverToJob, updateJob, type Driver, type JobWithDriver } from '../../lib/supabase';
+import { supabase, assignDriverToJob, updateJob, isMultiStop, currentStop, isNeedsDriverAppError, type Driver, type JobWithDriver } from '../../lib/supabase';
+import { routeSummary } from '../../lib/jobRoute';
 import { jobStage, STAGE_LABEL } from '../../lib/jobStage';
 import { getDriverPositions, isOnline, type DriverPosition } from '../../lib/dispatch';
 import { validCoord, distanceMeters, formatDistance, geocodeAddress, type LatLng } from '../../lib/geo';
@@ -37,6 +38,14 @@ const dot = (color: string, size: number, ring = '#fff', square = false) =>
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   });
+
+/** Numbered stop pin for multi-stop jobs (grey once handed over). */
+const stopIcon = (n: number, kind: 'pickup' | 'drop', done: boolean) => L.divIcon({
+  html: `<div style="width:22px;height:22px;border-radius:9999px;background:${done ? '#94a3b8' : kind === 'pickup' ? '#3b82f6' : '#ef4444'};border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);color:#fff;font:700 11px/18px system-ui;text-align:center">${n}</div>`,
+  className: '',
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
+});
 
 const ICON = {
   driverLive: dot('#10b981', 24, '#0b0f19'),
@@ -142,7 +151,8 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
   React.useEffect(() => {
     if (!canWrite) return;
     const todo = jobs.filter(j =>
-      j.id && !TERMINAL_STATUSES.includes(j.status) && !geocoded.current.has(j.id) &&
+      // Stop jobs get their pins from the job form (the flat columns are a mirror).
+      j.id && !TERMINAL_STATUSES.includes(j.status) && !geocoded.current.has(j.id) && !isMultiStop(j) &&
       (!validCoord(j.pickup_lat, j.pickup_lng) || !validCoord(j.delivery_lat, j.delivery_lng)));
     if (!todo.length || !import.meta.env.VITE_MAPBOX_TOKEN) return;
     todo.forEach(j => geocoded.current.add(j.id!));
@@ -220,8 +230,12 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
   // portal; refetches only when lib/route says so, not on every position poll).
   const live = useLiveRoute(selectedJob, selectedJobDriver?.pos ?? null, selectedJobDriver?.at);
   const nextStop = live.stop
-    ? { ...live.stop, address: live.stop.kind === 'delivery' ? selectedJob?.delivery_location : selectedJob?.pickup_location }
+    ? { ...live.stop, address: live.stop.seq
+        ? selectedJob?.stops?.find(s => s.seq === live.stop!.seq)?.address
+        : live.stop.kind === 'delivery' ? selectedJob?.delivery_location : selectedJob?.pickup_location }
     : null;
+  const selectedStops = selectedJob && isMultiStop(selectedJob) ? selectedJob.stops ?? [] : [];
+  const selectedNext = selectedJob && selectedStops.length ? currentStop(selectedJob) : null;
 
   // ---- Map content per mode -------------------------------------------------
   const flyTarget: LatLng | null = selectedDriver?.pos
@@ -264,7 +278,9 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
       setMode('active');
       setSelection({ kind: 'job', id: job.id });
     } catch (err: any) {
-      alert(t('liveMap.assignFailed', { defaultValue: 'Could not assign the driver: {{error}}', error: err?.message || String(err) }));
+      alert(isNeedsDriverAppError(err)
+        ? t('stops.needsApp', { defaultValue: 'This driver needs Nokael Driver 1.1 or newer for multi-stop jobs. Pick another driver or leave it unassigned.' })
+        : t('liveMap.assignFailed', { defaultValue: 'Could not assign the driver: {{error}}', error: err?.message || String(err) }));
     } finally {
       setAssigning(null);
     }
@@ -294,7 +310,14 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
     );
   };
 
-  const GeofenceBadges: React.FC<{ job: JobWithDriver }> = ({ job }) => (
+  const GeofenceBadges: React.FC<{ job: JobWithDriver }> = ({ job }) => {
+    if (isMultiStop(job)) {
+      const cur = currentStop(job);
+      return cur?.near_at && !cur.arrived_at
+        ? <span className="dm-badge near">{t('liveMap.nearStop', { defaultValue: 'Near stop {{n}}', n: cur.seq })}</span>
+        : null;
+    }
+    return (
     <>
       {job.driver_near_pickup_at && !job.driver_pickup_at && (
         <span className="dm-badge near">{t('liveMap.nearPickup', { defaultValue: 'Near pickup' })}</span>
@@ -303,7 +326,8 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
         <span className="dm-badge near">{t('liveMap.nearDropoff', { defaultValue: 'Near drop-off' })}</span>
       )}
     </>
-  );
+    );
+  };
 
   const JobDetail = selectedJob && (
     <div className="dm-panel" role="region" aria-label={ref(selectedJob)}>
@@ -315,10 +339,24 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
         <button type="button" className="dm-close" onClick={() => setSelection(null)} aria-label={t('liveMap.close', { defaultValue: 'Close' })}><X /></button>
       </div>
 
+      {selectedStops.length ? (
+        <ul className="dm-facts">
+          {selectedStops.map(s => (
+            <li key={s.id} className={s.handed_at ? 'is-done' : s.id === selectedNext?.id ? 'is-next' : ''}>
+              {s.kind === 'pickup' ? <MapPin /> : <Flag />}
+              <span>
+                <small>{s.seq}. {s.kind === 'pickup' ? t('liveMap.pickup') : t('liveMap.delivery')}{s.handed_at ? ' ✓' : s.id === selectedNext?.id ? ` · ${t('liveMap.nextStop', { defaultValue: 'next' })}` : ''}</small>
+                {s.address}{s.emirate ? ` · ${s.emirate}` : ''}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
       <ul className="dm-facts">
         <li><MapPin /><span><small>{t('liveMap.pickup')}</small>{selectedJob.pickup_location} · {selectedJob.pickup_emirate}</span></li>
         <li><Flag /><span><small>{t('liveMap.delivery')}</small>{selectedJob.delivery_location} · {selectedJob.delivery_emirate}</span></li>
       </ul>
+      )}
 
       {selectedJob.driver_id ? (() => {
         const d = driverById.get(selectedJob.driver_id) || selectedJob.driver;
@@ -410,7 +448,7 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
             {selectedDriver.load.map(j => (
               <li key={j.id}>
                 <span className="dm-status busy" />
-                <div><b>{ref(j)}</b><small>{stage(j)} · {j.pickup_emirate} → {j.delivery_emirate}</small></div>
+                <div><b>{ref(j)}</b><small>{stage(j)} · {routeSummary(j)}</small></div>
                 <button type="button" className="dm-link" onClick={() => { setMode('active'); setSelection({ kind: 'job', id: j.id! }); }}>
                   {t('liveMap.view', { defaultValue: 'View' })}
                 </button>
@@ -433,7 +471,7 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
                 <span className="dm-status job" />
                 <div>
                   <b>{ref(r.job)}</b>
-                  <small>{r.job.pickup_emirate} → {r.job.delivery_emirate} · {formatDistance(r.dist)}</small>
+                  <small>{routeSummary(r.job)} · {formatDistance(r.dist)}</small>
                 </div>
                 <AssignButton job={r.job} driver={selectedDriver.driver} />
               </li>
@@ -455,7 +493,7 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
           </span>
         </div>
         <b>{r.job.driver?.full_name || driverById.get(r.job.driver_id!)?.full_name || '—'}</b>
-        <small>{stage(r.job)} · {r.job.pickup_emirate} → {r.job.delivery_emirate}</small>
+        <small>{stage(r.job)} · {routeSummary(r.job)}</small>
         <div className="dm-row-badges"><GeofenceBadges job={r.job} /></div>
       </button>
     ))
@@ -468,7 +506,7 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
           <span className="dm-signal">{r.job.created_at ? ago(new Date(r.job.created_at).getTime()) : ''}</span>
         </div>
         <b title={r.job.pickup_location}>{r.job.pickup_location || '—'}</b>
-        <small>{r.job.pickup_emirate} → {r.job.delivery_emirate}{r.job.urgency ? ` · ${r.job.urgency}` : ''}</small>
+        <small>{routeSummary(r.job)}{r.job.urgency ? ` · ${r.job.urgency}` : ''}</small>
         {!r.pickup && <div className="dm-row-badges"><span className="dm-badge warn">{t('liveMap.notOnMap', { defaultValue: 'Not on map' })}</span></div>}
       </button>
     ))
@@ -585,8 +623,27 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
             );
           })}
 
+          {/* Multi-stop job: a numbered pin per stop, geofence on the next one. */}
+          {selectedStops.map(s => {
+            const p = validCoord(s.lat, s.lng);
+            if (!p) return null;
+            const isNext = s.id === selectedNext?.id;
+            return (
+              <React.Fragment key={s.id}>
+                <Marker position={p} icon={stopIcon(s.seq, s.kind, !!s.handed_at)} title={`${s.seq}. ${s.address}`} />
+                {isNext && (
+                  <Circle center={p} radius={s.kind === 'pickup' ? geofence.pickup_m : geofence.delivery_m}
+                    pathOptions={{ color: s.kind === 'pickup' ? '#3b82f6' : '#ef4444', weight: 1.5, fillOpacity: 0.08 }} />
+                )}
+              </React.Fragment>
+            );
+          })}
+          {selectedStops.length > 1 && !selectedJob?.driver_id && (
+            <Polyline positions={selectedStops.map(s => validCoord(s.lat, s.lng)).filter(Boolean) as LatLng[]} pathOptions={{ color: '#6366f1', weight: 2, dashArray: '4 6' }} />
+          )}
+
           {/* Selected job: stops, geofence radius, road route from driver to next stop */}
-          {selectedJob && jobPickup && (
+          {selectedJob && !selectedStops.length && jobPickup && (
             <>
               <Marker position={jobPickup} icon={ICON.pickup} title={t('liveMap.pickup')} />
               {!selectedJob.driver_pickup_at && (
@@ -594,7 +651,7 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
               )}
             </>
           )}
-          {selectedJob && jobDrop && (
+          {selectedJob && !selectedStops.length && jobDrop && (
             <>
               <Marker position={jobDrop} icon={ICON.delivery} title={t('liveMap.delivery')} />
               {!!selectedJob.driver_pickup_at && (
@@ -613,7 +670,7 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
           {selectedJob && !live.coords.length && !nextStop?.arrived && selectedJobDriver?.pos && nextStop?.target && (
             <Polyline positions={[selectedJobDriver.pos, nextStop.target]} pathOptions={{ color: '#64748b', weight: 2, dashArray: '6 6' }} />
           )}
-          {selectedJob && !selectedJob.driver_id && jobPickup && jobDrop && (
+          {selectedJob && !selectedStops.length && !selectedJob.driver_id && jobPickup && jobDrop && (
             <Polyline positions={[jobPickup, jobDrop]} pathOptions={{ color: '#6366f1', weight: 2, dashArray: '4 6' }} />
           )}
         </MapContainer>

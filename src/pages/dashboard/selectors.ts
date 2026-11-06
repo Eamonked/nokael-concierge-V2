@@ -302,7 +302,7 @@ export function getDashboardStats(
 // (not a fresh Date.now() inline) purely so this stays a pure, unit-testable
 // (data, now) -> data function like everything else in this file.
 
-export type AlertType = 'slaBreach' | 'deliveryLate' | 'stalledJob' | 'failedHandoff' | 'signalLost';
+export type AlertType = 'slaBreach' | 'deliveryLate' | 'stopLate' | 'stalledJob' | 'failedHandoff' | 'signalLost';
 export type AlertSeverity = 'critical' | 'warning' | 'info';
 
 export interface Alert {
@@ -340,15 +340,29 @@ export function getAlerts(jobs: JobWithDriver[], now: number = Date.now()): Aler
 
     // Delivery window missed — collected but not delivered by the window end
     // (or its start, when the window is open-ended)
+    // (Multi-stop jobs: their delivery columns mirror the first drop only, so
+    // they are checked stop by stop below instead.)
+    const multiStop = !!job.job_kind && job.job_kind !== 'one_way';
     const deliveryDeadline = job.scheduled_delivery_end || job.scheduled_delivery_start;
-    if (deliveryDeadline && job.driver_pickup_at && !job.driver_delivery_at
+    if (!multiStop && deliveryDeadline && job.driver_pickup_at && !job.driver_delivery_at
         && !['completed', 'cancelled', 'returned'].includes(job.status)) {
       if (new Date(deliveryDeadline).getTime() < now) {
         alerts.push({ id: `${job.id}-deliveryLate`, jobId: job.id, jobRef, type: 'deliveryLate', severity: 'critical', detectedAt: deliveryDeadline });
       }
     }
 
-    // Driver is meant to be actively moving — check GPS signal
+    // Multi-stop: the next stop not handed over by the end of its window
+    // (or its start, when open-ended). Stops are done in order, so only the
+    // current one can be late; one alert per job, naming that stop.
+    if (multiStop && job.driver_id && !['completed', 'cancelled', 'returned'].includes(job.status)) {
+      const cur = [...(job.stops ?? [])].sort((a, b) => a.seq - b.seq).find(s => !s.handed_at);
+      const deadline = cur && (cur.window_end || cur.window_start);
+      if (cur && deadline && new Date(deadline).getTime() < now) {
+        alerts.push({ id: `${job.id}-stopLate-${cur.seq}`, jobId: job.id, jobRef: `${jobRef} · stop ${cur.seq}`, type: 'stopLate', severity: 'critical', detectedAt: deadline });
+      }
+    }
+
+        // Driver is meant to be actively moving — check GPS signal
     if (job.status === 'driver_pickup' || job.status === 'driver_delivery') {
       if (job.driver_lat == null || job.driver_lng == null) {
         alerts.push({

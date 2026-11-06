@@ -2,7 +2,8 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { X, Loader2, MapPin, Plus, ChevronDown, ExternalLink, ArrowUpDown, Navigation } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { supabase, createJob, updateJob, uploadJobAttachments, jobAttachmentUrl, generateOtp, type Driver, type Job, type ItemType, type UrgencyType, type ServiceTier, type BusinessInquiry } from '../../../lib/supabase';
+import { supabase, createJob, updateJob, uploadJobAttachments, jobAttachmentUrl, generateOtp, saveJobStops, getMultiStopReadyDrivers, isNeedsDriverAppError, type Driver, type Job, type JobKind, type ItemType, type UrgencyType, type ServiceTier, type BusinessInquiry } from '../../../lib/supabase';
+import { StopListEditor, emptyStop, stopFromJobStop, roundTripPreset, tieRoundTrip, stopsToInput, stopListProblem, type StopDraft } from '../components/StopListEditor';
 import { sendTelegramNotification, formatJobAssignmentNotification } from '../../../lib/notifications';
 import { geocodeAddress, validCoord, distanceMeters, formatDistance, type LatLng } from '../../../lib/geo';
 import { AccountPicker, ClientReferenceInput, findAccountByName } from '../components/AccountPicker';
@@ -124,6 +125,24 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
   const setX = <K extends keyof typeof extra>(key: K, value: (typeof extra)[K]) =>
     setExtra(prev => ({ ...prev, [key]: value }));
   const [files, setFiles] = React.useState<File[]>([]);
+
+  // ── Job kind: one-way (the form below, unchanged) or a stop list ─────────
+  // Multi-stop and round-trip jobs keep their stops in job_stops; the flat
+  // pickup/delivery columns are filled from stop 1 and the first drop.
+  const kindSource = editJob ?? duplicateFrom;
+  const [jobKind, setJobKind] = React.useState<JobKind>(kindSource?.job_kind ?? 'one_way');
+  const [stops, setStops] = React.useState<StopDraft[]>(() =>
+    kindSource && kindSource.job_kind && kindSource.job_kind !== 'one_way'
+      ? (kindSource.stops ?? []).map(st => stopFromJobStop(st, !!editJob))
+      : []);
+  const [stopPicking, setStopPicking] = React.useState<number | null>(null);
+  const isStopJob = jobKind !== 'one_way';
+  // Drivers on Nokael Driver 1.1+ (the only app that runs a stop list).
+  const [readyDrivers, setReadyDrivers] = React.useState<Set<string> | null>(null);
+  React.useEffect(() => {
+    if (!isStopJob || readyDrivers) return;
+    void getMultiStopReadyDrivers(drivers.map(d => d.id!).filter(Boolean)).then(setReadyDrivers);
+  }, [isStopJob, readyDrivers, drivers]);
 
   // Collapsible sections. Which ones an operator keeps folded is remembered
   // on this browser, so a section they never use stays out of the way.
@@ -267,6 +286,43 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** The one-way form's two stops as stop cards (and back), so switching kind keeps what was typed. */
+  const formAsStops = (): [StopDraft, StopDraft] => {
+    const a = emptyStop('pickup', formData.pickup_emirate);
+    const b = emptyStop('drop', formData.delivery_emirate);
+    return [
+      { ...a, contact_name: formData.sender_name, contact_phone: formData.sender_phone, address: formData.pickup_location,
+        pin: pins.pickup ?? knownPin('pickup'), building: extra.pickup_building, company: extra.pickup_company, notes: extra.pickup_notes,
+        window_start: extra.pickup_window_start, window_end: extra.pickup_window_end },
+      { ...b, contact_name: formData.recipient_name, contact_phone: formData.recipient_phone, address: formData.delivery_location,
+        pin: pins.delivery ?? knownPin('delivery'), building: extra.delivery_building, company: extra.delivery_company, notes: extra.delivery_notes,
+        window_start: formData.scheduled_delivery_start, window_end: formData.scheduled_delivery_end },
+    ];
+  };
+
+  const changeKind = (next: JobKind) => {
+    if (next === jobKind) return;
+    if (next === 'one_way') {
+      const first = stops[0];
+      const drop = stops.find(st => st.kind === 'drop');
+      if (first) setFormData(prev => ({ ...prev, sender_name: first.contact_name, sender_phone: first.contact_phone,
+        pickup_location: first.address, pickup_emirate: first.emirate || prev.pickup_emirate }));
+      if (drop) setFormData(prev => ({ ...prev, recipient_name: drop.contact_name, recipient_phone: drop.contact_phone,
+        delivery_location: drop.address, delivery_emirate: drop.emirate || prev.delivery_emirate }));
+      setPins({ pickup: first?.pin ?? null, delivery: drop?.pin ?? null });
+    } else {
+      const base = stops.length >= 2 ? stops : formAsStops();
+      if (next === 'round_trip') {
+        // Keep stops already typed; make sure the list ends back at stop 1.
+        const backHome = base.length >= 3 && base[base.length - 1].address === base[0].address;
+        setStops(tieRoundTrip(backHome ? base : base.length === 2 ? roundTripPreset(base[0], base[1]) : [...base, { ...emptyStop('drop', base[0].emirate) }]));
+      } else {
+        setStops(base);
+      }
+    }
+    setJobKind(next);
+  };
+
   /** '' → null (cleared); a valid amount → number; anything unparseable → undefined (leave the column alone). */
   const parseMoney = (raw: string): number | null | undefined => {
     if (raw.trim() === '') return null;
@@ -289,9 +345,20 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
       alert(t('jobCreateModal.pickupWindowOrder', { defaultValue: 'The pickup window ends before it starts. Check the two times.' }));
       return;
     }
+    if (isStopJob) {
+      const problem = stopListProblem(jobKind, stops);
+      if (problem) {
+        alert(problem);
+        return;
+      }
+    }
     setLoading(true);
     
     try {
+      if (isStopJob) {
+        await submitStopJob();
+        return;
+      }
       // Put both stops on the map (live map, ETA, geofence alerts, driver arrival
       // check). A point picked on the map always wins. Otherwise a stop that's
       // unchanged from the starting data keeps that pin, and anything else is
@@ -459,6 +526,105 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
     };
   };
 
+  /** Cargo specs and payment mode only (a stop job keeps place details on its stops). */
+  const cargoFields = (): Partial<Job> => {
+    const { pickup_building, pickup_company, pickup_notes, pickup_window_start, pickup_window_end,
+      delivery_building, delivery_company, delivery_notes, ...rest } = stopFields();
+    void pickup_building; void pickup_company; void pickup_notes; void pickup_window_start; void pickup_window_end;
+    void delivery_building; void delivery_company; void delivery_notes;
+    return rest;
+  };
+
+  /**
+   * Saves a multi-stop / round-trip job: the job row first (its flat pickup and
+   * delivery columns come from stop 1 and the first drop, which the NOT NULL
+   * columns need), then the stops through save_job_stops, which re-mirrors them.
+   * A new job whose stops fail to save is deleted again, so no half job is left.
+   */
+  const submitStopJob = async () => {
+    const located = await Promise.all(stops.map(async st =>
+      st.pin || st.handed ? st : { ...st, pin: await geocodeAddress(st.address, st.emirate).catch(() => null) }));
+    const input = stopsToInput(located);
+    const first = located[0];
+    const drop = located.find(st => st.kind === 'drop') ?? located[located.length - 1];
+    const parsedPrice = formData.price_aed.trim() === '' ? null : Number(formData.price_aed);
+    const priceValue = parsedPrice !== null && Number.isFinite(parsedPrice) && parsedPrice >= 0 ? parsedPrice : null;
+    const { scheduled_delivery_start, scheduled_delivery_end, ...account } = accountFields();
+    void scheduled_delivery_start; void scheduled_delivery_end;
+    const common: Partial<Job> = {
+      item_type: formData.item_type,
+      urgency: formData.urgency,
+      scheduled_pickup_at: formData.urgency === 'scheduled' ? gstInputToIso(formData.scheduled_pickup_at) : null,
+      ...account,
+      service_tier: formData.service_tier,
+      price_aed: priceValue,
+      special_instructions: formData.special_instructions.trim() || null,
+      ...cargoFields(),
+    };
+
+    try {
+      if (editJob?.id) {
+        const editedPayout = parseMoney(formData.driver_payout_aed);
+        await updateJob(editJob.id, { ...common, ...(editedPayout !== undefined && { driver_payout_aed: editedPayout }) });
+        await saveJobStops(editJob.id, input);
+        await attachFiles(editJob);
+        await onSuccess();
+        onClose();
+        return;
+      }
+
+      const payload: Partial<Job> = {
+        ...common,
+        job_kind: jobKind,
+        sender_name: first.contact_name.trim() || first.company.trim() || '—',
+        sender_phone: first.contact_phone.trim(),
+        recipient_name: drop.contact_name.trim() || drop.company.trim() || '—',
+        recipient_phone: drop.contact_phone.trim(),
+        pickup_emirate: first.emirate,
+        pickup_location: first.address.trim(),
+        delivery_emirate: drop.emirate,
+        delivery_location: drop.address.trim(),
+        driver_id: formData.driver_id || null,
+        operator_notes: formData.operator_notes.trim() || null,
+        driver_payout_aed: parseMoney(formData.driver_payout_aed) ?? null,
+        quote_id: formData.quote_id,
+        // One code per stop: the person at the stop gives it to the driver.
+        confirmation_mode: 'driver_only',
+        token_client_pickup: crypto.randomUUID(),
+        token_driver_pickup: crypto.randomUUID(),
+        token_driver_delivery: crypto.randomUUID(),
+        token_client_delivery: crypto.randomUUID(),
+        otp_sender: generateOtp(),
+        otp_driver_pickup: generateOtp(),
+        otp_driver_delivery: generateOtp(),
+        otp_recipient: generateOtp(),
+        source: 'manual',
+        status: 'pending',
+      };
+      const result = await createJob(payload);
+      try {
+        await saveJobStops(result.id!, input);
+      } catch (err) {
+        if (supabase) await supabase.from('jobs').delete().eq('id', result.id!);
+        throw err;
+      }
+      await attachFiles(result);
+      if (formData.quote_id && supabase) {
+        const { error: quoteError } = await supabase.from('quote_requests').update({ status: 'completed' }).eq('id', formData.quote_id);
+        if (quoteError) console.error('Error marking quote as converted:', quoteError);
+      }
+      await sendTelegramNotification(formatJobAssignmentNotification({ ...payload, job_ref: result.job_ref }));
+      onSuccess();
+      onClose();
+    } catch (err) {
+      if (isNeedsDriverAppError(err)) {
+        alert(t('stops.needsApp', { defaultValue: 'This driver needs Nokael Driver 1.1 or newer for multi-stop jobs. Pick another driver or leave it unassigned.' }));
+        return;
+      }
+      throw err;
+    }
+  };
+
   /**
    * Uploads the files picked in section 06 once the job exists. The job is
    * already saved, so a failed upload is reported rather than undoing it.
@@ -563,6 +729,23 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
           emirate={formData[`${picking}_emirate`]}
           onConfirm={result => applyPick(picking, result)}
           onClose={() => setPicking(null)}
+        />
+      )}
+      {stopPicking !== null && stops[stopPicking] && (
+        <MapPickerModal
+          title={t('stops.pickTitle', { defaultValue: 'Stop {{n}} location', n: stopPicking + 1 })}
+          initial={stops[stopPicking].pin}
+          address={stops[stopPicking].address}
+          emirate={stops[stopPicking].emirate}
+          onConfirm={result => {
+            const i = stopPicking;
+            const next = stops.map((st, idx) => idx === i
+              ? { ...st, pin: result.coords, address: result.useLabel && result.label ? result.label : st.address }
+              : st);
+            setStops(jobKind === 'round_trip' ? tieRoundTrip(next) : next);
+            setStopPicking(null);
+          }}
+          onClose={() => setStopPicking(null)}
         />
       )}
       {gpsChoice && (
@@ -687,7 +870,12 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
                 />
               </Field>
             </div>
-            {!isEdit && (<>
+            {!isEdit && isStopJob && (
+              <p className="confirmation-mode-label stop-code-note">
+                {t('stops.codeNote', { defaultValue: 'Handover codes: one code per stop. The person at each stop gives the driver their code.' })}
+              </p>
+            )}
+            {!isEdit && !isStopJob && (<>
             <p className="confirmation-mode-label" id="coc-mode-label">{t('jobCreateModal.cocConfirmation')}</p>
             <div className="confirmation-mode-grid" role="radiogroup" aria-labelledby="coc-mode-label">
               {confirmationModes.map(mode => (
@@ -709,7 +897,30 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
             </>)}
           </section>
 
-          {!isEdit && (formData.pickup_location.trim() || formData.delivery_location.trim()) && (
+          {(!isEdit || isStopJob) && (
+            <div className="job-kind-switch" role="radiogroup" aria-label={t('stops.kindSwitch', { defaultValue: 'Job type' })}>
+              {([
+                ['one_way', t('stops.oneWay', { defaultValue: 'One-way' }), t('stops.oneWayHint', { defaultValue: 'One pickup, one drop-off' })],
+                ['multi_stop', t('stops.multiStop', { defaultValue: 'Multi-stop' }), t('stops.multiStopHint', { defaultValue: 'Several pickups or drops, in order' })],
+                ['round_trip', t('stops.roundTrip', { defaultValue: 'Round trip' }), t('stops.roundTripHint', { defaultValue: 'Deliver, then bring something back' })],
+              ] as [JobKind, string, string][]).map(([k, title, hint]) => (
+                <button key={k} type="button" role="radio" aria-checked={jobKind === k}
+                  // An existing stop job can switch between multi-stop and round trip, never back to one-way.
+                  disabled={isEdit && k === 'one_way'}
+                  className={`confirmation-mode-card${jobKind === k ? ' selected' : ''}`} onClick={() => changeKind(k)}>
+                  <i className="confirmation-mode-dot" aria-hidden="true" />
+                  <b>{title}</b>
+                  <small>{hint}</small>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {isStopJob && (
+            <StopListEditor kind={jobKind as 'multi_stop' | 'round_trip'} stops={stops} onChange={setStops} onPickOnMap={setStopPicking} />
+          )}
+
+          {!isStopJob && !isEdit && (formData.pickup_location.trim() || formData.delivery_location.trim()) && (
             <div className="route-swap-row">
               <button type="button" className="route-swap-button" onClick={swapStops}
                 title={t('jobCreateModal.swapStopsHint', { defaultValue: 'Moves the address, contact, building, company, notes and pin of each stop to the other side' })}>
@@ -722,7 +933,7 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
             </div>
           )}
 
-          <div className="route-form-grid">
+          {!isStopJob && <div className="route-form-grid">
             <section className={sectionClass('route-form-section pickup', 'pickup')} data-section="pickup">
               {heading('pickup', '02', t('jobCreateModal.pickupDetailsTitle'), t('jobCreateModal.pickupDetailsHint'))}
               <div className="leg-fields leg-fields-3">
@@ -802,7 +1013,7 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
                 </Field>
               </div>
             </section>
-          </div>
+          </div>}
 
           <section className={sectionClass('job-form-section', 'cargo')} data-section="cargo">
             {heading('cargo', '04', t('jobCreateModal.cargoSpecialTitle'), t('jobCreateModal.cargoSpecialHint'))}
@@ -869,8 +1080,12 @@ export const JobCreateModal: React.FC<JobCreateModalProps> = ({ onClose, onSucce
                   <option value="">{t('jobCreateModal.unassignedOption')}</option>
                   {drivers.map(d => {
                     const statusIcon = d.status === 'available' ? '🟢' : d.status === 'on_job' ? '🟠' : '⚪';
+                    const notReady = isStopJob && readyDrivers !== null && !readyDrivers.has(d.id!);
                     return (
-                      <option key={d.id} value={d.id}>{statusIcon} {d.full_name} ({t('jobCreateModal.tierShort')} {d.tier || 'D'} · {d.vehicle_type})</option>
+                      <option key={d.id} value={d.id} disabled={notReady}>
+                        {statusIcon} {d.full_name} ({t('jobCreateModal.tierShort')} {d.tier || 'D'} · {d.vehicle_type})
+                        {notReady ? ` — ${t('stops.needsAppShort', { defaultValue: 'needs app 1.1' })}` : ''}
+                      </option>
                     );
                   })}
                 </select>

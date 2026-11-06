@@ -32,7 +32,7 @@ export const getDriverPositions = async (orgId: string): Promise<DriverPosition[
   return (data || []) as DriverPosition[];
 };
 
-export type JobEventType = 'geofence_pickup' | 'geofence_delivery';
+export type JobEventType = 'geofence_pickup' | 'geofence_delivery' | 'geofence_stop';
 
 export interface JobEvent {
   id: string;
@@ -42,6 +42,8 @@ export interface JobEvent {
   type: JobEventType;
   distance_m: number | null;
   radius_m: number | null;
+  /** geofence_stop: which stop of a multi-stop job. */
+  stop_id?: string | null;
   created_at: string;
   acknowledged_at: string | null;
 }

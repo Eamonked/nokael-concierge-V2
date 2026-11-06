@@ -7154,6 +7154,84 @@ main.stats-hidden .driver-app-strip {
   white-space: nowrap;
 }
 
+/* Job type switch + multi-stop stop list (StopListEditor) */
+.job-create-drawer .job-kind-switch {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 16px 22px 0;
+  background: var(--ent-surface);
+}
+.job-create-drawer .job-kind-switch .confirmation-mode-card:disabled { opacity: .45; cursor: not-allowed; }
+.job-create-drawer .stop-code-note { color: var(--ent-muted); font-weight: 500; }
+.job-create-drawer .stop-list-intro { display: flex; flex-direction: column; gap: 2px; }
+.job-create-drawer .stop-list-intro b { font-size: 13px; color: var(--ent-text); }
+.job-create-drawer .stop-list-intro small { font-size: 12px; color: var(--ent-faint); line-height: 1.4; }
+.job-create-drawer .stop-card fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; }
+.job-create-drawer .stop-card.is-locked { opacity: .7; }
+.job-create-drawer .stop-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.job-create-drawer .stop-card-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--ent-strong);
+  color: var(--ent-surface);
+  font-size: 12px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+.job-create-drawer .stop-card-kind { font-size: 13px; color: var(--ent-text); }
+.job-create-drawer .stop-card-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--ent-muted);
+}
+.job-create-drawer .stop-card-actions { margin-inline-start: auto; display: flex; gap: 4px; }
+.job-create-drawer .stop-card-actions button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ent-line-strong);
+  border-radius: 6px;
+  background: var(--ent-surface);
+  color: var(--ent-text);
+  cursor: pointer;
+}
+.job-create-drawer .stop-card-actions button:disabled { opacity: .35; cursor: not-allowed; }
+.job-create-drawer .stop-kind-toggle {
+  display: inline-flex;
+  border: 1px solid var(--ent-line-strong);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.job-create-drawer .stop-kind-toggle button {
+  padding: 4px 10px;
+  border: 0;
+  background: var(--ent-surface);
+  color: var(--ent-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.job-create-drawer .stop-kind-toggle button.selected { background: var(--ent-strong); color: var(--ent-surface); }
+.job-create-drawer .stop-card-summary { margin: 0 0 10px; font-size: 12px; color: var(--ent-muted); }
+.job-create-drawer .stop-add { align-self: flex-start; }
+
+@media (max-width: 480px) {
+  .job-create-drawer .job-kind-switch { grid-template-columns: minmax(0, 1fr); padding-inline: 16px; }
+}
+
 /* Tablet / narrow windows: 2 columns */
 @media (max-width: 720px) {
   .job-create-drawer .job-form-header,
@@ -10034,6 +10112,15 @@ main.stats-hidden .driver-app-strip {
   width: 12px;
   height: 12px;
 }
+
+/* Multi-stop jobs: one row per stop (StopOperations) */
+.jo-stops .jo-step-mark { font-size: 11px; font-weight: 700; color: var(--muted); }
+.jo-stops li.is-next { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.jo-stops li.is-next .jo-step-mark { border-color: var(--accent); color: inherit; }
+.jo-stops .jo-step-main small { margin-bottom: 2px; }
+.jo-inline-icon { width: 11px; height: 11px; display: inline; vertical-align: -1px; }
+.jo-stop-code { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin-inline-end: auto; }
+.jo-stop-code b { font-size: 14px; letter-spacing: .08em; color: inherit; }
 
 .jo-step-main {
   min-width: 0;

@@ -7,7 +7,8 @@ import { formatDistance } from '../../../lib/geo';
 import { jobStage, isRecentLocalChange, STAGE_LABEL, type JobStage } from '../../../lib/jobStage';
 
 /** A driver moved a job to a new stage (seen in the live jobs feed, not job_events). */
-type StageToast = { id: string; job_id: string; type: 'stage'; stage: JobStage };
+/** `where` is captured when the toast is raised (multi-stop jobs move on to the next stop). */
+type StageToast = { id: string; job_id: string; type: 'stage'; stage: JobStage; where?: string };
 type Toast = JobEvent | StageToast;
 const isStage = (toast: Toast): toast is StageToast => toast.type === 'stage';
 
@@ -55,8 +56,17 @@ export function GeofenceAlerts({ jobs, onOpenJob }: { jobs: JobWithDriver[]; onO
     const ref = job?.job_ref != null ? `#${job.job_ref.toString().padStart(4, '0')}` : '';
     const driver = job?.driver?.full_name || t('geofence.driver', { defaultValue: 'The driver' });
     if (isStage(event)) {
-      const where = ['at_pickup', 'picked_up'].includes(event.stage) ? job?.pickup_location : job?.delivery_location;
+      // Multi-stop: the stop the driver is on (or just finished), not the mirrored pickup/drop columns.
+      const where = event.where
+        ?? (['at_pickup', 'picked_up'].includes(event.stage) ? job?.pickup_location : job?.delivery_location);
       return { job, title: `${driver}: ${STAGE_LABEL[event.stage]}`, body: [ref, where].filter(Boolean).join(' · ') };
+    }
+    if (event.type === 'geofence_stop') {
+      const stop = job?.stops?.find(s => s.id === event.stop_id);
+      const title = t('geofence.nearStopTitle', { defaultValue: '{{driver}} is near stop {{n}}', driver, n: stop?.seq ?? '' });
+      const body = [ref, stop?.address, event.distance_m != null ? t('geofence.away', { defaultValue: '{{distance}} away', distance: formatDistance(event.distance_m) }) : null]
+        .filter(Boolean).join(' · ');
+      return { job, title, body };
     }
     const title = event.type === 'geofence_pickup'
       ? t('geofence.nearPickupTitle', { defaultValue: '{{driver}} is near pickup', driver })
@@ -97,7 +107,13 @@ export function GeofenceAlerts({ jobs, onOpenJob }: { jobs: JobWithDriver[]; onO
       if (!before || before === stage || !ANNOUNCED.includes(stage) || isRecentLocalChange(jobId)) return;
       // Delivered shows as 'dropped_off' then 'completed' within one change; announce it once.
       if (stage === 'completed' && before === 'dropped_off') return;
-      push({ id: `stage-${jobId}-${stage}`, job_id: jobId, type: 'stage', stage });
+      // Multi-stop: name the stop now — arriving / at a stop is the current one, collected / delivered the one just handed over.
+      const job = jobs.find(j => j.id === jobId);
+      const stops = [...(job?.stops ?? [])].sort((a, b) => a.seq - b.seq);
+      const cur = stops.find(s => !s.handed_at);
+      const done = [...stops].reverse().find(s => s.handed_at);
+      const st = ['at_pickup', 'at_dropoff'].includes(stage) ? cur : done ?? cur;
+      push({ id: `stage-${jobId}-${stage}-${st?.seq ?? ''}`, job_id: jobId, type: 'stage', stage, where: st ? `stop ${st.seq}: ${st.address}` : undefined });
     });
   }, [jobs, push]);
 
@@ -116,7 +132,10 @@ export function GeofenceAlerts({ jobs, onOpenJob }: { jobs: JobWithDriver[]; onO
     <div className="geofence-toasts" aria-live="polite">
       {toasts.map(event => {
         const { job, title, body } = describe(event);
-        const pickupSide = isStage(event) ? ['at_pickup', 'picked_up'].includes(event.stage) : event.type === 'geofence_pickup';
+        const stopKind = !isStage(event) && event.type === 'geofence_stop'
+          ? jobs.find(j => j.id === event.job_id)?.stops?.find(s => s.id === event.stop_id)?.kind : undefined;
+        const pickupSide = isStage(event) ? ['at_pickup', 'picked_up'].includes(event.stage)
+          : stopKind ? stopKind === 'pickup' : event.type === 'geofence_pickup';
         const Icon = isStage(event) ? Truck : pickupSide ? MapPin : Flag;
         return (
           <div key={event.id} className={`geofence-toast ${pickupSide ? 'pickup' : 'dropoff'}`} role="status">

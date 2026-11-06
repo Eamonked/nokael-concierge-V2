@@ -17,9 +17,22 @@ export type JobStage = DriverStage | 'unassigned' | 'completed' | 'cancelled' | 
 type StageFields = Pick<Job,
   | 'status' | 'driver_id' | 'confirmation_mode' | 'created_at'
   | 'driver_arrived_pickup_at' | 'driver_pickup_at' | 'driver_arrived_delivery_at' | 'driver_delivery_at'
-  | 'client_delivery_at'>;
+  | 'client_delivery_at'> & Partial<Pick<Job, 'job_kind' | 'stops'>>;
+
+/** Multi-stop / round-trip jobs: the stops, in order (empty for one-way jobs). */
+const stopList = (job: StageFields) =>
+  job.job_kind && job.job_kind !== 'one_way' ? [...(job.stops ?? [])].sort((a, b) => a.seq - b.seq) : [];
 
 export const driverStage = (job: StageFields): DriverStage => {
+  // Multi-stop: the stage at the stop the driver is on now (the app shows the
+  // same thing stop by stop; driver_jobs' legacy 'stage' is only for old apps).
+  const stops = stopList(job);
+  if (stops.length) {
+    const cur = stops.find(s => !s.handed_at);
+    if (!cur) return 'dropped_off';
+    if (cur.arrived_at) return cur.kind === 'pickup' ? 'at_pickup' : 'at_dropoff';
+    return stops.some(s => s.handed_at) ? 'picked_up' : 'heading_to_pickup';
+  }
   if (job.driver_delivery_at) return 'dropped_off';
   if (job.driver_arrived_delivery_at) return 'at_dropoff';
   if (job.driver_pickup_at) return 'picked_up';
@@ -78,6 +91,22 @@ export interface StageStep {
  * counts as done when a later one is, since an override can skip ahead.
  */
 export const stageSteps = (job: StageFields): StageStep[] => {
+  const stops = stopList(job);
+  if (stops.length) {
+    // Booked, assigned, then one step per stop handover.
+    const stopRows = [
+      { key: 'booked', label: 'Booked', at: job.created_at ?? null, reached: true },
+      { key: 'heading', label: 'Driver assigned', at: null, reached: !!job.driver_id },
+      ...stops.map(s => ({
+        key: `stop-${s.seq}`,
+        label: `Stop ${s.seq} · ${s.kind === 'pickup' ? 'Collected' : 'Delivered'}${s.handed_at ? '' : s.arrived_at ? ' (driver there)' : ''}`,
+        at: s.handed_at ?? s.arrived_at ?? null,
+        reached: !!s.handed_at,
+      })),
+    ];
+    const last = stopRows.map(r => r.reached).lastIndexOf(true);
+    return stopRows.map(({ reached, ...row }, i) => ({ ...row, done: reached || i <= last }));
+  }
   const rows: Array<Omit<StageStep, 'done'> & { reached: boolean }> = [
     { key: 'booked', label: 'Booked', at: job.created_at ?? null, reached: true },
     { key: 'heading', label: 'Heading to pickup', at: null, reached: !!job.driver_id },
@@ -96,10 +125,17 @@ export const stageSteps = (job: StageFields): StageStep[] => {
 };
 
 /** The next thing the driver would do, for dispatch's "mark it for them" button. */
-export type NextAction = 'arrive_pickup' | 'collect' | 'arrive_dropoff' | 'deliver' | 'recipient_confirm';
+export type NextAction = 'arrive_pickup' | 'collect' | 'arrive_dropoff' | 'deliver' | 'recipient_confirm' | 'stop_arrive' | 'stop_handover';
 
 export const nextAction = (job: StageFields): NextAction | null => {
   const stage = jobStage(job);
+  const stops = stopList(job);
+  if (stops.length) {
+    if (['completed', 'cancelled', 'returned', 'unassigned'].includes(stage)) return null;
+    const cur = stops.find(s => !s.handed_at);
+    if (!cur) return null;
+    return cur.arrived_at ? 'stop_handover' : 'stop_arrive';
+  }
   switch (stage) {
     case 'heading_to_pickup': return 'arrive_pickup';
     case 'at_pickup': return 'collect';
@@ -116,6 +152,16 @@ export const NEXT_ACTION_LABEL: Record<NextAction, string> = {
   arrive_dropoff: 'Mark arrived at drop-off',
   deliver: 'Mark delivered',
   recipient_confirm: 'Mark recipient confirmed',
+  stop_arrive: 'Mark arrived at next stop',
+  stop_handover: 'Mark next stop handed over',
+};
+
+/** NEXT_ACTION_LABEL, with the stop number for multi-stop jobs. */
+export const nextActionLabel = (job: StageFields, action: NextAction): string => {
+  const cur = stopList(job).find(s => !s.handed_at);
+  if (cur && action === 'stop_arrive') return `Mark arrived at stop ${cur.seq}`;
+  if (cur && action === 'stop_handover') return `Mark stop ${cur.seq} ${cur.kind === 'pickup' ? 'collected' : 'delivered'}`;
+  return NEXT_ACTION_LABEL[action];
 };
 
 /* Stage changes made from this tab, so the "driver update" alert only fires

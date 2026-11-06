@@ -3,9 +3,9 @@ import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTranslation } from 'react-i18next';
-import type { JobWithDriver } from '../../../lib/supabase';
+import { isMultiStop, type JobWithDriver } from '../../../lib/supabase';
 import { validCoord, EMIRATE_CENTERS, type LatLng } from '../../../lib/geo';
-import { useLiveRoute, getStaticRoute } from '../../../lib/route';
+import { useLiveRoute, getStaticRoute, getStaticRouteVia } from '../../../lib/route';
 import { formatDateTime } from '../../../lib/tenant';
 import { useTheme } from '../../../context/ThemeContext';
 import { Icon } from './Icon';
@@ -31,6 +31,15 @@ const ICON = {
   delivery: dot('#ef4444', 16),
   driver: dot('#10b981', 22),
 };
+
+/** Multi-stop jobs: a numbered pin per stop (blue pickup, red drop-off, grey once handed over). */
+const numbered = (n: number, kind: 'pickup' | 'drop', done: boolean) =>
+  L.divIcon({
+    html: `<div style="width:22px;height:22px;border-radius:9999px;background:${done ? '#94a3b8' : kind === 'pickup' ? '#3b82f6' : '#ef4444'};border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);color:#fff;font:700 11px/18px system-ui;text-align:center">${n}</div>`,
+    className: '',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  });
 
 const DEFAULT_CENTER: LatLng = [24.9, 54.9];
 
@@ -70,29 +79,47 @@ export function JobRouteMap({ job, onExpand }: { job: JobWithDriver; onExpand: (
   const live = useLiveRoute(job.driver_id ? job : null, driver, job.driver_updated_at);
   const liveMode = !!driver && !!live.stop;
 
-  // Pickup → drop-off road route when no driver is on the way.
+  // Multi-stop / round trip: every stop with a pin, in order.
+  const multi = isMultiStop(job);
+  const stopPins = React.useMemo(() => (multi ? job.stops ?? [] : [])
+    .map(s => ({ s, p: validCoord(s.lat, s.lng) }))
+    .filter((x): x is { s: NonNullable<JobWithDriver['stops']>[number]; p: LatLng } => !!x.p), [multi, job.stops]);
+  const allStopsPinned = multi && stopPins.length === (job.stops?.length ?? 0) && stopPins.length >= 2;
+  const stopsKey = stopPins.map(x => x.p.join(',')).join(';');
+  // Stops still to do, from the next one on (dashed hint while the driver is on the way).
+  const remaining = stopPins.filter(x => !x.s.handed_at).map(x => x.p);
+
+  // Pickup → drop-off (or stop 1 → … → last stop) road route when no driver is on the way.
   const [staticCoords, setStaticCoords] = React.useState<LatLng[]>([]);
   const pKey = pickup?.join(','), dKey = drop?.join(',');
   React.useEffect(() => {
     setStaticCoords([]);
-    if (liveMode || !exactStops || !pickup || !drop) return;
+    if (liveMode) return;
     let alive = true;
-    getStaticRoute(pickup, drop).then(r => { if (alive && r) setStaticCoords(r.coords); });
+    if (multi) {
+      if (!allStopsPinned) return;
+      getStaticRouteVia(stopPins.map(x => x.p)).then(r => { if (alive && r) setStaticCoords(r.coords); });
+    } else {
+      if (!exactStops || !pickup || !drop) return;
+      getStaticRoute(pickup, drop).then(r => { if (alive && r) setStaticCoords(r.coords); });
+    }
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveMode, exactStops, pKey, dKey]);
+  }, [liveMode, exactStops, pKey, dKey, multi, allStopsPinned, stopsKey]);
 
   const routeCoords = liveMode ? live.coords : staticCoords;
   const fitPoints = React.useMemo<LatLng[]>(
-    () => [pickup, drop, liveMode ? driver : null, ...routeCoords].filter(Boolean) as LatLng[],
+    () => [...(multi ? stopPins.map(x => x.p) : [pickup, drop]), liveMode ? driver : null, ...routeCoords].filter(Boolean) as LatLng[],
     // Refit only when the stops change or a route first appears.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pKey, dKey, liveMode, routeCoords.length > 0],
+    [pKey, dKey, stopsKey, liveMode, routeCoords.length > 0],
   );
 
-  const etaLabel = live.stop?.kind === 'delivery'
-    ? t('liveMap.etaDropoff', { defaultValue: 'ETA to drop-off' })
-    : t('liveMap.etaPickup', { defaultValue: 'ETA to pickup' });
+  const etaLabel = live.stop?.seq
+    ? t('liveMap.etaStop', { defaultValue: 'ETA to stop {{n}} of {{total}}', n: live.stop.seq, total: live.stop.total })
+    : live.stop?.kind === 'delivery'
+      ? t('liveMap.etaDropoff', { defaultValue: 'ETA to drop-off' })
+      : t('liveMap.etaPickup', { defaultValue: 'ETA to pickup' });
 
   return (
     <div className="jw-map">
@@ -125,14 +152,21 @@ export function JobRouteMap({ job, onExpand }: { job: JobWithDriver; onExpand: (
           <Polyline positions={routeCoords} pathOptions={{ color: '#2563eb', weight: 4, opacity: 0.85 }} />
         )}
         {/* Heading to pickup: hint the rest of the trip without another lookup. */}
-        {liveMode && live.stop?.kind === 'pickup' && pickup && drop && (
+        {!multi && liveMode && live.stop?.kind === 'pickup' && pickup && drop && (
           <Polyline positions={[pickup, drop]} pathOptions={{ color: '#94a3b8', weight: 2, dashArray: '4 6' }} />
         )}
-        {!routeCoords.length && !liveMode && pickup && drop && (
+        {!multi && !routeCoords.length && !liveMode && pickup && drop && (
           <Polyline positions={[pickup, drop]} pathOptions={{ color: '#94a3b8', weight: 2, dashArray: '4 6' }} />
         )}
-        {pickup && <Marker position={pickup} icon={ICON.pickup} title={t('liveMap.pickup')} />}
-        {drop && <Marker position={drop} icon={ICON.delivery} title={t('liveMap.delivery')} />}
+        {multi && (liveMode ? remaining.length > 1 : !routeCoords.length && stopPins.length > 1) && (
+          <Polyline positions={liveMode ? remaining : stopPins.map(x => x.p)} pathOptions={{ color: '#94a3b8', weight: 2, dashArray: '4 6' }} />
+        )}
+        {!multi && pickup && <Marker position={pickup} icon={ICON.pickup} title={t('liveMap.pickup')} />}
+        {!multi && drop && <Marker position={drop} icon={ICON.delivery} title={t('liveMap.delivery')} />}
+        {stopPins.map(({ s, p }) => (
+          <Marker key={s.id ?? s.seq} position={p} icon={numbered(s.seq, s.kind, !!s.handed_at)}
+            title={`${s.seq}. ${s.kind === 'pickup' ? t('liveMap.pickup') : t('liveMap.delivery')} · ${s.address}`} />
+        ))}
         {liveMode && driver && <Marker position={driver} icon={ICON.driver} zIndexOffset={1000} title={job.driver?.full_name || ''} />}
       </MapContainer>
 

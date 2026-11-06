@@ -343,6 +343,10 @@
         "label": "Delivery window missed",
         "desc": "Collected but not delivered by the end of its delivery window."
       },
+      "stopLate": {
+        "label": "Stop window missed",
+        "desc": "A stop on this multi-stop job was not handed over by the end of its time window."
+      },
       "stalledJob": {
         "label": "Stalled job",
         "desc": "No driver location update for a while during an active delivery."

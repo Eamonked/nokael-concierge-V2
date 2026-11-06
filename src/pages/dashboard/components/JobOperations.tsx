@@ -7,8 +7,10 @@ import {
 import { downloadCocForJob } from '../../../lib/cocPdf';
 import {
   updateJob, overrideJobLevel, overrideCocStep, cancelJob, reactivateJob, resetJobOtpAttempts,
+  isMultiStop, currentStop,
   type JobStatus, type JobWithDriver,
 } from '../../../lib/supabase';
+import { StopOperations } from './StopOperations';
 import { FAILURE_REASON_KEYS, getStageConfig } from '../constants';
 import { getVerificationSteps, isDriverOnly, stepI18nKey, type CocStepKey } from '../verificationSteps';
 import { WriteGuard } from '../permissions';
@@ -82,7 +84,9 @@ export function JobOperations({
   const tEn = i18n.getFixedT('en', 'dashboard');
   const isReturned = job.status === 'returned';
   const isCancelled = job.status === 'cancelled';
-  const otpLocked = (job.otp_attempts ?? 0) >= MAX_OTP_ATTEMPTS && !CLOSED.includes(job.status);
+  // Multi-stop / round-trip: stops, codes and messages come from StopOperations.
+  const stopJob = isMultiStop(job);
+  const otpLocked = (stopJob ? (currentStop(job)?.otp_attempts ?? 0) : (job.otp_attempts ?? 0)) >= MAX_OTP_ATTEMPTS && !CLOSED.includes(job.status);
 
   const [flash, setFlash] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState<string | null>(null);
@@ -375,7 +379,7 @@ export function JobOperations({
         {/* ── Parties & job facts ─────────────────────────────────────────── */}
         <section className="jo-section">
           <h3>{t('jobDetailModal.details.title')}</h3>
-          <div className="jo-parties">
+          {!stopJob && <div className="jo-parties">
             {[
               { key: 'sender', title: t('jobDetailModal.details.consignor'), name: job.sender_name, phone: job.sender_phone, emirate: job.pickup_emirate, place: job.pickup_location,
                 building: job.pickup_building, company: job.pickup_company, notes: job.pickup_notes, window: formatWindow(job.pickup_window_start, job.pickup_window_end) },
@@ -392,7 +396,7 @@ export function JobOperations({
                 {party.notes && <p className="jo-party-notes">{party.notes}</p>}
               </div>
             ))}
-          </div>
+          </div>}
           <dl className="jo-facts">
             <div><dt>{t('jobDetailModal.details.item')}</dt><dd>{job.item_type ? t(`jobDetailModal.details.itemTypes.${job.item_type}`, { defaultValue: job.item_type.replace('_', ' ') }) : '—'}</dd></div>
             <div><dt>{t('jobDetailModal.details.urgency')}</dt><dd>{job.urgency ? t(`jobDetailModal.details.urgencies.${job.urgency}`, { defaultValue: job.urgency }) : '—'}</dd></div>
@@ -444,8 +448,10 @@ export function JobOperations({
           </label>
         </section>
 
+        {stopJob && <StopOperations job={job} run={run} busy={busy} onUpdate={onUpdate} views={views} />}
+
         {/* ── Hand-offs: codes, portal links, manual override ─────────────── */}
-        <section className="jo-section">
+        {!stopJob && <section className="jo-section">
           <div className="jo-section-head">
             <h3>{t('jobDetailModal.verification.title')}</h3>
             <span className="jw-tag">{driverOnly ? 'Driver-only handoff' : 'Four-step handoff'}</span>
@@ -507,10 +513,10 @@ export function JobOperations({
               );
             })}
           </ol>
-        </section>
+        </section>}
 
         {/* ── Send to each person: one row each ───────────────────────────── */}
-        <section className="jo-section">
+        {!stopJob && <section className="jo-section">
           <h3>{t('jobDetailModal.share.title', { defaultValue: 'Send job details' })}</h3>
           <ul className="jo-share">
             {recipients.map(r => (
@@ -546,13 +552,16 @@ export function JobOperations({
               </li>
             ))}
           </ul>
-        </section>
+        </section>}
 
         {/* ── Stage override & audit notes ────────────────────────────────── */}
         <section className="jo-section" id={JOB_CONTROLS_ID}>
           <h3>{t('jobDetailModal.emergency.title')}</h3>
           {isReturned ? (
             <p className="jo-hint">{t('jobDetailModal.returnedFinalNote')}</p>
+          ) : stopJob ? (
+            // Stage jumps would write the mirrored pickup/delivery columns directly; stop jobs move stop by stop.
+            <p className="jo-hint">{t('stops.noStageJump', { defaultValue: 'Multi-stop jobs move stop by stop: use the stop overrides above. To stop the job, cancel it.' })}</p>
           ) : (
             <>
               <p className="jo-hint"><strong>{t('jobDetailModal.emergency.useOnlyIf')}</strong> {t('jobDetailModal.emergency.useOnlyIfBody')}</p>

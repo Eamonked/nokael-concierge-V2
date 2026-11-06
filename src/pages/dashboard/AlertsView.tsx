@@ -20,6 +20,7 @@ const SEVERITY_CLASS: Record<AlertSeverity, string> = {
 const TYPE_ICON: Record<AlertType, any> = {
   slaBreach: AlertTriangle,
   deliveryLate: Clock,
+  stopLate: Clock,
   stalledJob: Radio,
   failedHandoff: XCircle,
   signalLost: WifiOff,

@@ -1,4 +1,5 @@
 import React from 'react';
+import { routeTag } from '../../../lib/jobRoute';
 import { motion } from 'motion/react';
 import { AlertTriangle, MapPin, ChevronRight, Navigation, User, Undo2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -80,6 +81,7 @@ export const KanbanColumn = ({ title, status, jobs, onJobClick }: { title: strin
                 <Navigation className="w-3 h-3 text-brand-muted shrink-0" />
                 <p className="text-xs font-medium truncate">{job.delivery_location}</p>
               </div>
+              {routeTag(job) && <p className="text-[10px] text-brand-muted text-center">{routeTag(job)}</p>}
             </div>
 
             {/* COC Mini Progress Bar */}

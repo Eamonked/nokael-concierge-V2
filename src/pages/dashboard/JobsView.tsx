@@ -1,8 +1,9 @@
 import React from 'react';
 import type { JobWithDriver, Driver } from '../../lib/supabase';
-import { assignDriverToJob, updateJob, overrideCocStep } from '../../lib/supabase';
+import { assignDriverToJob, updateJob, overrideCocStep, overrideJobStop, isMultiStop, currentStop, isNeedsDriverAppError } from '../../lib/supabase';
+import { routeTag } from '../../lib/jobRoute';
 import {
-  jobStage, stageSteps, nextAction, noteLocalStageChange, STAGE_LABEL, STAGE_TONE, NEXT_ACTION_LABEL, type JobStage, type NextAction,
+  jobStage, stageSteps, nextAction, nextActionLabel, noteLocalStageChange, STAGE_LABEL, STAGE_TONE, NEXT_ACTION_LABEL, type JobStage, type NextAction,
 } from '../../lib/jobStage';
 import { useCanWrite, READ_ONLY_MESSAGE } from './permissions';
 import { generateJobPOC } from '../../lib/pdf-export';
@@ -123,8 +124,8 @@ function JobList({
               <i className={`jw-dot ${statusDotClass(jobStage(job))}`} title={STAGE_LABEL[jobStage(job)]} />
               {job.job_ref || job.id?.slice(0, 8)}
             </span>
-            <span className="jw-route" title={`${job.pickup_location} → ${job.delivery_location}`}>
-              {job.pickup_emirate} – {job.delivery_emirate}
+            <span className="jw-route" title={isMultiStop(job) ? (job.stops ?? []).map(s => `${s.seq}. ${s.address}`).join('\n') : `${job.pickup_location} → ${job.delivery_location}`}>
+              {job.pickup_emirate} – {job.delivery_emirate}{routeTag(job) && <small className="jw-route-tag"> {routeTag(job)}</small>}
             </span>
             <span className="jw-when">{pickupAt(job) ? formatDate(pickupAt(job)!) : '—'}</span>
             <strong className="jw-tier">{job.urgency}</strong>
@@ -167,7 +168,9 @@ function JobDetailPanel({
   const pickupSide = new Set(['heading', 'at_pickup', 'picked_up']);
   const steps = stageSteps(job).map(step => ({
     ...step,
-    place: step.key === 'booked' ? null : pickupSide.has(step.key) ? job.pickup_emirate : job.delivery_emirate,
+    place: step.key === 'booked' ? null
+      : step.key.startsWith('stop-') ? job.stops?.find(s => `stop-${s.seq}` === step.key)?.emirate ?? null
+      : pickupSide.has(step.key) ? job.pickup_emirate : job.delivery_emirate,
   }));
 
   const copyRef = () => {
@@ -200,7 +203,7 @@ function JobDetailPanel({
           <button className="jw-ghost" onClick={onEdit}>Edit details</button>
           <button className="jw-primary" disabled={!next} onClick={onAdvance}
             title={next ? 'Record this step for the driver (use only if they can\'t do it in the app)' : undefined}>
-            {next ? NEXT_ACTION_LABEL[next] : closed ? 'Job closed' : 'Waiting for driver'}
+            {next ? nextActionLabel(job, next) : closed ? 'Job closed' : 'Waiting for driver'}
           </button>
           <div className="jw-menu-wrap" ref={menuRef}>
             <button className="jw-round" onClick={() => setMenuOpen((o) => !o)} aria-label={`More actions for ${job.job_ref}`} aria-expanded={menuOpen}>
@@ -304,7 +307,7 @@ function JobDetailPanel({
       <div className="jw-route-head">
         <div>
           <h3>Route</h3>
-          <span className="jw-tag">{job.confirmation_mode === 'driver_only' ? 'Driver-only handoff' : 'Four-step handoff'}</span>
+          <span className="jw-tag">{isMultiStop(job) ? `${job.job_kind === 'round_trip' ? 'Round trip' : 'Multi-stop'} · ${job.stops?.length ?? 0} stops` : job.confirmation_mode === 'driver_only' ? 'Driver-only handoff' : 'Four-step handoff'}</span>
         </div>
       </div>
 
@@ -394,7 +397,8 @@ export function JobsView({
     .filter((job) => matchesFilter(job, filter))
     .filter((job) => {
       if (!query) return true;
-      const haystack = `${job.job_ref} ${job.sender_name} ${job.pickup_location} ${job.delivery_location} ${job.driver?.full_name || ''}`.toLowerCase();
+      const stopText = (job.stops ?? []).map(s => `${s.address} ${s.contact_name || ''}`).join(' ');
+      const haystack = `${job.job_ref} ${job.sender_name} ${job.pickup_location} ${job.delivery_location} ${stopText} ${job.driver?.full_name || ''}`.toLowerCase();
       return haystack.includes(query);
     })
     .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
@@ -422,9 +426,12 @@ export function JobsView({
     if (denyIfViewer()) return;
     const action = nextAction(job);
     if (!action) return;
-    if (!window.confirm(`${NEXT_ACTION_LABEL[action]} for ${job.job_ref}?\n\nOnly do this if the driver can't record it in the app.`)) return;
+    const label = nextActionLabel(job, action);
+    if (!window.confirm(`${label} for ${job.job_ref}?\n\nOnly do this if the driver can't record it in the app.`)) return;
     const now = new Date().toISOString();
-    const entry = `[${clock(now)}] ${NEXT_ACTION_LABEL[action]} by dispatch`;
+    const entry = `[${clock(now)}] ${label} by dispatch`;
+    // Multi-stop jobs move stop by stop (ops_stop_override keeps the stop list and the job in step).
+    const stop = currentStop(job);
     const notes = job.operator_notes ? `${job.operator_notes}\n${entry}` : entry;
     const run: Record<NextAction, () => Promise<unknown>> = {
       arrive_pickup: () => updateJob(job.id!, { driver_arrived_pickup_at: now, operator_notes: notes }),
@@ -438,6 +445,8 @@ export function JobsView({
       arrive_dropoff: () => updateJob(job.id!, { driver_arrived_delivery_at: now, operator_notes: notes }),
       deliver: () => overrideCocStep(job.id!, 'driver_delivery_at', true, notes, job.confirmation_mode),
       recipient_confirm: () => overrideCocStep(job.id!, 'client_delivery_at', true, notes, job.confirmation_mode),
+      stop_arrive: async () => { await overrideJobStop(job.id!, stop!.id!, 'arrive'); await updateJob(job.id!, { operator_notes: notes }); },
+      stop_handover: async () => { await overrideJobStop(job.id!, stop!.id!, 'handover'); await updateJob(job.id!, { operator_notes: notes }); },
     };
     noteLocalStageChange(job.id!);
     try {
@@ -454,6 +463,10 @@ export function JobsView({
       await assignDriverToJob(job.id!, driverId);
       onUpdate();
     } catch (err: any) {
+      if (isNeedsDriverAppError(err)) {
+        alert('This driver needs Nokael Driver 1.1 or newer for multi-stop jobs. Ask them to update the app, or pick another driver.');
+        return;
+      }
       alert(`Could not assign driver: ${err.message || err}`);
     }
   };

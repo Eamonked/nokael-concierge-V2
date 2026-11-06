@@ -51,13 +51,17 @@ export async function downloadCocPdf(job: CocJobData, driver: DriverContact | nu
 export async function loadPodFixes(jobId: string): Promise<PodFix[]> {
   if (!supabase) throw new Error('Supabase not configured');
   const { data, error } = await supabase.from('job_pod_log')
-    .select('step, action, method, driver_lat, driver_lng, accuracy_m, fix_age_s, created_at')
+    .select('step, action, method, driver_lat, driver_lng, accuracy_m, fix_age_s, created_at, stop_id')
     .eq('job_id', jobId)
     .order('created_at', { ascending: false });
   if (error) throw error;
 
   const latest = new Map<string, any>();
-  for (const row of data ?? []) if (!latest.has(row.step)) latest.set(row.step, row);
+  // Multi-stop jobs log one stop_handover row per stop: key by step + stop.
+  for (const row of data ?? []) {
+    const key = `${row.step}:${row.stop_id ?? ''}`;
+    if (!latest.has(key)) latest.set(key, row);
+  }
   return [...latest.values()]
     .filter((r) => r.action === 'confirmed')
     .map((r) => ({ ...r, confirmed_at: r.created_at }));
