@@ -39,6 +39,8 @@ export interface TenantSettings {
   coc?: Partial<import('./cocRender').CocTemplate>;
   /** Waiting time policy (see lib/waiting.ts); missing = 15 free, then 25 per 15 min. */
   waiting?: { enabled: boolean; free_min: number; block_min: number; block_aed: number };
+  /** Drivers see every window this many minutes earlier than the client (supabase-driver-window-lead.sql); missing = 15. */
+  driver_lead_min?: number;
 }
 
 export interface TenantBranding {
@@ -274,6 +276,18 @@ export const formatWindow = (start?: string | null, end?: string | null, tenant:
     return `${day(start)}, ${st.slice(-2) === et.slice(-2) ? st.slice(0, -3) : st}–${et}`;
   }
   return start ? `${day(start)}, from ${time(start)}` : `${day(end!)}, by ${time(end!)}`;
+};
+
+/** Minutes drivers are told to be there before the client's window (server: _driver_lead). */
+export const driverLeadMin = (tenant: TenantProfile = active): number => {
+  const v = tenant.settings.driver_lead_min;
+  return typeof v === 'number' && Number.isFinite(v) ? Math.min(Math.max(Math.round(v), 0), 120) : 15;
+};
+
+/** A client window as the driver sees it: both ends moved earlier by the driver lead. */
+export const formatDriverWindow = (start?: string | null, end?: string | null, tenant: TenantProfile = active): string => {
+  const shift = (iso?: string | null) => (iso ? new Date(new Date(iso).getTime() - driverLeadMin(tenant) * 60000).toISOString() : iso);
+  return formatWindow(shift(start), shift(end), tenant);
 };
 
 /** Region choices for a picker; keeps a legacy/unknown current value selectable. */

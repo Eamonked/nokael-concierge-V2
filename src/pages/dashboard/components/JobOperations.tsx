@@ -17,7 +17,7 @@ import { FAILURE_REASON_KEYS, getStageConfig } from '../constants';
 import { getVerificationSteps, isDriverOnly, stepI18nKey, type CocStepKey } from '../verificationSteps';
 import { WriteGuard } from '../permissions';
 import { noteLocalStageChange } from '../../../lib/jobStage';
-import { formatMoney, formatWindow } from '../../../lib/tenant';
+import { driverLeadMin, formatDriverWindow, formatMoney, formatWindow } from '../../../lib/tenant';
 import { jobAttachmentUrl, supabase } from '../../../lib/supabase';
 
 interface ClientFeedback {
@@ -183,6 +183,9 @@ export function JobOperations({
 
   const pickupWindow = formatWindow(job.pickup_window_start, job.pickup_window_end);
   const deliveryWindow = formatWindow(job.scheduled_delivery_start, job.scheduled_delivery_end);
+  // Drivers get every window earlier than the client (Settings → Driver lead time).
+  const driverPickupWindow = formatDriverWindow(job.pickup_window_start, job.pickup_window_end);
+  const driverDeliveryWindow = formatDriverWindow(job.scheduled_delivery_start, job.scheduled_delivery_end);
 
   const buildMessage = (type: 'sender' | 'driver' | 'recipient') => {
     const ref = `Job #${job.job_ref}`;
@@ -190,9 +193,9 @@ export function JobOperations({
       return [
         `New job assigned — ${ref}`,
         `Pickup: ${job.pickup_location}, ${job.pickup_emirate}`,
-        ...(pickupWindow ? [`Pickup window: ${pickupWindow}`] : []),
+        ...(driverPickupWindow ? [`Be at pickup: ${driverPickupWindow}`] : []),
         `Delivery: ${job.delivery_location}, ${job.delivery_emirate}`,
-        ...(deliveryWindow ? [`Delivery window: ${deliveryWindow}`] : []),
+        ...(driverDeliveryWindow ? [`Be at delivery: ${driverDeliveryWindow}`] : []),
         `Item: ${job.item_type} | Urgency: ${job.urgency}`,
         `Sender: ${job.sender_name} | Recipient: ${job.recipient_name}`,
         '',
@@ -385,9 +388,9 @@ export function JobOperations({
           {!stopJob && <div className="jo-parties">
             {[
               { key: 'sender', title: t('jobDetailModal.details.consignor'), name: job.sender_name, phone: job.sender_phone, emirate: job.pickup_emirate, place: job.pickup_location,
-                building: job.pickup_building, company: job.pickup_company, notes: job.pickup_notes, window: formatWindow(job.pickup_window_start, job.pickup_window_end) },
+                building: job.pickup_building, company: job.pickup_company, notes: job.pickup_notes, window: pickupWindow, driverWindow: driverPickupWindow },
               { key: 'recipient', title: t('jobDetailModal.details.consignee'), name: job.recipient_name, phone: job.recipient_phone, emirate: job.delivery_emirate, place: job.delivery_location,
-                building: job.delivery_building, company: job.delivery_company, notes: job.delivery_notes, window: formatWindow(job.scheduled_delivery_start, job.scheduled_delivery_end) },
+                building: job.delivery_building, company: job.delivery_company, notes: job.delivery_notes, window: deliveryWindow, driverWindow: driverDeliveryWindow },
             ].map(party => (
               <div key={party.key} className="jo-party">
                 <small>{party.title}</small>
@@ -396,6 +399,7 @@ export function JobOperations({
                 <p><strong>{party.emirate}</strong> · {party.place}</p>
                 {(party.building || party.company) && <p>{[party.building, party.company].filter(Boolean).join(' · ')}</p>}
                 {party.window && <p>{t('jobDetailModal.details.window', { defaultValue: 'Window' })}: {party.window}</p>}
+                {party.window && driverLeadMin() > 0 && <p className="jo-driver-window">Driver told: {party.driverWindow}</p>}
                 {party.notes && <p className="jo-party-notes">{party.notes}</p>}
               </div>
             ))}

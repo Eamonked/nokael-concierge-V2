@@ -12158,6 +12158,7 @@ main.stats-hidden .driver-app-strip {
   font-size: 12px;
 }
 .jw-wait-line.charged { color: var(--ent-warning-text); font-weight: 600; }
+.jo-driver-window { color: var(--ent-muted); font-size: 0.85em; }
 .jo-wait-list {
   list-style: none;
   margin: 0;

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Check, CheckSquare, Copy, ExternalLink, Eye, Flag, Loader2, MapPin, MessageSquare, Minus } from 'lucide-react';
 import { overrideJobStop, endJobEarly, updateJob, currentStop, type JobStop, type JobWithDriver } from '../../../lib/supabase';
-import { formatWindow } from '../../../lib/tenant';
+import { driverLeadMin, formatDriverWindow, formatWindow } from '../../../lib/tenant';
 import type { LinkView } from '../../../lib/dispatch';
 import { noteLocalStageChange } from '../../../lib/jobStage';
 import { VIEWING_NOW_MS } from '../../../lib/dispatch';
@@ -104,7 +104,7 @@ export function StopOperations({
   const driverMessage = () => [
     `New ${isRound ? 'round-trip' : 'multi-stop'} job assigned — ${ref} (${stops.length} stops)`,
     ...stops.map(s => {
-      const w = formatWindow(s.window_start, s.window_end);
+      const w = formatDriverWindow(s.window_start, s.window_end);
       return `${s.seq}. ${stopKindLabel(s)}: ${s.address}${s.emirate ? `, ${s.emirate}` : ''}${w ? ` · ${w}` : ''}${s.item_note ? ` · ${s.item_note}` : ''}`;
     }),
     '',
@@ -158,6 +158,7 @@ export function StopOperations({
                   <small><MapPin className="jo-inline-icon" /> {[s.emirate, s.address].filter(Boolean).join(' · ')}</small>
                   {(s.building || s.company) && <small>{[s.building, s.company].filter(Boolean).join(' · ')}</small>}
                   {formatWindow(s.window_start, s.window_end) && <small>{t('jobDetailModal.details.window', { defaultValue: 'Window' })}: {formatWindow(s.window_start, s.window_end)}</small>}
+                  {formatWindow(s.window_start, s.window_end) && driverLeadMin() > 0 && <small className="jo-driver-window">Driver told: {formatDriverWindow(s.window_start, s.window_end)}</small>}
                   {s.item_note && <small>{t('stops.item', { defaultValue: 'Item' })}: {s.item_note}</small>}
                   {s.notes && <small className="jo-party-notes">{s.notes}</small>}
                   <small>

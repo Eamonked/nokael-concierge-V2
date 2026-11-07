@@ -8,7 +8,7 @@ import { CompaniesPanel } from './components/CompaniesPanel';
 import { DomainCard } from './components/DomainCard';
 import { CocTemplateCard } from './components/CocTemplateCard';
 import { policyText, waitingPolicy } from '../../lib/waiting';
-import { getActiveTenant, normalizeTenant, setActiveTenant } from '../../lib/tenant';
+import { driverLeadMin, getActiveTenant, normalizeTenant, setActiveTenant } from '../../lib/tenant';
 import { getOnboardingMe, type OnboardingMe } from '../../lib/onboarding';
 import { findCountry } from '../../lib/countries';
 import { supabase } from '../../lib/supabase';
@@ -115,6 +115,59 @@ function WaitingPolicyField({ orgId, canEdit }: { orgId: string; canEdit: boolea
         <div className="settings-form-footer">
           <button className="primary" disabled={state === 'saving' || !dirty || !valid} onClick={save}>
             {state === 'saving' ? 'Saving…' : 'Save waiting time'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** organizations.settings.driver_lead_min via update_org_profile (owner/admin). */
+function DriverLeadField({ orgId, canEdit }: { orgId: string; canEdit: boolean }) {
+  const [lead, setLead] = React.useState(driverLeadMin());
+  const [saved, setSaved] = React.useState(lead);
+  const [state, setState] = React.useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [error, setError] = React.useState('');
+  const valid = Number.isInteger(lead) && lead >= 0 && lead <= 120;
+
+  const save = async () => {
+    if (!supabase || !valid) return;
+    setState('saving');
+    const { data, error: err } = await supabase.rpc('update_org_profile', { p_org: orgId, p_settings: { driver_lead_min: lead } });
+    if (err || (data as any)?.settings?.driver_lead_min !== lead) {
+      setError(err?.message || 'The database is not ready for this yet (supabase-driver-window-lead.sql).');
+      setState('error');
+      return;
+    }
+    setActiveTenant(normalizeTenant(data));
+    setSaved(lead);
+    setState('saved');
+  };
+
+  // Example on a 2:00–4:00 pm window today.
+  const clock = (m: number) => { const h = Math.floor(m / 60), mm = String(m % 60).padStart(2, '0'); return `${((h + 11) % 12) + 1}:${mm} ${h < 12 ? 'am' : 'pm'}`; };
+  const example = (mins: number) => `${clock(14 * 60 - mins)}–${clock(16 * 60 - mins)}`;
+
+  return (
+    <div className="settings-form-grid">
+      <label className="field">
+        <span>Minutes earlier for drivers</span>
+        <input type="number" min={0} max={120} step={1} inputMode="numeric" value={Number.isNaN(lead) ? '' : lead} disabled={!canEdit}
+          onChange={(e) => { setLead(e.target.value === '' ? NaN : Number(e.target.value)); setState('idle'); }} />
+      </label>
+      <p className="field wide settings-hint">
+        {valid
+          ? lead > 0
+            ? `Client window 2:00–4:00 pm → driver is told ${example(lead)}. Applies to the driver app, driver links, pushes and reminders; clients and waiting time keep the real window.`
+            : 'Drivers see the same window as the client.'
+          : 'Whole minutes from 0 to 120.'}
+        {state === 'error' && <small style={{ color: 'var(--ent-danger-text)', display: 'block' }}>{error}</small>}
+        {state === 'saved' && <small style={{ color: 'var(--ent-success-text)', display: 'block' }}>Saved. Drivers see the new times on their next refresh.</small>}
+      </p>
+      {canEdit && (
+        <div className="settings-form-footer">
+          <button className="primary" disabled={state === 'saving' || lead === saved || !valid} onClick={save}>
+            {state === 'saving' ? 'Saving…' : 'Save driver lead time'}
           </button>
         </div>
       )}
@@ -306,6 +359,18 @@ export function SettingsView({ theme, onThemeChange, userEmail, orgId, currentRo
                       </div>
                     </div>
                     <WaitingPolicyField orgId={orgId} canEdit={canManageOrg} />
+                  </div>
+                )}
+
+                {me && orgId && (
+                  <div className="settings-form-card">
+                    <div className="settings-section-heading">
+                      <div>
+                        <h3>Driver lead time</h3>
+                        <p>Drivers are told every pickup and delivery window this much earlier than the client, so small delays still land on time.</p>
+                      </div>
+                    </div>
+                    <DriverLeadField orgId={orgId} canEdit={canManageOrg} />
                   </div>
                 )}
 
