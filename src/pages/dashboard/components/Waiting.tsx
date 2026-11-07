@@ -6,6 +6,7 @@ import {
   arrivedFar, jobWaits, money, openWait, policyText, waitLabel, waitState, waitSummary, waitingPolicy,
 } from '../../../lib/waiting';
 import { WriteGuard } from '../permissions';
+import { formatDateTime } from '../../../lib/tenant';
 
 /** Re-render on a clock while something is ticking (local, no refetch). */
 export function useNow(active: boolean, ms = 30000): number {
@@ -25,11 +26,34 @@ export function WaitChip({ job }: { job: JobWithDriver }) {
   const now = useNow(!!w);
   if (!w) return null;
   const s = waitState(w, now);
-  if (s.early) return null;
+  if (s.early) {
+    // Driver is there before the window: show it, the clock starts later.
+    return (
+      <em className="jw-wait-chip" title={`Driver arrived early · waiting clock starts ${formatDateTime(w.clock_start, { timeStyle: 'short' })}${w.leg === 'pickup' ? ', or when the sender marks the package ready' : ''}`}>
+        <Hourglass aria-hidden /> early
+      </em>
+    );
+  }
   return (
     <em className={`jw-wait-chip ${s.overFree ? 'charged' : ''}`} title={waitSummary(s)}>
       <Hourglass aria-hidden /> {s.minutes}m
     </em>
+  );
+}
+
+/** Live map badge while the driver waits: "Waiting 7 min", amber with the charge once it's charged. */
+export function WaitBadge({ job }: { job: JobWithDriver }) {
+  const w = openWait(job);
+  const now = useNow(!!w);
+  if (!w) return null;
+  const s = waitState(w, now);
+  const text = s.early ? 'Arrived early'
+    : s.overFree ? `Waiting ${s.minutes} min · ${money(s.charge, w.currency || job.currency)}`
+    : `Waiting ${s.minutes} min`;
+  return (
+    <span className={`dm-badge ${s.overFree ? 'warn' : 'waiting'}`} title={`${waitLabel(w)}: ${waitSummary(s)}`}>
+      ⌛ {text}
+    </span>
   );
 }
 

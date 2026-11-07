@@ -18,6 +18,7 @@ import { TERMINAL_STATUSES } from './constants';
 import { formatDateTime } from '../../lib/tenant';
 import { useCanWrite } from './permissions';
 import { useTheme } from '../../context/ThemeContext';
+import { WaitBadge } from './components/Waiting';
 
 // Driver positions refresh this often while the map is open.
 const POSITION_POLL_MS = 15_000;
@@ -313,12 +314,16 @@ export const LiveMapView: React.FC<LiveMapViewProps> = ({ jobs, drivers, orgId, 
   const GeofenceBadges: React.FC<{ job: JobWithDriver }> = ({ job }) => {
     if (isMultiStop(job)) {
       const cur = currentStop(job);
-      return cur?.near_at && !cur.arrived_at
-        ? <span className="dm-badge near">{t('liveMap.nearStop', { defaultValue: 'Near stop {{n}}', n: cur.seq })}</span>
-        : null;
+      return (
+        <>
+          {cur?.near_at && !cur.arrived_at && <span className="dm-badge near">{t('liveMap.nearStop', { defaultValue: 'Near stop {{n}}', n: cur.seq })}</span>}
+          <WaitBadge job={job} />
+        </>
+      );
     }
     return (
     <>
+      <WaitBadge job={job} />
       {job.driver_near_pickup_at && !job.driver_pickup_at && (
         <span className="dm-badge near">{t('liveMap.nearPickup', { defaultValue: 'Near pickup' })}</span>
       )}

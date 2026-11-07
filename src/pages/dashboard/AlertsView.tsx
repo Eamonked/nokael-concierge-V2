@@ -21,6 +21,7 @@ const TYPE_ICON: Record<AlertType, any> = {
   slaBreach: AlertTriangle,
   deliveryLate: Clock,
   stopLate: Clock,
+  driverWaiting: Hourglass,
   clientWaiting: Hourglass,
   stalledJob: Radio,
   failedHandoff: XCircle,

@@ -304,7 +304,7 @@ export function getDashboardStats(
 // (not a fresh Date.now() inline) purely so this stays a pure, unit-testable
 // (data, now) -> data function like everything else in this file.
 
-export type AlertType = 'slaBreach' | 'deliveryLate' | 'stopLate' | 'clientWaiting' | 'stalledJob' | 'failedHandoff' | 'signalLost';
+export type AlertType = 'slaBreach' | 'deliveryLate' | 'stopLate' | 'driverWaiting' | 'clientWaiting' | 'stalledJob' | 'failedHandoff' | 'signalLost';
 export type AlertSeverity = 'critical' | 'warning' | 'info';
 
 export interface Alert {
@@ -364,15 +364,21 @@ export function getAlerts(jobs: JobWithDriver[], now: number = Date.now()): Aler
       }
     }
 
-    // Driver kept waiting past the free time (charged waiting has started).
+    // Driver waiting at a point: info from arrival (also when early), then the
+    // "kept waiting" warning instead once the free time is over (charging).
     const waiting = openWait(job);
     if (waiting) {
       const freeEnds = new Date(waiting.clock_start).getTime() + waiting.free_min * 60000;
+      const where = `${jobRef} · ${waitLabel(waiting).toLowerCase()}`;
       if (freeEnds <= now) {
         alerts.push({
-          id: `${job.id}-clientWaiting-${waiting.id}`, jobId: job.id,
-          jobRef: `${jobRef} · ${waitLabel(waiting).toLowerCase()}`,
+          id: `${job.id}-clientWaiting-${waiting.id}`, jobId: job.id, jobRef: where,
           type: 'clientWaiting', severity: 'warning', detectedAt: new Date(freeEnds).toISOString(),
+        });
+      } else {
+        alerts.push({
+          id: `${job.id}-driverWaiting-${waiting.id}`, jobId: job.id, jobRef: where,
+          type: 'driverWaiting', severity: 'info', detectedAt: waiting.arrived_at || waiting.clock_start,
         });
       }
     }

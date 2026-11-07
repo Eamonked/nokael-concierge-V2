@@ -5,6 +5,8 @@ import { supabase, type JobWithDriver } from '../../../lib/supabase';
 import { subscribeToJobEvents, acknowledgeJobEvent, type JobEvent } from '../../../lib/dispatch';
 import { formatDistance } from '../../../lib/geo';
 import { jobStage, isRecentLocalChange, STAGE_LABEL, type JobStage } from '../../../lib/jobStage';
+import { openWait } from '../../../lib/waiting';
+import { formatDateTime } from '../../../lib/tenant';
 
 /** A driver moved a job to a new stage (seen in the live jobs feed, not job_events). */
 /** `where` is captured when the toast is raised (multi-stop jobs move on to the next stop). */
@@ -59,7 +61,14 @@ export function GeofenceAlerts({ jobs, onOpenJob }: { jobs: JobWithDriver[]; onO
       // Multi-stop: the stop the driver is on (or just finished), not the mirrored pickup/drop columns.
       const where = event.where
         ?? (['at_pickup', 'picked_up'].includes(event.stage) ? job?.pickup_location : job?.delivery_location);
-      return { job, title: `${driver}: ${STAGE_LABEL[event.stage]}`, body: [ref, where].filter(Boolean).join(' · ') };
+      // Arrivals: say the waiting clock is running (or when it starts, if early).
+      const w = ['at_pickup', 'at_dropoff'].includes(event.stage) && job ? openWait(job) : null;
+      const clock = w
+        ? new Date(w.clock_start).getTime() > Date.now()
+          ? `early, waiting clock starts ${formatDateTime(w.clock_start, { timeStyle: 'short' })}${w.leg === 'pickup' ? ' or when the sender marks ready' : ''}`
+          : `waiting clock started (${w.free_min} min free)`
+        : null;
+      return { job, title: `${driver}: ${STAGE_LABEL[event.stage]}`, body: [ref, where, clock].filter(Boolean).join(' · ') };
     }
     if (event.type === 'geofence_stop') {
       const stop = job?.stops?.find(s => s.id === event.stop_id);

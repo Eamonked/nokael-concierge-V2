@@ -10986,6 +10986,11 @@ main.stats-hidden .driver-app-strip {
   color: var(--ent-info-text);
 }
 
+.dm-badge.waiting {
+  background: var(--ent-line-soft);
+  color: var(--ent-text);
+}
+
 .dm-badge.warn {
   background: var(--ent-warning-bg);
   color: var(--ent-warning-text);

@@ -97,7 +97,9 @@ export const policyText = (p: WaitingPolicy = waitingPolicy(), currency?: string
 export function waitSummary(s: WaitState): string {
   const cur = s.wait.currency;
   if (s.open) {
-    if (s.early) return 'Driver early · clock starts at the window';
+    if (s.early) return s.wait.leg === 'pickup'
+      ? 'Driver early · clock starts at the window, or when the sender marks the package ready'
+      : 'Driver early · clock starts at the window';
     return s.overFree
       ? `Waiting ${s.minutes} min · ${money(s.charge, cur)} so far`
       : `Waiting ${s.minutes} min · ${s.freeLeft} free min left`;

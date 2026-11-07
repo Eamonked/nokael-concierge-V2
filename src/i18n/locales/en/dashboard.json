@@ -347,6 +347,10 @@
         "label": "Stop window missed",
         "desc": "A stop on this multi-stop job was not handed over by the end of its time window."
       },
+      "driverWaiting": {
+        "label": "Driver waiting",
+        "desc": "The driver is at this point waiting for the client. The free waiting time is still running; after it, waiting is charged."
+      },
       "clientWaiting": {
         "label": "Driver kept waiting",
         "desc": "The driver has waited past the free waiting time at this point; waiting is now being charged."
