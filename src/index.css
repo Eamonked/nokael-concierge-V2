@@ -12134,6 +12134,88 @@ main.stats-hidden .driver-app-strip {
 .home-sales-routes a { display: inline-flex; gap: 8px; align-items: center; color: var(--color-brand-neon); text-decoration: underline; text-underline-offset: 4px; min-height: 44px; }
 .home-sales-routes p { color: var(--color-brand-muted); margin-bottom: 8px; }
 
+/* ══ WAITING TIME (lib/waiting.ts, components/Waiting.tsx) ══ */
+.jw-wait-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+}
+.jw-wait-chip svg { width: 11px; height: 11px; }
+.jw-wait-chip.charged {
+  background: var(--ent-warning-bg);
+  color: var(--ent-warning-text);
+}
+.jw-wait-line {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.jw-wait-line.charged { color: var(--ent-warning-text); font-weight: 600; }
+.jo-wait-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.jo-wait {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.jo-wait.open { border-color: var(--accent); }
+.jo-wait.open.charged { border-color: var(--ent-warning-line); background: var(--ent-warning-bg); }
+.jo-wait-main {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.jo-wait-main b { font-size: 13px; font-weight: 600; }
+.jo-wait-main span { font-size: 13.5px; }
+.jo-wait-main small { color: var(--muted); font-size: 12px; }
+.jo-wait-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.jo-wait-actions a.jo-btn { text-decoration: none; }
+.jo-wait-actions svg { width: 14px; height: 14px; }
+.jo-wait-edit {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+.jo-wait-edit label { display: flex; flex-direction: column; gap: 4px; width: 110px; }
+.jo-wait-edit label.grow { flex: 1 1 220px; width: auto; }
+.jo-wait-edit small { color: var(--muted); font-size: 12px; }
+.jo-wait-edit input {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+.jo-wait-edit .jo-hint { flex: 1 1 100%; }
+.jo-btn.ghost { background: transparent; }
+.jo-wait-total { margin: 0; font-size: 13.5px; }
+.waiting-toggle span { display: flex; align-items: center; gap: 8px; }
+.settings-hint { margin: 0; color: var(--muted); font-size: 13px; }
+
 /* ══ PHONE & SMALL SCREENS (<1024px) ═══════════════════════════════════════
    The dashboard was pinned to a 1120px desktop width. Below 1024px (phones, tablets in portrait, narrow windows): no
    sidebar (a bottom tab bar, .mobile-nav, replaces it), a compact top bar, one
@@ -12897,4 +12979,11 @@ main.stats-hidden .driver-app-strip {
   .onb-invite > :nth-child(2) {
     grid-column: 1;
   }
+}
+
+@media (max-width: 1023px) {
+  .jo-wait-actions { width: 100%; }
+  .jo-wait-actions .jo-btn { flex: 1 1 auto; justify-content: center; min-height: 40px; }
+  .jo-wait-edit label { flex: 1 1 100%; width: auto; }
+  .jo-wait-edit input { height: 40px; font-size: 16px; }
 }

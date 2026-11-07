@@ -1,4 +1,5 @@
 import type { QuoteRequest, Driver, JobWithDriver, BusinessInquiry } from '../../lib/supabase';
+import { openWait, waitLabel } from '../../lib/waiting';
 
 /**
  * Pure, unit-testable derivations of the dashboard's server-backed state.
@@ -144,7 +145,8 @@ export function getBusinessFinancials(jobs: JobWithDriver[]): BusinessFinancials
 
   for (const job of jobs) {
     if (job.payment_status === 'due' || job.payment_status === 'overdue') {
-      outstanding += job.price_aed || 0;
+      // Price plus any waiting charge (jobs.waiting_charge_aed).
+      outstanding += (job.price_aed || 0) + Number(job.waiting_charge_aed || 0);
       if (job.payment_status === 'overdue') overdueCount += 1;
       if (job.payment_due_date && (!nextDueDate || job.payment_due_date < nextDueDate)) {
         nextDueDate = job.payment_due_date;
@@ -302,7 +304,7 @@ export function getDashboardStats(
 // (not a fresh Date.now() inline) purely so this stays a pure, unit-testable
 // (data, now) -> data function like everything else in this file.
 
-export type AlertType = 'slaBreach' | 'deliveryLate' | 'stopLate' | 'stalledJob' | 'failedHandoff' | 'signalLost';
+export type AlertType = 'slaBreach' | 'deliveryLate' | 'stopLate' | 'clientWaiting' | 'stalledJob' | 'failedHandoff' | 'signalLost';
 export type AlertSeverity = 'critical' | 'warning' | 'info';
 
 export interface Alert {
@@ -359,6 +361,19 @@ export function getAlerts(jobs: JobWithDriver[], now: number = Date.now()): Aler
       const deadline = cur && (cur.window_end || cur.window_start);
       if (cur && deadline && new Date(deadline).getTime() < now) {
         alerts.push({ id: `${job.id}-stopLate-${cur.seq}`, jobId: job.id, jobRef: `${jobRef} · stop ${cur.seq}`, type: 'stopLate', severity: 'critical', detectedAt: deadline });
+      }
+    }
+
+    // Driver kept waiting past the free time (charged waiting has started).
+    const waiting = openWait(job);
+    if (waiting) {
+      const freeEnds = new Date(waiting.clock_start).getTime() + waiting.free_min * 60000;
+      if (freeEnds <= now) {
+        alerts.push({
+          id: `${job.id}-clientWaiting-${waiting.id}`, jobId: job.id,
+          jobRef: `${jobRef} · ${waitLabel(waiting).toLowerCase()}`,
+          type: 'clientWaiting', severity: 'warning', detectedAt: new Date(freeEnds).toISOString(),
+        });
       }
     }
 

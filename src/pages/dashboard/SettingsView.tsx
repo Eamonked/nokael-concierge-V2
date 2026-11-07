@@ -7,6 +7,8 @@ import { PushSettingsCard } from './components/PushSettingsCard';
 import { CompaniesPanel } from './components/CompaniesPanel';
 import { DomainCard } from './components/DomainCard';
 import { CocTemplateCard } from './components/CocTemplateCard';
+import { policyText, waitingPolicy } from '../../lib/waiting';
+import { getActiveTenant, normalizeTenant, setActiveTenant } from '../../lib/tenant';
 import { getOnboardingMe, type OnboardingMe } from '../../lib/onboarding';
 import { findCountry } from '../../lib/countries';
 import { supabase } from '../../lib/supabase';
@@ -48,6 +50,71 @@ function GoogleReviewField({ orgId, initial, canEdit }: { orgId: string; initial
         <div className="settings-form-footer">
           <button className="primary" disabled={state === 'saving' || url.trim() === saved} onClick={save}>
             {state === 'saving' ? 'Saving…' : 'Save review link'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** organizations.settings.waiting via update_org_profile (owner/admin). */
+function WaitingPolicyField({ orgId, canEdit }: { orgId: string; canEdit: boolean }) {
+  const initial = waitingPolicy();
+  const [p, setP] = React.useState(initial);
+  const [saved, setSaved] = React.useState(initial);
+  const [state, setState] = React.useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [error, setError] = React.useState('');
+  const currency = getActiveTenant().settings.currency;
+  const dirty = JSON.stringify(p) !== JSON.stringify(saved);
+  const valid = Number.isInteger(p.free_min) && p.free_min >= 0 && Number.isInteger(p.block_min) && p.block_min >= 1 && p.block_aed >= 0;
+  const num = (v: string) => (v === '' ? NaN : Number(v));
+
+  const save = async () => {
+    if (!supabase || !valid) return;
+    setState('saving');
+    const { data, error: err } = await supabase.rpc('update_org_profile', { p_org: orgId, p_settings: { waiting: p } });
+    if (err || !(data as any)?.settings?.waiting) {
+      setError(err?.message || 'The database is not ready for waiting time yet (supabase-waiting-time.sql).');
+      setState('error');
+      return;
+    }
+    setActiveTenant(normalizeTenant(data));
+    setSaved(p);
+    setState('saved');
+  };
+
+  const field = (key: 'free_min' | 'block_min' | 'block_aed', label: string) => (
+    <label className="field">
+      <span>{label}</span>
+      <input type="number" min={key === 'block_min' ? 1 : 0} step={key === 'block_aed' ? 'any' : 1} inputMode="decimal"
+        value={Number.isNaN(p[key]) ? '' : p[key]} disabled={!canEdit || !p.enabled}
+        onChange={(e) => { setP({ ...p, [key]: num(e.target.value) }); setState('idle'); }} />
+    </label>
+  );
+
+  return (
+    <div className="settings-form-grid">
+      <label className="field wide waiting-toggle">
+        <span>
+          <input type="checkbox" checked={p.enabled} disabled={!canEdit}
+            onChange={(e) => { setP({ ...p, enabled: e.target.checked }); setState('idle'); }} />{' '}
+          Time and charge waiting at pickups and drop-offs
+        </span>
+      </label>
+      {field('free_min', 'Free minutes after the driver arrives')}
+      {field('block_min', 'Then charge per block of (minutes)')}
+      {field('block_aed', `Charge per block (${currency})`)}
+      <p className="field wide settings-hint">
+        {p.enabled && valid
+          ? `Clients see: ${policyText(p, currency)}. A driver who arrives before the window starts the clock at the window.`
+          : p.enabled ? 'Whole minutes; a block of at least 1 minute.' : 'Waiting is not timed or charged.'}
+        {state === 'error' && <small style={{ color: 'var(--ent-danger-text)', display: 'block' }}>{error}</small>}
+        {state === 'saved' && <small style={{ color: 'var(--ent-success-text)', display: 'block' }}>Saved. New arrivals use this; waits already running keep the old rate.</small>}
+      </p>
+      {canEdit && (
+        <div className="settings-form-footer">
+          <button className="primary" disabled={state === 'saving' || !dirty || !valid} onClick={save}>
+            {state === 'saving' ? 'Saving…' : 'Save waiting time'}
           </button>
         </div>
       )}
@@ -227,6 +294,18 @@ export function SettingsView({ theme, onThemeChange, userEmail, orgId, currentRo
                       </div>
                     </div>
                     <GoogleReviewField orgId={orgId} initial={(orgBranding as { google_review_url?: string }).google_review_url || ''} canEdit={canManageOrg} />
+                  </div>
+                )}
+
+                {me && orgId && (
+                  <div className="settings-form-card">
+                    <div className="settings-section-heading">
+                      <div>
+                        <h3>Waiting time</h3>
+                        <p>How long the driver waits for free, and what waiting costs after that. Shown to clients on their tracking link and certificate.</p>
+                      </div>
+                    </div>
+                    <WaitingPolicyField orgId={orgId} canEdit={canManageOrg} />
                   </div>
                 )}
 

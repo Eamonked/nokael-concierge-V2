@@ -337,7 +337,13 @@ export default function Dashboard() {
   const approvedDrivers   = getApprovedDrivers(drivers);
   const driverPoolSummary = getDriverPoolSummary(drivers);
   const stats             = getDashboardStats(requests, drivers, businessInquiries);
-  const alerts             = React.useMemo(() => getAlerts(jobs), [jobs]);
+  // Time-based alerts (client keeping the driver waiting) need a clock, not just job changes.
+  const [alertClock, setAlertClock] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    const t = setInterval(() => setAlertClock(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, []);
+  const alerts             = React.useMemo(() => getAlerts(jobs, alertClock), [jobs, alertClock]);
   const criticalAlertCount = alerts.filter(a => a.severity === 'critical').length;
   const followUpState      = useFollowUpState(orgId);
   const followUps          = React.useMemo(

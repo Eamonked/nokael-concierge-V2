@@ -37,6 +37,8 @@ export interface TenantSettings {
   onboarding?: { step?: number; completed_at?: string | null };
   /** Chain of Custody certificate template (see lib/cocRender.ts). */
   coc?: Partial<import('./cocRender').CocTemplate>;
+  /** Waiting time policy (see lib/waiting.ts); missing = 15 free, then 25 per 15 min. */
+  waiting?: { enabled: boolean; free_min: number; block_min: number; block_aed: number };
 }
 
 export interface TenantBranding {

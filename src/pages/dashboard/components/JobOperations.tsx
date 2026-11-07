@@ -11,6 +11,8 @@ import {
   type JobStatus, type JobWithDriver,
 } from '../../../lib/supabase';
 import { StopOperations } from './StopOperations';
+import { WaitingSection } from './Waiting';
+import { policyText, waitingPolicy } from '../../../lib/waiting';
 import { FAILURE_REASON_KEYS, getStageConfig } from '../constants';
 import { getVerificationSteps, isDriverOnly, stepI18nKey, type CocStepKey } from '../verificationSteps';
 import { WriteGuard } from '../permissions';
@@ -214,6 +216,7 @@ export function JobOperations({
       `Track it live: ${trackUrl(type)}`,
       confirm ? `When you ${sender ? 'hand it over' : 'receive it'}, tap to confirm: ${confirm}` : '',
       code ? `Your ${sender ? 'handover' : 'delivery'} code: ${code} — give it to the driver only when you ${sender ? 'hand over' : 'receive'} the package.` : '',
+      waitingPolicy().enabled ? `Includes ${policyText(waitingPolicy(), job.currency)}, counted from when the driver arrives.` : '',
     ].filter(Boolean).join('\n');
   };
 
@@ -400,7 +403,7 @@ export function JobOperations({
           <dl className="jo-facts">
             <div><dt>{t('jobDetailModal.details.item')}</dt><dd>{job.item_type ? t(`jobDetailModal.details.itemTypes.${job.item_type}`, { defaultValue: job.item_type.replace('_', ' ') }) : '—'}</dd></div>
             <div><dt>{t('jobDetailModal.details.urgency')}</dt><dd>{job.urgency ? t(`jobDetailModal.details.urgencies.${job.urgency}`, { defaultValue: job.urgency }) : '—'}</dd></div>
-            <div><dt>{t('jobDetailModal.details.price')}</dt><dd>{job.price_aed != null ? formatMoney(job.price_aed, { currency: job.currency }) : '—'}</dd></div>
+            <div><dt>{t('jobDetailModal.details.price')}</dt><dd>{job.price_aed != null ? formatMoney(job.price_aed, { currency: job.currency }) : '—'}{Number(job.waiting_charge_aed) > 0 && <> + {formatMoney(Number(job.waiting_charge_aed), { currency: job.currency })} waiting</>}</dd></div>
           </dl>
           {job.special_instructions && (
             <div className="jo-note"><small>{t('jobDetailModal.details.specialInstructions')}</small><p>{job.special_instructions}</p></div>
@@ -447,6 +450,8 @@ export function JobOperations({
             )}
           </label>
         </section>
+
+        <WaitingSection job={job} onUpdate={onUpdate} />
 
         {stopJob && <StopOperations job={job} run={run} busy={busy} onUpdate={onUpdate} views={views} />}
 

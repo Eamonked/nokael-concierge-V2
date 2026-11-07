@@ -479,6 +479,35 @@ export interface JobStop {
   visits?: number;
 }
 
+/** Driver waiting at a pickup / drop-off / stop (job_waits, supabase-waiting-time.sql). */
+export interface JobWait {
+  id: string;
+  organization_id?: string;
+  job_id: string;
+  stop_id?: string | null;
+  leg: 'pickup' | 'dropoff' | 'stop';
+  seq: number;
+  arrived_at: string;
+  /** max(arrival, window start): when the client's clock starts. */
+  clock_start: string;
+  ended_at?: string | null;
+  end_reason?: 'handover' | 'skipped' | 'cancelled' | 'returned' | 'completed' | null;
+  arrived_lat?: number | null;
+  arrived_lng?: number | null;
+  distance_m?: number | null;
+  free_min: number;
+  block_min: number;
+  block_aed: number;
+  currency: string;
+  wait_min?: number | null;
+  charge_aed?: number | null;
+  warned_at?: string | null;
+  adjusted_charge_aed?: number | null;
+  adjusted_by?: string | null;
+  adjusted_at?: string | null;
+  adjust_reason?: string | null;
+}
+
 export const isMultiStop = (job: Pick<Job, 'job_kind'> | null | undefined): boolean =>
   !!job?.job_kind && job.job_kind !== 'one_way';
 
@@ -645,6 +674,10 @@ export interface Job {
   job_kind?: JobKind;
   /** Ordered stops, loaded with the job (empty for one-way jobs). */
   stops?: JobStop[];
+
+  /** Waiting at each point (job_waits) and the sum of closed waits' charges. */
+  waits?: JobWait[];
+  waiting_charge_aed?: number | null;
 }
 
 // Map database fields to client field expectations (e.g. client_pickup_confirmed_at vs client_pickup_at)
@@ -891,17 +924,25 @@ export const populateJobsDriversPublic = async (rawJobs: any[]): Promise<JobWith
   });
 };
 
-/** Jobs are always read with their stops (empty for one-way jobs). */
-const JOB_SELECT = '*, stops:job_stops(*)';
+/** Jobs are always read with their stops (empty for one-way jobs) and waits. */
+const JOB_SELECT = '*, stops:job_stops(*), waits:job_waits(*)';
+const JOB_SELECT_NO_WAITS = '*, stops:job_stops(*)';
+// Until supabase-waiting-time.sql is applied the job_waits relation doesn't
+// exist; read without it rather than showing an empty job list.
+let waitsAvailable = true;
+const jobSelect = () => (waitsAvailable ? JOB_SELECT : JOB_SELECT_NO_WAITS);
+const isMissingWaits = (error: { message?: string; code?: string } | null) =>
+  !!error && waitsAvailable && /job_waits/.test(error.message ?? '');
 
 export const getJobs = async (): Promise<JobWithDriver[]> => {
   if (!supabase) return [];
   try {
     const { data, error } = await supabase
       .from('jobs')
-      .select(JOB_SELECT)
+      .select(jobSelect())
       .order('created_at', { ascending: false });
 
+    if (isMissingWaits(error)) { waitsAvailable = false; return getJobs(); }
     if (error) {
       console.error('[Nokael] Error fetching jobs from database:', error);
       return [];
@@ -924,10 +965,11 @@ export const getJobsForBusiness = async (businessId: string): Promise<JobWithDri
   try {
     const { data, error } = await supabase
       .from('jobs')
-      .select(JOB_SELECT)
+      .select(jobSelect())
       .eq('business_id', businessId)
       .order('created_at', { ascending: false });
 
+    if (isMissingWaits(error)) { waitsAvailable = false; return getJobsForBusiness(businessId); }
     if (error) {
       console.error('[Nokael] Error fetching jobs for business:', error);
       return [];
@@ -1919,3 +1961,10 @@ export const createDriverSession = async (
   if (error) throw error;
   return data as { expires_at: string };
 };
+
+/** Dispatch waives or changes a closed wait's charge (reason required, logged in operator notes). */
+export async function adjustJobWait(jobId: string, waitId: string, charge: number, reason: string) {
+  const { data, error } = await supabase.rpc('ops_wait_adjust', { p_job: jobId, p_wait: waitId, p_charge: charge, p_reason: reason });
+  if (error) throw error;
+  return data as JobWait;
+}

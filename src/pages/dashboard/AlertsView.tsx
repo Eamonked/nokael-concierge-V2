@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Clock, Radio, XCircle, WifiOff, CheckCircle2, ExternalLink } from 'lucide-react';
+import { AlertTriangle, Clock, Hourglass, Radio, XCircle, WifiOff, CheckCircle2, ExternalLink } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ar as arLocale } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +21,7 @@ const TYPE_ICON: Record<AlertType, any> = {
   slaBreach: AlertTriangle,
   deliveryLate: Clock,
   stopLate: Clock,
+  clientWaiting: Hourglass,
   stalledJob: Radio,
   failedHandoff: XCircle,
   signalLost: WifiOff,

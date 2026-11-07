@@ -1,3 +1,4 @@
+import { jobWaits, money, waitLabel, waitState, waitSummary } from './waiting';
 import { jsPDF } from 'jspdf';
 import { format, differenceInMinutes } from 'date-fns';
 import { type Job } from './supabase';
@@ -110,6 +111,25 @@ export const generateJobPOC = (job: any) => {
     doc.text('TOTAL TRANSIT PERFORMANCE:', 30, y + 12);
     doc.setFontSize(12);
     doc.text(`${transitMin} MINUTES`, 140, y + 12);
+  }
+
+  // --- Waiting time (job_waits) ---
+  const waits = jobWaits(job);
+  if (waits.length) {
+    y += 30;
+    doc.setTextColor(textColor);
+    doc.setFontSize(10);
+    doc.text('WAITING TIME', 20, y);
+    doc.setFontSize(9);
+    waits.forEach((w) => {
+      y += 6;
+      doc.text(`${waitLabel(w)}: ${waitSummary(waitState(w))}`, 25, y);
+    });
+    const total = Number(job.waiting_charge_aed || 0);
+    if (total > 0) {
+      y += 6;
+      doc.text(`Waiting charge: ${money(total, waits[0].currency)}`, 25, y);
+    }
   }
 
   // --- Security Footer ---

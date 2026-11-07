@@ -21,6 +21,8 @@ import { Status, type StatusKind } from './components/StatusBadge';
 import { StatCard } from './components/StatCard';
 import { JobOperations, JOB_CONTROLS_ID } from './components/JobOperations';
 import { JobRouteMap } from './components/JobRouteMap';
+import { WaitChip, WaitLine } from './components/Waiting';
+import { waitFor } from '../../lib/waiting';
 import { formatMoney, formatWindow } from '../../lib/tenant';
 
 /* ------------------------------------------------------------------ */
@@ -123,6 +125,7 @@ function JobList({
             <span className="jw-id">
               <i className={`jw-dot ${statusDotClass(jobStage(job))}`} title={STAGE_LABEL[jobStage(job)]} />
               {job.job_ref || job.id?.slice(0, 8)}
+              <WaitChip job={job} />
             </span>
             <span className="jw-route" title={isMultiStop(job) ? (job.stops ?? []).map(s => `${s.seq}. ${s.address}`).join('\n') : `${job.pickup_location} → ${job.delivery_location}`}>
               {job.pickup_emirate} – {job.delivery_emirate}{routeTag(job) && <small className="jw-route-tag"> {routeTag(job)}</small>}
@@ -178,6 +181,13 @@ function JobDetailPanel({
       : step.key.startsWith('stop-') ? job.stops?.find(s => `stop-${s.seq}` === step.key)?.emirate ?? null
       : pickupSide.has(step.key) ? job.pickup_emirate : job.delivery_emirate,
   }));
+
+  // Waiting at that point, under its arrival step (one-way) or stop step.
+  const stepWait = (key: string) =>
+    key === 'at_pickup' ? waitFor(job, 'pickup')
+      : key === 'at_dropoff' ? waitFor(job, 'dropoff')
+      : key.startsWith('stop-') ? waitFor(job, 'stop', job.stops?.find(s => `stop-${s.seq}` === key)?.id ?? '__none__')
+      : null;
 
   const copyRef = () => {
     navigator.clipboard?.writeText(job.job_ref || job.id || '').catch(() => {});
@@ -357,6 +367,7 @@ function JobDetailPanel({
                 <div className="jw-stop-place">
                   <b>{step.label}</b>
                   {step.place && <span>{step.place}</span>}
+                  <WaitLine wait={stepWait(step.key)} />
                 </div>
               </>
             );

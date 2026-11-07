@@ -1,3 +1,4 @@
+import { policyText, waitingPolicy } from '../../../lib/waiting';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -94,9 +95,10 @@ export function StopOperations({
     return [
       `Hi ${name}, here are your Nokael stops for ${ref}${isRound ? ' (round trip)' : ''}:`,
       ...lines,
+      waitingPolicy().enabled ? `Includes ${policyText(waitingPolicy(), job.currency)} at each stop, counted from when the driver arrives.` : '',
       '',
       `Track it live: ${trackUrl(list[0].token!)}`,
-    ].join('\n');
+    ].filter((line, i, all) => line !== '' || all[i - 1] !== '').join('\n');
   };
 
   const driverMessage = () => [
