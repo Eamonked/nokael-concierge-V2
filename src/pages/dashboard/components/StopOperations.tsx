@@ -8,6 +8,7 @@ import { driverLeadMin, formatDriverWindow, formatWindow } from '../../../lib/te
 import type { LinkView } from '../../../lib/dispatch';
 import { noteLocalStageChange } from '../../../lib/jobStage';
 import { VIEWING_NOW_MS } from '../../../lib/dispatch';
+import { COC_URL, DRIVER_APP_DOWNLOAD_URL } from '../../../lib/driverApp';
 
 /* ------------------------------------------------------------------ */
 /* Multi-stop / round-trip jobs in the job panel: the stop list, one   */
@@ -16,8 +17,8 @@ import { VIEWING_NOW_MS } from '../../../lib/dispatch';
 /* Replaces the parties / hand-offs / send sections of JobOperations.  */
 /* ------------------------------------------------------------------ */
 
-const COC_DOMAIN = (import.meta.env.VITE_COC_URL || 'https://nokael.ae').replace(/\/$/, '');
-const DRIVER_APP_URL = `${COC_DOMAIN}/driver-app/`;
+const COC_DOMAIN = COC_URL;
+const DRIVER_APP_URL = DRIVER_APP_DOWNLOAD_URL;
 const MAX_OTP_ATTEMPTS = 5;
 
 type Run = (key: string, action: () => Promise<unknown>, success: string, errorKey: string) => Promise<boolean>;
@@ -108,7 +109,7 @@ export function StopOperations({
       return `${s.seq}. ${stopKindLabel(s)}: ${s.address}${s.emirate ? `, ${s.emirate}` : ''}${w ? ` · ${w}` : ''}${s.item_note ? ` · ${s.item_note}` : ''}`;
     }),
     '',
-    `Open the Nokael Driver app (version 1.1 or newer) and go online to start it.`,
+    `Open the Nokael Driver app (version 1.1 or newer) and go online to start it. No app yet? Get it here: ${DRIVER_APP_URL}`,
     'Each stop’s contact gives you their own code at the hand-off.',
   ].join('\n');
 
@@ -256,7 +257,12 @@ export function StopOperations({
               {job.driver_notified ? <><Check />{t('jobDetailModal.share.sent', { defaultValue: 'Sent' })}</> : t('jobDetailModal.share.notSent', { defaultValue: 'Not sent' })}
             </span>
             <div className="jo-share-actions">
-              <a className="jo-icon" href={DRIVER_APP_URL} target="_blank" rel="noopener noreferrer"><ExternalLink /></a>
+              <button type="button" className="jo-icon" onClick={() => copy('link-driver', DRIVER_APP_URL)}
+                aria-label={t('jobDetailModal.share.copyDriverApp', { defaultValue: 'Copy driver app link' })} title={t('jobDetailModal.share.copyDriverApp', { defaultValue: 'Copy driver app link' })}>
+                {copied === 'link-driver' ? <Check /> : <Copy />}
+              </button>
+              <a className="jo-icon" href={DRIVER_APP_URL} target="_blank" rel="noopener noreferrer"
+                aria-label={t('jobDetailModal.share.openDriverApp', { defaultValue: 'Open app download page' })} title={t('jobDetailModal.share.openDriverApp', { defaultValue: 'Open app download page' })}><ExternalLink /></a>
               <button type="button" className="jo-btn jo-share-send" disabled={!job.driver?.phone} onClick={sendDriver}>
                 <MessageSquare />{job.driver_notified ? t('jobDetailModal.share.resend', { defaultValue: 'Resend' }) : t('jobDetailModal.share.send', { defaultValue: 'WhatsApp' })}
               </button>

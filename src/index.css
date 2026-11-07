@@ -4882,6 +4882,40 @@ main.stats-hidden .driver-app-strip {
   font-size: 13px;
 }
 
+.driver-app-row {
+  display: flex;
+  align-items: stretch;
+}
+
+.driver-app-row .driver-app-summary {
+  flex: 1;
+  min-width: 0;
+}
+
+.driver-app-summary-static {
+  cursor: default;
+}
+
+.driver-app-share {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: 0;
+  border-inline-start: 1px solid var(--ent-line);
+  background: transparent;
+  color: var(--ent-text);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.driver-app-share:hover {
+  background: var(--ent-canvas);
+}
+
 .driver-app-chevron {
   margin-inline-start: auto;
   transition: transform .15s;

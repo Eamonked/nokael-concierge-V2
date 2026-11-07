@@ -33,6 +33,7 @@ const LEAD_SOURCE_LABELS: Record<string, string> = {
   referral: 'referral', saw_vehicle: 'seeing a driver', repeat: 'used us before', other: 'other',
 };
 import { useLinkViews, VIEWING_NOW_MS, type LinkView } from '../../../lib/dispatch';
+import { COC_URL, DRIVER_APP_DOWNLOAD_URL } from '../../../lib/driverApp';
 
 /* ------------------------------------------------------------------ */
 /* Everything dispatch needs to run a single job beyond the headline   */
@@ -41,15 +42,15 @@ import { useLinkViews, VIEWING_NOW_MS, type LinkView } from '../../../lib/dispat
 /* the cancel dialog. Rendered under the route in JobDetailPanel.      */
 /* ------------------------------------------------------------------ */
 
-const COC_DOMAIN = (import.meta.env.VITE_COC_URL || 'https://nokael.ae').replace(/\/$/, '');
+const COC_DOMAIN = COC_URL;
 const JUMP_TARGETS: JobStatus[] = ['pending', 'client_pickup', 'driver_pickup', 'driver_delivery', 'completed', 'cancelled'];
 const CLOSED: JobStatus[] = ['completed', 'cancelled', 'returned'];
 // Mirrors confirm_job_step's max-attempts constant (5).
 const MAX_OTP_ATTEMPTS = 5;
 
 export const JOB_CONTROLS_ID = 'job-dispatch-controls';
-/** Where drivers without the Android app sign in (served by the Confirmation Portal). */
-const DRIVER_APP_URL = `${COC_DOMAIN}/driver-app/`;
+/** The driver's link: the Android app download page (it links the web app for iPhones). */
+const DRIVER_APP_URL = DRIVER_APP_DOWNLOAD_URL;
 
 const VEHICLE_LABELS: Record<string, string> = {
   motorbike: 'Motorbike', cargo_van: 'Cargo van', flatbed_3t: '3-ton flatbed', refrigerated: 'Refrigerated',
@@ -127,6 +128,9 @@ export function JobOperations({
     }
   };
 
+  const copyTitle = (id: string) => id === 'driver'
+    ? t('jobDetailModal.share.copyDriverApp', { defaultValue: 'Copy driver app link' })
+    : t('jobDetailModal.verification.copyLinkTitle');
   const copy = (key: string, text: string) => {
     navigator.clipboard?.writeText(text).catch(() => {});
     setCopied(key);
@@ -199,7 +203,7 @@ export function JobOperations({
         `Item: ${job.item_type} | Urgency: ${job.urgency}`,
         `Sender: ${job.sender_name} | Recipient: ${job.recipient_name}`,
         '',
-        `Open the Nokael Driver app and go online to start it. No app? Sign in here: ${DRIVER_APP_URL}`,
+        `Open the Nokael Driver app and go online to start it. No app yet? Get it here: ${DRIVER_APP_URL}`,
         driverOnly ? 'The sender and recipient each give you their code at the hand-off.' : '',
       ].join('\n').trim();
     }
@@ -276,7 +280,7 @@ export function JobOperations({
 
   const recipients = [
     { id: 'sender' as const, role: t('jobDetailModal.share.sender', { defaultValue: 'Sender' }), name: job.sender_name, phone: job.sender_phone, sent: job.sender_notified, url: trackUrl('sender'), openUrl: staffUrl(trackUrl('sender')), seen: seenLabel(views.sender), notOpened: job.sender_notified, openLabel: t('jobDetailModal.tracking.open', { defaultValue: 'Open tracking page' }) },
-    { id: 'driver' as const, role: t('jobDetailModal.share.driver', { defaultValue: 'Driver' }), name: job.driver?.full_name || '', phone: job.driver?.phone || '', sent: job.driver_notified, url: DRIVER_APP_URL, openUrl: DRIVER_APP_URL, seen: null, notOpened: false, openLabel: t('jobDetailModal.share.openDriverApp', { defaultValue: 'Open driver web app' }) },
+    { id: 'driver' as const, role: t('jobDetailModal.share.driver', { defaultValue: 'Driver' }), name: job.driver?.full_name || '', phone: job.driver?.phone || '', sent: job.driver_notified, url: DRIVER_APP_URL, openUrl: DRIVER_APP_URL, seen: null, notOpened: false, openLabel: t('jobDetailModal.share.openDriverApp', { defaultValue: 'Open app download page' }) },
     { id: 'recipient' as const, role: t('jobDetailModal.share.recipient', { defaultValue: 'Recipient' }), name: job.recipient_name, phone: job.recipient_phone, sent: job.recipient_notified, url: trackUrl('recipient'), openUrl: staffUrl(trackUrl('recipient')), seen: seenLabel(views.recipient), notOpened: job.recipient_notified, openLabel: t('jobDetailModal.tracking.open', { defaultValue: 'Open tracking page' }) },
   ];
 
@@ -544,7 +548,7 @@ export function JobOperations({
                 <div className="jo-share-actions">
                   {r.url && (
                     <>
-                      <button type="button" className="jo-icon" onClick={() => copy(`link-${r.id}`, r.url)} aria-label={t('jobDetailModal.verification.copyLinkTitle')} title={t('jobDetailModal.verification.copyLinkTitle')}>
+                      <button type="button" className="jo-icon" onClick={() => copy(`link-${r.id}`, r.url)} aria-label={copyTitle(r.id)} title={copyTitle(r.id)}>
                         {copied === `link-${r.id}` ? <Check /> : <Copy />}
                       </button>
                       <a className="jo-icon" href={r.openUrl} target="_blank" rel="noopener noreferrer" aria-label={r.openLabel} title={r.openLabel}>

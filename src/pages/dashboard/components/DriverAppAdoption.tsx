@@ -1,7 +1,8 @@
 import React from 'react';
-import { Smartphone, ChevronDown } from 'lucide-react';
+import { Smartphone, ChevronDown, Share2, Check } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '../../../lib/supabase';
+import { DRIVER_APP_DOWNLOAD_URL, shareDriverApp } from '../../../lib/driverApp';
 
 type Phone = {
   driver_id: string;
@@ -35,7 +36,29 @@ export function DriverAppAdoption({ orgId }: { orgId?: string | null }) {
     });
   }, [orgId]);
 
-  if (!stats) return null;
+  const [shared, setShared] = React.useState<string | null>(null);
+  const share = async () => {
+    const r = await shareDriverApp();
+    setShared(r === 'copied' ? 'Link copied' : r === 'shared' ? 'Shared' : null);
+    if (r !== 'failed') window.setTimeout(() => setShared(null), 1800);
+  };
+  const shareButton = (
+    <button type="button" className="driver-app-share" onClick={share} title={DRIVER_APP_DOWNLOAD_URL}>
+      {shared ? <Check className="w-4 h-4" aria-hidden="true" /> : <Share2 className="w-4 h-4" aria-hidden="true" />}
+      {shared || 'Share driver app'}
+    </button>
+  );
+
+  if (!stats) {
+    return (
+      <div className="driver-app-strip">
+        <div className="driver-app-row">
+          <span className="driver-app-summary driver-app-summary-static"><Smartphone className="w-4 h-4" aria-hidden="true" /><b>Driver app</b></span>
+          {shareButton}
+        </div>
+      </div>
+    );
+  }
   const android = stats.phones.filter(p => p.platform === 'android');
   const web = stats.phones.filter(p => p.platform === 'web');
   const latest = stats.latest_download_version;
@@ -47,6 +70,7 @@ export function DriverAppAdoption({ orgId }: { orgId?: string | null }) {
 
   return (
     <div className="driver-app-strip">
+      <div className="driver-app-row">
       <button className="driver-app-summary" onClick={() => setOpen(o => !o)} aria-expanded={open}>
         <Smartphone className="w-4 h-4" aria-hidden="true" />
         <b>Driver app</b>
@@ -56,6 +80,8 @@ export function DriverAppAdoption({ orgId }: { orgId?: string | null }) {
         <span>{web.length} web</span>
         <ChevronDown className={`w-4 h-4 driver-app-chevron${open ? ' open' : ''}`} aria-hidden="true" />
       </button>
+      {shareButton}
+      </div>
       {open && (
         <div className="driver-app-table" role="table">
           <div role="row" className="driver-app-head">
